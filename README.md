@@ -1,3 +1,7 @@
+# ClubHub: Centralized Student Club Platform for Malaysian Universities
+
+## Problem Statement
+
 There is a tendency for student clubs not limited to MMU only but rather generalisable across different institutions to manage and market their clubs exclusively on Instagram, which is overwhelmingly tuned and suited for images and certainly not text.
 
 Many events like registrations for competitions, forums tend to be embedded in a QR code, and the links put in the caption are not clickable. Users have to go through the frustration of taking a screenshot, open in gallery and then from there open the link after OCR parsed the qr code, which is counter-intuitive.
