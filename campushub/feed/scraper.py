@@ -18,19 +18,21 @@ def extract_link(text):
     url_pattern = r'https?://[^\s<>"\']+'
     links = re.findall(url_pattern, text)
     # not all posts are guaranteed to have links, should use a dictionary to store the post and its associated links
+    return links if links else None
 
 output = read(10)
 
 posts_links = {}
 for posts in output:
-    id = posts['id']
+    url = posts['url']
     caption = posts['caption']
+    print(caption)
 
     try:
         links = extract_link(caption)
-        posts_links[id] = links if links else None
+        posts_links[url] = links
     except Exception as e:
-        posts_links[id] = None
+        posts_links[url] = None
 
 print(posts_links)
     
