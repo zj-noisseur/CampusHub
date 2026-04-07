@@ -1,32 +1,36 @@
 import io
 from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import landscape, A4
+from reportlab.lib.colors import HexColor
+from PIL import Image
 
-def generate_certificate_pdf(background_path, student_name, center_x, center_y, font_size=40, font_color="#000000"):
-    # 1. Create a "virtual file" in RAM 
+def generate_certificate_pdf(student_name, background_path, custom_x, custom_y, font_size=24, font_color="#000000"):
+    # 1. Create a "virtual file" in memory
     buffer = io.BytesIO()
     
-    # 2. Set up an exact A4 Landscape canvas (841.89 x 595.27 points)
-    width, height = landscape(A4)
-    p = canvas.Canvas(buffer, pagesize=(width, height))
+    # 2. Get the ACTUAL width and height of the uploaded image
+    with Image.open(background_path) as img:
+        img_width, img_height = img.size
     
-    # 3. Draw the background image ONLY if one is provided
-    if background_path:
-        p.drawImage(background_path, 0, 0, width=width, height=height)
+    # 3. Set the canvas to match the exact image size
+    p = canvas.Canvas(buffer, pagesize=(img_width, img_height))
     
-    # 4. Configure the font and color
+    # 4. Stamp the background
+    p.drawImage(background_path, 0, 0, width=img_width, height=img_height)
+    
+    # 5. Apply the custom font size and color from the database!
     p.setFont("Helvetica-Bold", font_size)
+    p.setFillColor(HexColor(font_color)) # This reads hex codes like #FF0000
     
-    # 5. THE MATH: Calculate exactly where to start writing so the name is centered
+    # 6. Center the text EXACTLY on the X coordinate, using the new font size
     text_width = p.stringWidth(student_name, "Helvetica-Bold", font_size)
-    start_x = center_x - (text_width / 2)
+    start_x = custom_x - (text_width / 2)
     
-    # 6. Draw the text onto the canvas
-    p.drawString(start_x, center_y, student_name)
+    # 7. Draw the text
+    p.drawString(start_x, custom_y, student_name)
     
-    # 7. Save and close the virtual file
+    # 8. Save and rewind the file
     p.showPage()
     p.save()
-    buffer.seek(0) # Rewind the file so Django can read it from the top
+    buffer.seek(0)
     
     return buffer

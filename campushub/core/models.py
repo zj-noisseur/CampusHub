@@ -202,19 +202,6 @@ class Attendance(models.Model):
 """
 9.
 """
-class CertificateTemplate(models.Model):
-    club = models.ForeignKey(Club, on_delete=models.CASCADE)
-
-    # TO NOTE: the endpoint to be uploaded to has to be reviewed and pending changes, am considering to assign this to the dashboard enpoint instead
-    template_image = models.ImageField(upload_to='certificates/templates')
-
-    # TO NOTE: not really sure what these are meant for yet
-    name_x_pos = models.IntegerField(default=500)
-    name_y_pos = models.IntegerField(default=500)
-
-
-
-
 
 class PreRegisteredAttendee(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
