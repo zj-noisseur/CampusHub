@@ -1,7 +1,7 @@
 import zipfile
 import csv
 import io
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from django.http import FileResponse, HttpResponse
 from django.db.models import Count
 from .utils import generate_certificate_pdf
@@ -111,3 +111,28 @@ def student_dashboard(request):
     my_attendances = Attendance.objects.filter(user=request.user)
     
     return render(request, 'core/student_dashboard.html', {'attendances': my_attendances})
+
+@login_required
+def download_my_certificate(request, attendance_id):
+    attendance = get_object_or_404(Attendance, id=attendance_id, user=request.user)
+    event = attendance.event
+    
+    template = EventCertificate.objects.filter(event=event).first()
+    if not template:
+        return HttpResponse(f"No certificate template uploaded for {event.title} yet!")
+        
+    student_name = attendance.guest_name if attendance.guest_name else request.user.username
+        
+    pdf_buffer = generate_certificate_pdf(
+        student_name=student_name,
+        background_path=template.template_image.path,
+        custom_x=template.name_center_x,
+        custom_y=template.name_center_y,
+        font_size=template.font_size,
+        font_color=template.font_color
+    )
+    
+    pdf_buffer.seek(0)
+    filename = f"{student_name}_{event.title}_Certificate.pdf"
+    
+    return FileResponse(pdf_buffer, as_attachment=True, filename=filename)
