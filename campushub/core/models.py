@@ -190,15 +190,6 @@ class Event(models.Model):
 """
 8. 
 """
-class Attendance(models.Model):
-    event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name='attendance_records')
-    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
-
-    # TO NOTE whether to drop or implement this at all as this is assuming the event is public and accepts walk-ins
-    guest_name = models.CharField(max_length=255, blank=True)
-    
-    scanned_at = models.DateTimeField(auto_now_add=True)
-
 """
 9.
 """

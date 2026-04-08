@@ -1,34 +1,113 @@
+import zipfile
+import csv
+import io
 from django.shortcuts import render
 from django.http import FileResponse, HttpResponse
+from django.db.models import Count
 from .utils import generate_certificate_pdf
-from .models import EventCertificate
+from .models import Event, EventCertificate, Attendance 
+from django.contrib.auth.decorators import login_required
 
-def test_certificate(request):
-    # 1. Ask the database for the first template it finds (the one you just uploaded!)
-    template = EventCertificate.objects.first()
+# --- 1. THE NEW DASHBOARD VIEW ---
+def event_dashboard(request):
+    # Ask the database for all events, and count how many attendees each one has!
+    events = Event.objects.annotate(attendee_count=Count('attendances'))
     
-    # Safety check in case the database is empty
+    # Send this data to a new HTML page
+    return render(request, 'core/dashboard.html', {'events': events})
+
+
+def download_certificates(request, event_id):
+    # Find the specific event they clicked on
+    event = Event.objects.get(id=event_id)
+    
+    # Find the template for THAT specific event
+    template = EventCertificate.objects.filter(event=event).first()
     if not template:
-        return HttpResponse("No template found! Go upload one in the Admin panel.")
-        
-    # 2. Get the physical file path of the image
-    # Note: ReportLab needs the local computer path (.path), not the web URL
-    # WARNING: If your field is called something else (like 'background'), change 'template.image.path' below!
-    bg_path = template.template_image.path
+        return HttpResponse(f"No certificate template uploaded for {event.title} yet!")
     
-    # read the custom x and y
-    target_x = template.name_center_x
-    target_y = template.name_center_y
-    size = template.font_size
-    color = template.font_color
+    attendees = Attendance.objects.filter(event=event)
+    if not attendees.exists():
+        return HttpResponse("No attendees found for this event!")
 
-    # 3. Pass BOTH the name and the background path to the engine
-    pdf_buffer = generate_certificate_pdf(
-        student_name="Zi Feng", 
-        background_path=bg_path,
-        custom_x=target_x,
-        custom_y=target_y
-    )
+    zip_buffer = io.BytesIO()
     
-    # 4. Send the final stamped PDF back to the web browser
-    return FileResponse(pdf_buffer, as_attachment=False, filename='test_certificate.pdf')
+    with zipfile.ZipFile(zip_buffer, 'w') as zip_file:
+        for person in attendees:
+            # 1. Prioritize the custom guest name
+            if person.guest_name:
+                student_name = person.guest_name
+            # 2. Fall back to registered user
+            elif person.user:
+                student_name = person.user.username
+            # 3. Safety fallback
+            else:
+                student_name = "Unknown_Attendee"
+            
+            pdf_buffer = generate_certificate_pdf(
+                student_name=student_name, 
+                background_path=template.template_image.path,
+                custom_x=template.name_center_x,
+                custom_y=template.name_center_y,
+                font_size=template.font_size,
+                font_color=template.font_color
+            )
+            
+            filename = f"{student_name}_Certificate.pdf"
+            zip_file.writestr(filename, pdf_buffer.getvalue())
+
+    zip_buffer.seek(0)
+    zip_filename = f"{event.title}_Certificates.zip"
+    return FileResponse(zip_buffer, as_attachment=True, filename=zip_filename)
+
+def import_attendees_csv(request, event_id):
+    # 1. Grab the event we are uploading to
+    event = Event.objects.get(id=event_id)
+
+    if request.method == 'POST':
+        # 2. Get the uploaded file
+        csv_file = request.FILES.get('csv_file')
+        
+        # Safety check: Did they actually upload a CSV?
+        if not csv_file or not csv_file.name.endswith('.csv'):
+            return HttpResponse("Error: Please upload a .csv file.")
+
+        # 3. Read the file data
+        file_data = csv_file.read().decode('utf-8').splitlines()
+        reader = csv.reader(file_data)
+        
+        # Skip the header row (e.g., "Timestamp, Name, Email")
+        next(reader, None)
+
+        # 4. Loop through the rows and create attendees!
+        for row in reader:
+            # Assuming Column A (row[0]) is Name and Column B (row[1]) is Email
+            if len(row) >= 2:
+                guest_name = row[0].strip()
+                guest_email = row[1].strip()
+                
+                # Create the record in the database
+                Attendance.objects.create(
+                    event=event,
+                    guest_name=guest_name,
+                    guest_email=guest_email
+                )
+                
+        return HttpResponse(f"Success! Imported attendees into {event.title}.")
+
+    # If they haven't uploaded anything yet, show them the upload form
+    return render(request, 'core/upload_csv.html', {'event': event})
+
+
+def club_admin_dashboard(request):
+    # Grab all events (Later, you can filter this so they only see their own club's events!)
+    events = Event.objects.all()
+    # Notice we renamed the HTML file it points to!
+    return render(request, 'core/club_admin_dashboard.html', {'events': events})
+
+@login_required # Forces them to log in to see their personal certificates
+def student_dashboard(request):
+    # Find every event this specific user attended
+    my_attendances = Attendance.objects.filter(user=request.user)
+    
+    return render(request, 'core/student_dashboard.html', {'attendances': my_attendances})
