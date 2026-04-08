@@ -7,13 +7,6 @@ from datetime import timedelta
 from django.core.exceptions import ValidationError
 from django.db.models import Q
 
-# from campushub.feed.models import Institution
-# from campushub.feed.models import User
-# from campushub.feed.models import Club
-# from campushub.feed.models import Committee
-# from campushub.feed.models import Post
-# from campushub.feed.models import Event
-
 """
 1.
 """
