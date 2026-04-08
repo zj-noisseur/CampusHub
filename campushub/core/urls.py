@@ -1,6 +1,7 @@
 from django.urls import path
 from . import views
 
+app_name = 'core'
 urlpatterns = [
     #dashboard list
     path('dashboard/admin/', views.club_admin_dashboard, name='club_admin_dashboard'),
