@@ -7,6 +7,8 @@ from datetime import timedelta
 from django.core.exceptions import ValidationError
 from django.db.models import Q
 
+from core import settings
+
 """
 1.
 """
@@ -43,7 +45,7 @@ class Club(models.Model):
 
     name = models.CharField(max_length=255)
 
-    ig_hanlde = models.CharField(max_length=255)
+    ig_handle = models.CharField(max_length=255, null=True, blank=True)
 
     valid_till = models.DateTimeField(null=True, blank=True)
 
@@ -71,7 +73,7 @@ class Club(models.Model):
 
 
 """
-4.
+3.
 """
 class Committee(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -83,44 +85,89 @@ class Committee(models.Model):
     # ideally this should be optional and not strictly necessary but merely informational for displaying the organisational chart only
     designation = models.CharField(max_length=100)
 
-    # the first person initiating the claiming process will be assigned true for is_root 
+    # no longer set to only one person able to be the root user
+    # all is_active members are able to access the dashboard
+    # is_root allows to add is_active members (ie committee) and toggle is_root status (if at least one remaining) and also is_active status to off 
     is_root = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
 
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(
-                fields=['club'],
-                condition=Q(is_root=True),
-                name='unique_root_per_club'
-            )
-        ]
-    # when the club is inactive, do all members get locked out of the entire dashboard
+
     @property
-    def has_admin_access(self):
-        return self.is_active and self.club.is_active
+    def has_dashboard_access(self):
+        """Allows login to the portal as long as they are an active member."""
+        return self.is_active
 
-    def trasaction_root_privileges(self, successor_member):
-        if not self.is_root:
-            raise ValidationError("Only the admin with root access can initiate a handover")
+    @property
+    def has_management_powers(self):
+        """Allows managing other members. Must be both a Root and Active."""
+        return self.is_active and self.is_root
 
-        with transaction.atomic():
-            self.is_root = False
-            self.save()
+    @property
+    def role_label(self):
+        """Convenience property for the Org Chart UI."""
+        if not self.is_active:
+            return f"Past {self.designation}"
+        return self.designation if self.designation else ("Root Admin" if self.is_root else "Member")
 
-            successor_member.is_root = True
-            successor_member.save()
+    # --- Business Logic Methods ---
+
+    def _verify_leadership_safety(self):
+        """
+        Internal safety check: Ensures a club always has at least one 
+        active Root admin before a change is committed.
+        """
+        active_roots = self.club.committee.filter(
+            is_root=True, 
+            is_active=True
+        ).count()
+        if active_roots <= 1:
+            raise ValidationError(
+                "Critical Error: You cannot demote or deactivate the last remaining Root admin. "
+                "Promote another member first."
+            )
+
+    def toggle_active_status(self, requester):
+        """
+        Allows a Root admin to 'deactivate' a member (e.g., Graduation).
+        This keeps the record for the Org Chart but revokes dashboard access.
+        """
+        if not requester.has_management_powers:
+            raise ValidationError("Permission Denied: Only active Root admins can manage members.")
+        
+        # Guardrail: Prevents the last active Root user from setting himself or herself to inactive, without a remaning root user in place, no non-root user can promote themselves to possess root access
+        if self.is_root and self.is_active:
+            self._verify_leadership_safety()
+
+        self.is_active = not self.is_active
+        self.save()
+
+    def toggle_root_status(self, requester):
+        """Promote or demote members between Root and Standard levels."""
+        if not requester.has_management_powers:
+            raise ValidationError("Permission Denied: Only active Root admins can change roles.")
+
+        # Guardrail: Prevent demoting the last active Root
+        if self.is_root and self.is_active:
+            self._verify_leadership_safety()
+
+        self.is_root = not self.is_root
+        self.save()
     
 
     
 
 """
-5.
+4.
 """
 class ClubClaim(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
 
     club = models.ForeignKey(Club, on_delete=models.CASCADE)
+
+    claimer_designation = models.CharField(
+        max_length=100,
+        default='Club Admin'
+    )
 
     proof_document = models.FileField(upload_to='claims/proof')
 
@@ -139,7 +186,7 @@ class ClubClaim(models.Model):
     def approve(self):
         self.status = 'Approved'
         self.save()
-
+        # the idea is to make sure the committee keep their club profile active 
         self.club.valid_till = timezone.now() + timedelta(days=365)
         self.club.save()
 
@@ -147,11 +194,10 @@ class ClubClaim(models.Model):
             user=self.user,
             club=self.club,
             is_root=True,
-            # TO NOTE: this is only for the first person performing the action
             designation=self.claimer_designation
         )
 """
-6.
+5.
 """
 class Post(models.Model):
     club = models.ForeignKey(Club, on_delete=models.CASCADE, related_name='posts')
@@ -162,12 +208,14 @@ class Post(models.Model):
     short_code = models.CharField(max_length=100)
 
     caption = models.TextField(blank=True)
+    image_url = models.URLField(max_length=500, blank=True) # Remote IG link
+    local_image = models.ImageField(upload_to='posts/ig/', null=True, blank=True) # Your local copy
 
     # TO NOTE: this is ambiguous. Timestamp should ideally and strictly be the timestamp when the post was originally posted on Instagram 
     timestamp = models.DateTimeField()
 
 """
-7. this is the model that keeps track of all the events that is associated with a post
+6. this is the model that keeps track of all the events that is associated with a post
 """
 class Event(models.Model):
     # one-to-one relation to prevent duplicates, so that all events can be associated to just one post only, some clubs might post in duplicates for promotional purposes 
@@ -180,26 +228,86 @@ class Event(models.Model):
 
 
 """
-8. 
+7. 
 """
 class Attendance(models.Model):
-    event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name='attendance_records')
-    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
-
-    # TO NOTE whether to drop or implement this at all as this is assuming the event is public and accepts walk-ins
-    guest_name = models.CharField(max_length=255, blank=True)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    event = models.ForeignKey('Event', on_delete=models.CASCADE, related_name='attendances')
     
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    # Guest details for non-registered users
+    guest_name = models.CharField(max_length=255, null=True, blank=True)
+    guest_email = models.EmailField(max_length=255, null=True, blank=True)
+    guest_phone = models.CharField(max_length=50, null=True, blank=True)
+    
+    # Attendance metadata
     scanned_at = models.DateTimeField(auto_now_add=True)
+    certificate_sent = models.BooleanField(default=False)
+
+    def __str__(self):
+        attendee_name = self.user.username if self.user else self.guest_name
+        return f"{attendee_name} - {self.event.title}"
+
 
 """
-9.
+8. 
 """
-class CertificateTemplate(models.Model):
-    club = models.ForeignKey(Club, on_delete=models.CASCADE)
+class Membership(models.Model):
+    STATUS_CHOICES = [
+        ('PENDING', 'Pending'),
+        ('ACTIVE', 'Active'),
+        ('REJECTED', 'Rejected'),
+    ]
+    
+    TYPE_CHOICES = [
+        ('UNLIMITED', 'Unlimited (Paid)'),
+        ('LIMITED', 'Limited (Interest)'),
+    ]
 
-    # TO NOTE: the endpoint to be uploaded to has to be reviewed and pending changes, am considering to assign this to the dashboard enpoint instead
-    template_image = models.ImageField(upload_to='certificates/templates')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='memberships')
+    club = models.ForeignKey(Club, on_delete=models.CASCADE, related_name='members')
+    membership_type = models.CharField(max_length=15, choices=TYPE_CHOICES)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='PENDING')
+    payment_proof = models.ImageField(upload_to='payment_proofs/', blank=True, null=True)
+    joined_at = models.DateTimeField(auto_now_add=True)
 
-    # TO NOTE: not really sure what these are meant for yet
-    name_x_pos = models.IntegerField(default=500)
-    name_y_pos = models.IntegerField(default=500)
+    def __str__(self):
+        return f"{self.user.student_id} - {self.club.name} ({self.status})"
+
+"""
+9. 
+"""    
+class PreRegisteredAttendee(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    event = models.ForeignKey('Event', on_delete=models.CASCADE, related_name='pre_registered')
+    
+    email = models.EmailField(max_length=255)
+    name = models.CharField(max_length=255, null=True, blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('event', 'email')
+
+    def __str__(self):
+        return f"{self.name or self.email} - {self.event.title}"
+
+"""
+10.
+"""
+class EventCertificate(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    event = models.ForeignKey('Event', on_delete=models.CASCADE, related_name='certificates')
+    
+    template_image = models.ImageField(upload_to='certificate_templates/')
+    
+    name_center_x = models.IntegerField()
+    name_center_y = models.IntegerField()
+    font_size = models.IntegerField(default=24)
+    font_color = models.CharField(max_length=7, default='#000000') 
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Certificate Template for {self.event.title}"
