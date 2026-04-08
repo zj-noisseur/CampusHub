@@ -95,7 +95,7 @@ class Committee(models.Model):
                 name='unique_root_per_club'
             )
         ]
-
+    # when the club is inactive, do all members get locked out of the entire dashboard
     @property
     def has_admin_access(self):
         return self.is_active and self.club.is_active
