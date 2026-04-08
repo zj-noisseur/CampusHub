@@ -1,2 +1,2 @@
 # Ignore environment files
-campushub/core/.env
+/campushub/core/.env
