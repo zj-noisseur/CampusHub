@@ -25,14 +25,36 @@ class User(AbstractUser):
     
     def __str__(self):
         return f"{self.username} ({self.student_id})"
-    
+
 """
-2.
+2.A
+"""
+class State(models.Model):
+    name = models.CharField(max_length=255, unique=True)
+    flag = models.ImageField(
+        upload_to='states/',
+        blank=True,
+        null=True     
+    )
+
+    def __str__(self):
+        return self.name
+
+"""
+2.B
 """
 class Institution(models.Model):
     university_name = models.CharField(max_length=255, unique=True)
 
-    state = models.CharField(max_length=255)
+    state = models.ForeignKey(State, on_delete=models.PROTECT)
+
+    logo = models.ImageField(
+        upload_to='institutions/',
+        blank=True,
+        null=True
+    )
+
+    
 
     def __str__(self):
         return self.university_name
@@ -169,7 +191,7 @@ class ClubClaim(models.Model):
         default='Club Admin'
     )
 
-    proof_document = models.FileField(upload_to='claims/proof')
+    proof_document = models.FileField(upload_to='clubclaims/')
 
     status = models.CharField(
         max_length=20,
@@ -209,7 +231,7 @@ class Post(models.Model):
 
     caption = models.TextField(blank=True)
     image_url = models.URLField(max_length=500, blank=True) # Remote IG link
-    local_image = models.ImageField(upload_to='posts/ig/', null=True, blank=True) # Your local copy
+    local_image = models.ImageField(upload_to='posts/', null=True, blank=True) # Your local copy
 
     # TO NOTE: this is ambiguous. Timestamp should ideally and strictly be the timestamp when the post was originally posted on Instagram 
     timestamp = models.DateTimeField()
@@ -269,7 +291,7 @@ class Membership(models.Model):
     club = models.ForeignKey(Club, on_delete=models.CASCADE, related_name='members')
     membership_type = models.CharField(max_length=15, choices=TYPE_CHOICES)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='PENDING')
-    payment_proof = models.ImageField(upload_to='payment_proofs/', blank=True, null=True)
+    payment_proof = models.ImageField(upload_to='memberships/', blank=True, null=True)
     joined_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Clubs - {{university.university_name}} {% endblock %}</title>
+</head>
+<body>
+    <h1>Clubs at {{ university.university_name }}</h1>
+    <ul>
+        {% for club in clubs %}
+            <li>
+                {{club.name}}
+            </li>
+            {% empty %}
+            <li>
+                No clubs found for this university yet.
+            </li>
+        {% endfor %}
+    </ul>
+</body>
+</html>

@@ -1,4 +1,3 @@
--- Active: 1775571487354@@127.0.0.1@3306
 -- 1. Insert Institutions
 INSERT INTO institution (university_name, state) 
 VALUES ('Multimedia University Melaka', 'Melaka');
@@ -6,10 +5,8 @@ VALUES ('Multimedia University Melaka', 'Melaka');
 INSERT INTO institution (university_name, state) 
 VALUES ('Multimedia University Cyberjaya', 'Selangor');
 
--- 2. Insert Clubs (Melaka = institution_id 1, Cyberjaya = institution_id 2)
--- All valid_till set to NULL as requested (will be populated only after successful ClubClaim approval)
-
--- Melaka Sports & Martial Arts Clubs
+-- 2. Insert Clubs
+-- Melaka Sports & Martial Arts
 INSERT INTO club (institution_id, name, ig_handle, valid_till) VALUES (1, 'Aerobic Club', NULL, NULL);
 INSERT INTO club (institution_id, name, ig_handle, valid_till) VALUES (1, 'Archery Club', NULL, NULL);
 INSERT INTO club (institution_id, name, ig_handle, valid_till) VALUES (1, 'Badminton Club', NULL, NULL);
@@ -30,7 +27,6 @@ INSERT INTO club (institution_id, name, ig_handle, valid_till) VALUES (1, 'Volle
 INSERT INTO club (institution_id, name, ig_handle, valid_till) VALUES (1, 'Water Sports Club', NULL, NULL);
 INSERT INTO club (institution_id, name, ig_handle, valid_till) VALUES (1, 'Softball Club', NULL, NULL);
 INSERT INTO club (institution_id, name, ig_handle, valid_till) VALUES (1, 'E-Games Club', NULL, NULL);
-
 INSERT INTO club (institution_id, name, ig_handle, valid_till) VALUES (1, 'Aikido Club', '@mmu.aikido', NULL);
 INSERT INTO club (institution_id, name, ig_handle, valid_till) VALUES (1, 'Judo Club', '@mmu_judo_club', NULL);
 INSERT INTO club (institution_id, name, ig_handle, valid_till) VALUES (1, 'Karate Club', NULL, NULL);
@@ -39,7 +35,7 @@ INSERT INTO club (institution_id, name, ig_handle, valid_till) VALUES (1, 'Taekw
 INSERT INTO club (institution_id, name, ig_handle, valid_till) VALUES (1, 'Wing Chun Club', '@wingchundoclubmmu', NULL);
 INSERT INTO club (institution_id, name, ig_handle, valid_till) VALUES (1, 'Wushu Club', NULL, NULL);
 
--- Melaka Non-sports Clubs & Societies
+-- Melaka Non-sports
 INSERT INTO club (institution_id, name, ig_handle, valid_till) VALUES (1, 'Accounting Club', '@mmuac.malacca', NULL);
 INSERT INTO club (institution_id, name, ig_handle, valid_till) VALUES (1, 'Arabic Culture Society', NULL, NULL);
 INSERT INTO club (institution_id, name, ig_handle, valid_till) VALUES (1, 'Animals And Pets Society', NULL, NULL);
@@ -67,27 +63,25 @@ INSERT INTO club (institution_id, name, ig_handle, valid_till) VALUES (1, 'Multi
 INSERT INTO club (institution_id, name, ig_handle, valid_till) VALUES (1, 'Robotics Club', '@mmuroboticsclub', NULL);
 INSERT INTO club (institution_id, name, ig_handle, valid_till) VALUES (1, 'Sekretariat Rakan Muda', NULL, NULL);
 INSERT INTO club (institution_id, name, ig_handle, valid_till) VALUES (1, 'St. John Ambulance', NULL, NULL);
-INSERT INTO club (institution_id, name, ig_handle, valid_till) VALUES (1, 'Voice''s Debating Society', NULL, NULL);
+INSERT INTO club (institution_id, name, ig_handle, valid_till) VALUES (1, "Voice's Debating Society", NULL, NULL);
 INSERT INTO club (institution_id, name, ig_handle, valid_till) VALUES (1, 'Student College Committee', NULL, NULL);
-INSERT INTO club (institution_id, name, ig_handle, valid_till) VALUES (1, 'Student Representative Council', NULL, NULL);
+INSERT INTO club (institution_id, name, ig_handle, valid_till) VALUES (1, 'Student Representative Council', '@srcmmu_melaka', NULL);
 
--- Cyberjaya Sports, Martial Arts & Non-sports Clubs
+-- Cyberjaya Sports & Societies
 INSERT INTO club (institution_id, name, ig_handle, valid_till) VALUES (2, 'Rugby Club', '@mmuhornbillsreds', NULL);
 INSERT INTO club (institution_id, name, ig_handle, valid_till) VALUES (2, 'Basketball Club', NULL, NULL);
-INSERT INTO club (institution_id, name, ig_handle, valid_till) VALUES (2, 'Netball Club', NULL, NULL);
+INSERT INTO club (institution_id, name, ig_handle, valid_till) VALUES (2, 'Netball Club', '@mmunetbees', NULL);
 INSERT INTO club (institution_id, name, ig_handle, valid_till) VALUES (2, 'Badminton Club', NULL, NULL);
 INSERT INTO club (institution_id, name, ig_handle, valid_till) VALUES (2, 'Volleyball Club', NULL, NULL);
 INSERT INTO club (institution_id, name, ig_handle, valid_till) VALUES (2, 'OARS', NULL, NULL);
 INSERT INTO club (institution_id, name, ig_handle, valid_till) VALUES (2, 'Swimming Club', NULL, NULL);
 INSERT INTO club (institution_id, name, ig_handle, valid_till) VALUES (2, 'Chess Club', NULL, NULL);
-INSERT INTO club (institution_id, name, ig_handle, valid_till) VALUES (2, 'Soccer Club', NULL, NULL);
+INSERT INTO club (institution_id, name, ig_handle, valid_till) VALUES (2, 'Soccer Club', '@mmufccyber', NULL);
 INSERT INTO club (institution_id, name, ig_handle, valid_till) VALUES (2, 'Archery Club', NULL, NULL);
 INSERT INTO club (institution_id, name, ig_handle, valid_till) VALUES (2, 'Water Sports Club', NULL, NULL);
 INSERT INTO club (institution_id, name, ig_handle, valid_till) VALUES (2, 'MMU E-Sport Club', NULL, NULL);
-
 INSERT INTO club (institution_id, name, ig_handle, valid_till) VALUES (2, 'Silat Cekak Club', NULL, NULL);
 INSERT INTO club (institution_id, name, ig_handle, valid_till) VALUES (2, 'Aikido Club', NULL, NULL);
-
 INSERT INTO club (institution_id, name, ig_handle, valid_till) VALUES (2, 'Buddhist Society Club', NULL, NULL);
 INSERT INTO club (institution_id, name, ig_handle, valid_till) VALUES (2, 'Chinese Language Society', NULL, NULL);
 INSERT INTO club (institution_id, name, ig_handle, valid_till) VALUES (2, 'Christian Society', NULL, NULL);
@@ -116,4 +110,4 @@ INSERT INTO club (institution_id, name, ig_handle, valid_till) VALUES (2, 'Usrah
 INSERT INTO club (institution_id, name, ig_handle, valid_till) VALUES (2, 'Voices Debating Society', NULL, NULL);
 INSERT INTO club (institution_id, name, ig_handle, valid_till) VALUES (2, 'Enactus MMU', NULL, NULL);
 INSERT INTO club (institution_id, name, ig_handle, valid_till) VALUES (2, 'Student College Committee', NULL, NULL);
-INSERT INTO club (institution_id, name, ig_handle, valid_till) VALUES (2, 'Student Representative Council', NULL, NULL);
+INSERT INTO club (institution_id, name, ig_handle, valid_till) VALUES (2, 'Student Representative Council', '@srcmmu_cyber', NULL);

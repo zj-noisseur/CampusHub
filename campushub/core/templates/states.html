@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Select Institution{% endblock %}</title>
+</head>
+<body>
+    {% for state in states%}
+        <div>
+            <li>
+                <a href="{% url 'core:universities' state_id=state.id %}">{{state.name}}</a>
+                <img src="{{state.flag}}" alt="{{state.name}} flag" width="100">
+            </li>
+        </div>
+    {% endfor %}    
+</body>
+</html>

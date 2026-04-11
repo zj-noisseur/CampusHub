@@ -113,6 +113,8 @@ def run_actor_sync_get_dataset_items(actorId, input_payload, timeout=None, memor
     else:
         raise Exception(f"Failed to run actor and get dataset items: {response.status_code} - {response.text}")
 
+# Example usage
+# 1. scrape content from main marketing profile of the Chinese Society
 IG_ACTOR_ID = "shu8hvrXbJbY3Eb9W"
 IG_HANDLE = "official_clsc_mmu"
 input_payload = {
@@ -121,12 +123,11 @@ input_payload = {
     "searchLimit": 1,
     "searchType": "hashtag"        
 }
-
 result = run_actor_sync_get_dataset_items(IG_ACTOR_ID, input_payload, max_items=10)
 
 # Write the result to a JSON file
-output_file = f"{IG_HANDLE}_data.json"
-with open(output_file, "w", encoding="utf-8") as f:
-    json.dump(result, f, ensure_ascii=False, indent=4)
+# output_file = f"{IG_HANDLE}_data.json"
+# with open(output_file, "w", encoding="utf-8") as f:
+#     json.dump(result, f, ensure_ascii=False, indent=4)
 
-print(f"Data written to {output_file}")
+# print(f"Data written to {output_file}")

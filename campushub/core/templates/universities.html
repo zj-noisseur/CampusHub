@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Select Your University{% endblock %}</title>
+</head>
+<body>
+    <h1>Universities in {{ state.name }}</h1>
+    <ul>
+        {% for university in universities %}
+            <li>
+                <a href="{% url 'core:clubs' state_id=state.id university_id=university.id %}">{{ university.university_name }}</a>
+            </li>
+        {% empty %}
+            <li>No universities found in this state.</li>
+        {% endfor %}
+    </ul>
+</body>
+</html>
