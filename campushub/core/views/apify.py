@@ -1,8 +1,6 @@
-import http.client
 from dotenv import load_dotenv
 import os
 import requests
-import json
 
 # Load environment variables from .env file
 load_dotenv()
@@ -10,25 +8,23 @@ load_dotenv()
 url = "https://api.apify.com/v2/acts"
 
 def list_actors(): 
-    payload = {}
     headers = {
     'Accept': 'application/json',
     'Authorization': f"Bearer {os.getenv('APIFY_API_KEY')}"
     }
 
-    response = requests.request("GET", url, headers=headers, data=payload)
+    response = requests.request("GET", url, headers=headers)
 
     return (response.text)
 
 def list_actor_runs(actorId):
-    payload = {}
     headers = {
     'Accept': 'application/json',
     'Authorization': f"Bearer {os.getenv('APIFY_API_KEY')}"
     }
 
     request_url = f"{url}/{actorId}/runs"
-    response  = requests.request("GET", request_url, headers=headers, data=payload)
+    response  = requests.request("GET", request_url, headers=headers)
     return (response.text)
 
 def run_actor_sync(actorId, input_payload, timeout=300, memory=None, max_items=None, max_total_charge_usd=None):
@@ -113,21 +109,3 @@ def run_actor_sync_get_dataset_items(actorId, input_payload, timeout=None, memor
     else:
         raise Exception(f"Failed to run actor and get dataset items: {response.status_code} - {response.text}")
 
-# Example usage
-# 1. scrape content from main marketing profile of the Chinese Society
-IG_ACTOR_ID = "shu8hvrXbJbY3Eb9W"
-IG_HANDLE = "official_clsc_mmu"
-input_payload = {
-    "directUrls": [f"https://www.instagram.com/{IG_HANDLE}/"],
-    "resultsType": "posts",
-    "searchLimit": 1,
-    "searchType": "hashtag"        
-}
-result = run_actor_sync_get_dataset_items(IG_ACTOR_ID, input_payload, max_items=10)
-
-# Write the result to a JSON file
-# output_file = f"{IG_HANDLE}_data.json"
-# with open(output_file, "w", encoding="utf-8") as f:
-#     json.dump(result, f, ensure_ascii=False, indent=4)
-
-# print(f"Data written to {output_file}")

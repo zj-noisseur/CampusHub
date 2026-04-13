@@ -11,6 +11,7 @@
         {% for club in clubs %}
             <li>
                 {{club.name}}
+                <a href="{% url 'core:feed' %}?club={{ club.id }}">View posts</a>
             </li>
             {% empty %}
             <li>

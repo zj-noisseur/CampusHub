@@ -18,7 +18,7 @@ class InstitutionAdmin(admin.ModelAdmin):
     list_display = ('university_name', 'state')
     list_filter = ('state',)
 
-    
+
 admin.site.register(Institution, InstitutionAdmin)
 admin.site.register(State)
 admin.site.register(Club, ClubAdmin)

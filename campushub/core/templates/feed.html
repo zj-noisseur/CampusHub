@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Campus Feed</title>
+</head>
+<body>
+	<h1>Campus Feed</h1>
+
+	<form method="get">
+		<label for="club">Filter by club:</label>
+		<select id="club" name="club">
+			<option value="">All clubs</option>
+			{% for club in clubs %}
+				<option value="{{ club.id }}" {% if selected_club == club.id|stringformat:"s" %}selected{% endif %}>
+					{{ club.name }}
+				</option>
+			{% endfor %}
+		</select>
+		<button type="submit">Apply</button>
+	</form>
+
+	<ul>
+		{% for post in page_obj %}
+			<li>
+				<h3>{{ post.club.name }}</h3>
+				<p>{{ post.timestamp }}</p>
+				{% if post.image_url %}
+					<img src="{{ post.image_url }}" alt="post image" width="280">
+				{% endif %}
+				<p>{{ post.caption|truncatechars:260 }}</p>
+				{% if post.short_code %}
+					<a href="https://www.instagram.com/p/{{ post.short_code }}/" target="_blank" rel="noopener noreferrer">Open post</a>
+				{% endif %}
+			</li>
+		{% empty %}
+			<li>No posts found.</li>
+		{% endfor %}
+	</ul>
+
+	<div>
+		{% if page_obj.has_previous %}
+			<a href="?page={{ page_obj.previous_page_number }}{% if selected_club %}&club={{ selected_club }}{% endif %}">Previous</a>
+		{% endif %}
+
+		<span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+
+		{% if page_obj.has_next %}
+			<a href="?page={{ page_obj.next_page_number }}{% if selected_club %}&club={{ selected_club }}{% endif %}">Next</a>
+		{% endif %}
+	</div>
+</body>
+</html>

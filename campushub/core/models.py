@@ -69,6 +69,10 @@ class Club(models.Model):
 
     ig_handle = models.CharField(max_length=255, null=True, blank=True)
 
+    last_fetched_date = models.DateTimeField(null=True, blank=True)
+
+    posts_count = models.PositiveIntegerField(default=0)
+
     valid_till = models.DateTimeField(null=True, blank=True)
 
     # to all clubs are valid, the associated admins have to make sure to check their email annually to maintain the verified checkmark
@@ -92,6 +96,12 @@ class Club(models.Model):
     
     def __str__(self):
         return self.name
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['ig_handle']),
+            models.Index(fields=['last_fetched_date']),
+        ]
 
 
 """
@@ -236,6 +246,12 @@ class Post(models.Model):
     # TO NOTE: this is ambiguous. Timestamp should ideally and strictly be the timestamp when the post was originally posted on Instagram 
     timestamp = models.DateTimeField()
 
+    class Meta:
+        indexes = [
+            models.Index(fields=['club', '-timestamp']),
+            models.Index(fields=['-timestamp']),
+        ]
+
 """
 6. this is the model that keeps track of all the events that is associated with a post
 """
@@ -247,6 +263,11 @@ class Event(models.Model):
     title = models.CharField(max_length=255)
     event_date = models.DateField()
     location = models.CharField(max_length=255)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['event_date']),
+        ]
 
 
 """

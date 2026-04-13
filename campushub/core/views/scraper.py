@@ -1,59 +1,96 @@
-"""
-This script is used to read the JSON output of the Apify Agent and testing out the general manipulation of the data to be presented in the Django application.
-"""
+from datetime import datetime
 
-import json
-import re
-import requests
+from django.utils import timezone
 
-# Updated read function to fetch data from Apify API
-def read(num=None, api_url=None, api_key=None):
-    if not api_url or not api_key:
-        raise ValueError("API URL and API Key must be provided")
+from core.models import Post
+from core.views.apify import run_actor_sync_get_dataset_items
 
-    headers = {"Authorization": f"Bearer {api_key}"}
-    response = requests.get(api_url, headers=headers)
+IG_ACTOR_ID = "shu8hvrXbJbY3Eb9W"
 
 
-    # should an error happen, immediately return the information of the error
-    if response.status_code != 200:
-        raise Exception(f"Failed to fetch data: {response.status_code} - {response.text}")
+def parse_apify_timestamp(value):
+    if not value:
+        return timezone.now()
 
-    data = response.json()
+    if isinstance(value, datetime):
+        return value
 
-    if num is not None and num < len(data):
-        return data[:num]
-    return data
+    # Apify timestamps are usually ISO8601 with trailing Z.
+    parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    if timezone.is_naive(parsed):
+        return timezone.make_aware(parsed, timezone.utc)
+    return parsed
 
 
-def extract_link(text):
-    url_pattern = r'https?://[^\s<>"\']+'
-    links = re.findall(url_pattern, text)
-    # not all posts are guaranteed to have links, should use a dictionary to store the post and its associated links
-    return links if links else None
+def fetch_instagram_posts(ig_handle, search_limit=20, max_items=50):
+    payload = {
+        "directUrls": [f"https://www.instagram.com/{ig_handle}/"],
+        "resultsType": "posts",
+        "searchLimit": search_limit,
+        "searchType": "hashtag",
+    }
+    return run_actor_sync_get_dataset_items(
+        IG_ACTOR_ID,
+        payload,
+        max_items=max_items,
+    )
 
-# Example usage
-if __name__ == "__main__":
-    API_URL = "https://api.apify.com/v2/actor-runs"  # Replace with the actual endpoint
-    API_KEY = "your_api_key_here"  # Replace with your actual API key
 
-    try:
-        output = read(10, api_url=API_URL, api_key=API_KEY)
+def upsert_posts_for_club(club, items):
+    created_count = 0
 
-        posts_links = {}
-        for posts in output:
-            url = posts['url']
-            caption = posts['caption']
-            print(caption)
+    for item in items:
+        ig_id = item.get("id")
+        if not ig_id:
+            continue
 
-            try:
-                links = extract_link(caption)
-                posts_links[url] = links
-            except Exception as e:
-                posts_links[url] = None
+        _, created = Post.objects.update_or_create(
+            ig_id=ig_id,
+            defaults={
+                "club": club,
+                "short_code": item.get("shortCode", ""),
+                "caption": item.get("caption", "") or "",
+                "image_url": item.get("displayUrl", "") or "",
+                "timestamp": parse_apify_timestamp(item.get("timestamp")),
+            },
+        )
+        if created:
+            created_count += 1
 
-        print(posts_links)
-    except Exception as e:
-        print(f"Error: {e}")
+    return created_count
+
+
+def scrape_club(club, full_sync=False, search_limit=20, max_items=50):
+    if not club.ig_handle:
+        return 0
+
+    data = fetch_instagram_posts(
+        ig_handle=club.ig_handle,
+        search_limit=search_limit,
+        max_items=max_items,
+    )
+
+    if not isinstance(data, list):
+        return 0
+
+    if full_sync:
+        club.posts.all().delete()
+        items_to_save = data
+    elif club.last_fetched_date:
+        items_to_save = [
+            item
+            for item in data
+            if parse_apify_timestamp(item.get("timestamp")) > club.last_fetched_date
+        ]
+    else:
+        items_to_save = data
+
+    created = upsert_posts_for_club(club, items_to_save)
+
+    club.last_fetched_date = timezone.now()
+    club.posts_count = club.posts.count()
+    club.save(update_fields=["last_fetched_date", "posts_count"])
+
+    return created
 
 
