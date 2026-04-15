@@ -1,18 +1,35 @@
+{% load static %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Select Institution{% endblock %}</title>
+    <link href="{% static 'css/output.css' %}" rel="stylesheet" type="text/css" />
 </head>
-<body>
-    {% for state in states%}
-        <div>
-            <li>
-                <a href="{% url 'core:universities' state_id=state.id %}">{{state.name}}</a>
-                <img src="{{state.flag}}" alt="{{state.name}} flag" width="100">
-            </li>
-        </div>
-    {% endfor %}    
+<body class="bg-base-200 min-h-screen p-8">
+    <div class="container mx-auto">
+        <h1 class="text-3xl font-bold mb-8 text-center text-primary">Select an Institution by State</h1>
+
+        <ul class="list bg-base-300 rounded-box shadow-md">
+            {% for state in states %}
+                <li class="list-row p-4">
+                    <div class="list-col">
+                        <img src="{{ state.flag.url }}" alt="{{ state.name }} flag" class="w-20 h-20 object-cover rounded-box" />
+                    </div>
+                    <div class="list-col-grow px-4">
+                        <h2 class="text-lg font-bold">{{ state.name }}</h2>
+                        <p class="text-sm text-gray-600">{{ state.institution_set.count }} universities</p>
+                    </div>
+                    <div class="flex items-center">
+                        <a href="{% url 'core:universities' state_id=state.id %}" class="btn btn-primary">View State</a>
+                    </div>
+                </li>
+            {% empty %}
+                <li class="p-4 text-center text-gray-500">No states found.</li>
+            {% endfor %}
+        </ul>
+
+    </div>
 </body>
 </html>

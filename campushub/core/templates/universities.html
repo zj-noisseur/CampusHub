@@ -1,20 +1,27 @@
+{% load static %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Select Your University{% endblock %}</title>
+    <link href="{% static 'css/output.css' %}" rel="stylesheet" type="text/css" />
 </head>
-<body>
-    <h1>Universities in {{ state.name }}</h1>
-    <ul>
-        {% for university in universities %}
-            <li>
-                <a href="{% url 'core:clubs' state_id=state.id university_id=university.id %}">{{ university.university_name }}</a>
-            </li>
-        {% empty %}
-            <li>No universities found in this state.</li>
-        {% endfor %}
-    </ul>
+<body class="bg-base-200 min-h-screen p-8">
+    <div class="container mx-auto">
+        <h1 class="text-3xl font-bold mb-8 text-center text-primary">Select Your University</h1>
+
+        <ul class="list bg-base-300 rounded-box shadow-md">
+            {% for university in universities %}
+                <li class="list-row p-4">
+                    <h2 class="text-lg font-bold">{{ university.university_name }}</h2>
+                    <p class="text-sm text-gray-600">Explore clubs and organizations in this university.</p>
+                </li>
+            {% empty %}
+                <li class="p-4 text-center text-gray-500">No universities found in this state.</li>
+            {% endfor %}
+        </ul>
+    </div>
 </body>
 </html>
+                        
