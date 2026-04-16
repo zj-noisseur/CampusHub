@@ -26,6 +26,8 @@ class CustomUserManager(BaseUserManager):
 class User(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(unique=True, validators=[validate_mmu_email])
     student_name = models.CharField(max_length=255)
+    student_id = models.CharField(max_length=20, blank=True, null=True)
+    phone_number = models.CharField(max_length=20, blank=True, null=True)
     
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
@@ -106,15 +108,9 @@ class Membership(models.Model):
         ('ACTIVE', 'Active'),
         ('REJECTED', 'Rejected'),
     ]
-    
-    TYPE_CHOICES = [
-        ('UNLIMITED', 'Unlimited (Paid)'),
-        ('LIMITED', 'Limited (Interest)'),
-    ]
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='memberships')
     club = models.ForeignKey(Club, on_delete=models.CASCADE, related_name='members')
-    membership_type = models.CharField(max_length=15, choices=TYPE_CHOICES)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='PENDING')
     payment_proof = models.ImageField(upload_to='payment_proofs/', blank=True, null=True)
     joined_at = models.DateTimeField(auto_now_add=True)

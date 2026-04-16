@@ -46,3 +46,28 @@ class ClaimClubForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         # CRITICAL LOGIC: Only show clubs in the dropdown that are NOT claimed yet!
         self.fields['club'].queryset = Club.objects.filter(is_claimed=False)
+
+class MembershipApplicationForm(forms.ModelForm):
+    student_name = forms.CharField(disabled=True, required=False, widget=forms.TextInput(attrs={'class': 'input input-bordered w-full rounded-xl bg-gray-100'}))
+    student_id = forms.CharField(max_length=20, required=True, widget=forms.TextInput(attrs={'class': 'input input-bordered w-full rounded-xl', 'placeholder': 'e.g., 1234567890'}))
+    phone_number = forms.CharField(max_length=20, required=True, widget=forms.TextInput(attrs={'class': 'input input-bordered w-full rounded-xl', 'placeholder': 'e.g., 012-3456789'}))
+    
+    class Meta:
+        model = Membership
+        # Assuming your model has these fields based on your previous design
+        fields = ['club', 'payment_proof']
+        
+        widgets = {
+            'club': forms.Select(attrs={
+                'class': 'select select-bordered w-full rounded-xl',
+            }),
+            'membership_type': forms.Select(attrs={
+                'class': 'select select-bordered w-full rounded-xl',
+                'id': 'membership-type-select' # We need this ID for our JavaScript magic later!
+            }),
+            'payment_proof': forms.ClearableFileInput(attrs={
+                'class': 'file-input file-input-bordered w-full rounded-xl',
+                'accept': '.pdf,.jpg,.jpeg,.png',
+                'id': 'receipt-upload'
+            }),
+        }
