@@ -1,13 +1,35 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>My Trophy Cabinet</title>
     <style>
-        body { font-family: sans-serif; padding: 40px; background-color: #f4f4f9; }
-        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        .btn-gold { display: inline-block; padding: 10px 15px; background-color: #ffc107; color: #333; text-decoration: none; border-radius: 5px; font-weight: bold; }
+        body {
+            font-family: sans-serif;
+            padding: 40px;
+            background-color: #f4f4f9;
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .btn-gold {
+            display: inline-block;
+            padding: 10px 15px;
+            background-color: #ffc107;
+            color: #333;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+        }
     </style>
 </head>
+
 <body>
 
     <h1>My Trophy Cabinet</h1>
@@ -16,15 +38,23 @@
     {% for attendance in attendances %}
     <div class="card">
         <h2>{{ attendance.event.title }}</h2>
-        <p><strong>Issued to:</strong> {{ attendance.guest_name }}</p>
-        
+
+        <p><strong>Issued to:</strong>
+            {% if attendance.user %}
+            {{ attendance.user.first_name|default:attendance.user.username }}
+            {% else %}
+            {{ attendance.guest_name }}
+            {% endif %}
+        </p>
+
         <a href="{% url 'download_my_certificate' attendance.id %}" class="btn-gold">
             🏆 Download My Certificate (PDF)
         </a>
     </div>
     {% empty %}
-        <p>You haven't attended any events yet!</p>
+    <p>You haven't attended any events yet!</p>
     {% endfor %}
 
 </body>
+
 </html>

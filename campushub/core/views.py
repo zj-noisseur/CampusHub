@@ -1,29 +1,24 @@
-from django.shortcuts import render
-import zipfile
-import csv
-import io
 from django.shortcuts import render, get_object_or_404
 from django.http import FileResponse, HttpResponse
 from django.db.models import Count
-from .utils import generate_certificate_pdf
-from .models import Event, EventCertificate, Attendance 
 from django.contrib.auth.decorators import login_required
+import zipfile
+import csv
+import io
+
+# 1. FIXED: Added 'User' to your imports so the CSV tool can find it!
+from .models import Event, EventCertificate, Attendance, User 
+from .utils import generate_certificate_pdf
 
 # --- 1. THE NEW DASHBOARD VIEW ---
 def event_dashboard(request):
-    # Ask the database for all events, and count how many attendees each one has!
     events = Event.objects.annotate(attendee_count=Count('attendances'))
-    
-    # Send this data to a new HTML page
     return render(request, 'core/dashboard.html', {'events': events})
 
-
 def download_certificates(request, event_id):
-    # Find the specific event they clicked on
     event = Event.objects.get(id=event_id)
-    
-    # Find the template for THAT specific event
     template = EventCertificate.objects.filter(event=event).first()
+    
     if not template:
         return HttpResponse(f"No certificate template uploaded for {event.title} yet!")
     
@@ -35,13 +30,10 @@ def download_certificates(request, event_id):
     
     with zipfile.ZipFile(zip_buffer, 'w') as zip_file:
         for person in attendees:
-            # 1. Prioritize the custom guest name
             if person.guest_name:
                 student_name = person.guest_name
-            # 2. Fall back to registered user
             elif person.user:
                 student_name = person.user.username
-            # 3. Safety fallback
             else:
                 student_name = "Unknown_Attendee"
             
@@ -62,55 +54,77 @@ def download_certificates(request, event_id):
     return FileResponse(zip_buffer, as_attachment=True, filename=zip_filename)
 
 def import_attendees_csv(request, event_id):
-    # 1. Grab the event we are uploading to
     event = Event.objects.get(id=event_id)
 
     if request.method == 'POST':
-        # 2. Get the uploaded file
-        csv_file = request.FILES.get('csv_file')
         
-        # Safety check: Did they actually upload a CSV?
-        if not csv_file or not csv_file.name.endswith('.csv'):
-            return HttpResponse("Error: Please upload a .csv file.")
+        # ==========================================
+        # STEP 1: THEY UPLOADED THE FILE
+        # ==========================================
+        if 'csv_file' in request.FILES:
+            csv_file = request.FILES.get('csv_file')
+            
+            if not csv_file.name.endswith('.csv'):
+                return HttpResponse("Error: Please upload a .csv file.")
 
-        # 3. Read the file data
-        file_data = csv_file.read().decode('utf-8').splitlines()
-        reader = csv.reader(file_data)
-        
-        # Skip the header row (e.g., "Timestamp, Name, Email")
-        next(reader, None)
+            # Read the file and save it to the user's browser session (temporary memory)
+            file_data = csv_file.read().decode('utf-8')
+            request.session['temp_csv_data'] = file_data
+            
+            # Read just the very first line to get the Column Headers
+            reader = csv.reader(file_data.splitlines())
+            headers = next(reader, []) 
 
-        # 4. Loop through the rows and create attendees!
-        for row in reader:
-            # Assuming Column A (row[0]) is Name and Column B (row[1]) is Email
-            if len(row) >= 2:
-                guest_name = row[0].strip()
-                guest_email = row[1].strip()
-                
-                # Create the record in the database
-                Attendance.objects.create(
-                    event=event,
-                    guest_name=guest_name,
-                    guest_email=guest_email
-                )
-                
-        return HttpResponse(f"Success! Imported attendees into {event.title}.")
+            # Send them to the new "Mapping" screen
+            return render(request, 'core/map_csv_columns.html', {
+                'event': event, 
+                'headers': headers
+            })
 
-    # If they haven't uploaded anything yet, show them the upload form
+        elif 'name_column' in request.POST:
+            # Grab the file data back out of memory
+            file_data = request.session.get('temp_csv_data')
+            
+            if not file_data:
+                return HttpResponse("Error: Session expired. Please upload the file again.")
+
+            # Find out which columns they selected from the dropdowns
+            name_col = request.POST.get('name_column')
+            email_col = request.POST.get('email_column')
+            
+            # Now we read the CSV using their custom column choices!
+            reader = csv.DictReader(file_data.splitlines())
+            
+            for row in reader:
+                name = row.get(name_col, 'Unknown')    
+                email = row.get(email_col)  
+
+                if email:
+                    user_account = User.objects.filter(email=email).first()
+
+                    if user_account:
+                        Attendance.objects.get_or_create(event=event, user=user_account)
+                    else:
+                        Attendance.objects.get_or_create(
+                            event=event, 
+                            guest_email=email,
+                            defaults={'guest_name': name}
+                        )
+            
+            # Delete the file from memory so it doesn't slow down the server
+            del request.session['temp_csv_data']
+            return HttpResponse(f"Success! Mapped and imported attendees into {event.title}.")
+
+    # STEP 0: Show the initial upload form if they haven't done anything yet
     return render(request, 'core/upload_csv.html', {'event': event})
 
-
 def club_admin_dashboard(request):
-    # Grab all events (Later, you can filter this so they only see their own club's events!)
     events = Event.objects.all()
-    # Notice we renamed the HTML file it points to!
     return render(request, 'core/club_admin_dashboard.html', {'events': events})
 
-@login_required # Forces them to log in to see their personal certificates
+@login_required
 def student_dashboard(request):
-    # Find every event this specific user attended
     my_attendances = Attendance.objects.filter(user=request.user)
-    
     return render(request, 'core/student_dashboard.html', {'attendances': my_attendances})
 
 @login_required
@@ -122,7 +136,7 @@ def download_my_certificate(request, attendance_id):
     if not template:
         return HttpResponse(f"No certificate template uploaded for {event.title} yet!")
         
-    student_name = attendance.guest_name if attendance.guest_name else request.user.username
+    student_name = attendance.guest_name if attendance.guest_name else request.user.first_name
         
     pdf_buffer = generate_certificate_pdf(
         student_name=student_name,

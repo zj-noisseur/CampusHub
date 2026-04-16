@@ -234,16 +234,19 @@ class Attendance(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     event = models.ForeignKey('Event', on_delete=models.CASCADE, related_name='attendances')
     
+    # THE FIX: Link to the Central User Hub
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     
-    # Guest details for non-registered users
+    # Guest fallback (For outsiders who don't have MMU student accounts)
     guest_name = models.CharField(max_length=255, null=True, blank=True)
     guest_email = models.EmailField(max_length=255, null=True, blank=True)
     guest_phone = models.CharField(max_length=50, null=True, blank=True)
     
-    # Attendance metadata
     scanned_at = models.DateTimeField(auto_now_add=True)
     certificate_sent = models.BooleanField(default=False)
+
+    class Meta:
+        unique_together = ('event', 'user') # Prevents double-attendance
 
     def __str__(self):
         attendee_name = self.user.username if self.user else self.guest_name
@@ -282,17 +285,19 @@ class PreRegisteredAttendee(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     event = models.ForeignKey('Event', on_delete=models.CASCADE, related_name='pre_registered')
     
-    email = models.EmailField(max_length=255)
-    name = models.CharField(max_length=255, null=True, blank=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    
+    guest_email = models.EmailField(max_length=255, null=True, blank=True)
+    guest_name = models.CharField(max_length=255, null=True, blank=True)
     
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ('event', 'email')
+        unique_together = ('event', 'user') 
 
     def __str__(self):
-        return f"{self.name or self.email} - {self.event.title}"
-
+        attendee_name = self.user.username if self.user else self.guest_name
+        return f"{attendee_name} - {self.event.title}"
 """
 10.
 """

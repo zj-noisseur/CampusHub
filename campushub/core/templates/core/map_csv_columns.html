@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Map Columns</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 40px;
+            background-color: #f4f4f9;
+        }
+
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            max-width: 500px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            font-weight: bold;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        select {
+            width: 100%;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+
+        .btn-blue {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="card">
+        <h2>Map Your Columns</h2>
+        <p>We found these headers in your CSV for <strong>{{ event.title }}</strong>. Please match them to the correct
+            fields.</p>
+
+        <form method="POST">
+            {% csrf_token %}
+
+            <div class="form-group">
+                <label>Which column contains the Student's Name?</label>
+                <select name="name_column" required>
+                    <option value="" disabled selected>-- Select a Column --</option>
+                    {% for header in headers %}
+                    <option value="{{ header }}">{{ header }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Which column contains the Email Address?</label>
+                <select name="email_column" required>
+                    <option value="" disabled selected>-- Select a Column --</option>
+                    {% for header in headers %}
+                    <option value="{{ header }}">{{ header }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <button type="submit" class="btn-blue">Import Attendees</button>
+        </form>
+    </div>
+
+</body>
+
+</html>
