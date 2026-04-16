@@ -53,7 +53,6 @@ class User(AbstractBaseUser, PermissionsMixin):
     def __str__(self):
         return f"{self.student_name} ({self.email})"
 
-'''
 class Club(models.Model):
     CATEGORY_CHOICES = [
         ('RECRUITMENT', 'Recruitment'),
@@ -70,7 +69,6 @@ class Club(models.Model):
     
     def __str__(self):
         return self.name
-'''
 
 class ClubManager(models.Model):
     ROLE_CHOICES = [
@@ -79,7 +77,7 @@ class ClubManager(models.Model):
     ]
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='managed_clubs')
-    #club = models.ForeignKey(Club, on_delete=models.CASCADE, related_name='managers')
+    club = models.ForeignKey(Club, on_delete=models.CASCADE, related_name='managers')
     role = models.CharField(max_length=15, choices=ROLE_CHOICES)
     assigned_date = models.DateTimeField(auto_now_add=True)
 
@@ -94,7 +92,7 @@ class ClaimRequest(models.Model):
     ]
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    #club = models.ForeignKey(Club, on_delete=models.CASCADE)
+    club = models.ForeignKey(Club, on_delete=models.CASCADE)
     proof_document = models.FileField(upload_to='claim_proofs/')
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='PENDING')
     submitted_at = models.DateTimeField(auto_now_add=True)
@@ -115,7 +113,7 @@ class Membership(models.Model):
     ]
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='memberships')
-    #club = models.ForeignKey(Club, on_delete=models.CASCADE, related_name='members')
+    club = models.ForeignKey(Club, on_delete=models.CASCADE, related_name='members')
     membership_type = models.CharField(max_length=15, choices=TYPE_CHOICES)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='PENDING')
     payment_proof = models.ImageField(upload_to='payment_proofs/', blank=True, null=True)
