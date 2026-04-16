@@ -14,8 +14,15 @@
         <ul class="list bg-base-300 rounded-box shadow-md">
             {% for university in universities %}
                 <li class="list-row p-4">
-                    <h2 class="text-lg font-bold">{{ university.university_name }}</h2>
-                    <p class="text-sm text-gray-600">Explore clubs and organizations in this university.</p>
+                    <div class="list-col">
+                        <img src="{{university.logo.url}}" alt="{{university.university_name}} logo" class="w-25 h-25 object-contain rounded-box">
+                    </div>
+                    <div class="list-col-grow px-4">
+                        <h2 class="text-lg font-bold">{{university.university_name}}</h2>
+                    </div>
+                    <div class="flex items-center">
+                        <a href="{% url 'core:clubs' state_id=state.id university_id=university.id %}" class="btn btn-primary">{{university.club_count}} clubs registered</a>
+                    </div>
                 </li>
             {% empty %}
                 <li class="p-4 text-center text-gray-500">No universities found in this state.</li>

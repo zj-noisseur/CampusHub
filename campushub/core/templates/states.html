@@ -15,7 +15,10 @@
             {% for state in states %}
                 <li class="list-row p-4">
                     <div class="list-col">
-                        <img src="{{ state.flag.url }}" alt="{{ state.name }} flag" class="w-20 h-20 object-cover rounded-box" />
+                        <img 
+                        src="{{ state.flag.url }}" 
+                        alt="{{ state.name }} flag" 
+                        class="w-25 h-25 object-contain rounded-box" />
                     </div>
                     <div class="list-col-grow px-4">
                         <h2 class="text-lg font-bold">{{ state.name }}</h2>

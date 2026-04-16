@@ -103,6 +103,36 @@ Refactor the current proof-of-concept scraper in `apify.py` into a robust, reusa
 
 ---
 
+## Future Roadmap
+
+### **Search and Filter Mechanism for States and Universities**
+
+#### **Objective**
+Implement a unified search and filter mechanism for the states and universities page to enhance user experience and simplify navigation.
+
+#### **Steps**
+1. **Design and Implement Search Bar**
+   - Add a search bar to the states and universities page.
+   - Ensure the search bar can filter both states and universities dynamically based on user input.
+
+2. **Backend Query Optimization**
+   - Use Django ORM features like `annotate` and `prefetch_related` to optimize queries for filtering states and universities.
+   - Ensure efficient database queries to handle large datasets.
+
+3. **Frontend Integration**
+   - Update the templates to display filtered results dynamically.
+   - Ensure the search bar is styled consistently with the rest of the application.
+
+4. **Testing and Validation**
+   - Test the search and filter mechanism with various inputs to ensure accuracy and performance.
+   - Validate that the feature works seamlessly across different devices and browsers.
+
+#### **Future Enhancements**
+- Add advanced filtering options (e.g., filter by state population, university type, etc.).
+- Implement AJAX-based live search for real-time filtering without page reloads.
+
+---
+
 ## Relevant Files
 - `campushub/core/models.py` — Ensure the `Club` model has an `institution` field.
 - `campushub/core/admin.py` — Add the `list_filter` attribute to the `ClubAdmin` class.
