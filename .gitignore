@@ -1,0 +1,12 @@
+# Python byte-code / optimized
+__pycache__/
+*.py[cod]
+*$py.class
+
+
+env/
+
+# Databases
+*.sqlite3
+
+campushub/core/.env
