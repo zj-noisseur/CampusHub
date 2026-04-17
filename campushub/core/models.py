@@ -24,6 +24,9 @@ class User(AbstractUser):
     )
     
     def __str__(self):
+        if self.first_name:
+            return f"{self.first_name} ({self.student_id})"
+        
         return f"{self.username} ({self.student_id})"
     
 """

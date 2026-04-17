@@ -77,6 +77,15 @@
                 </select>
             </div>
 
+            <div class="form-group">
+                <label>Which column contains the Student ID?</label>
+                <select name="student_id_column">
+                    <option value="">-- No Student ID Column (Guests Only) --</option>
+                    {% for header in headers %}
+                    <option value="{{ header }}">{{ header }}</option>
+                    {% endfor %}
+                </select>
+            </div>
             <button type="submit" class="btn-blue">Import Attendees</button>
         </form>
     </div>

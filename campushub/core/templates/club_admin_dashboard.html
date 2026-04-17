@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Admin Logistics Dashboard</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 40px;
+            background-color: #f4f4f9;
+        }
+
+        .card {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 25px;
+        }
+
+        /* --- NEW: CSS for the columns/mini-cards --- */
+        .stats-grid {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            margin-top: 15px;
+        }
+
+        .stat-box {
+            flex: 1;
+            /* Makes columns equal width */
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .stat-box h3 {
+            margin: 0 0 10px 0;
+            font-size: 12px;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .stat-box .number {
+            margin: 0;
+            font-size: 28px;
+            font-weight: bold;
+            color: #343a40;
+        }
+
+        /* ------------------------------------------ */
+
+        .btn {
+            display: inline-block;
+            padding: 10px 15px;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        .btn-blue {
+            background-color: #007bff;
+        }
+
+        .btn-blue:hover {
+            background-color: #0056b3;
+        }
+
+        .btn-green {
+            background-color: #28a745;
+        }
+
+        .btn-green:hover {
+            background-color: #1e7e34;
+        }
+
+        .btn-gray {
+            background-color: #6c757d;
+        }
+
+        .btn-gray:hover {
+            background-color: #5a6268;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>Club Event Logistics</h1>
+    <p>Manage your attendee lists and generate batch certificates below.</p>
+
+    {% for event in events %}
+    <div class="card">
+        <h2 style="margin-top: 0;">{{ event.title }}</h2>
+
+        <div class="stats-grid">
+            <div class="stat-box">
+                <h3>Pre-Registered (RSVPs)</h3>
+                <p class="number">{{ event.pre_registered.count }}</p>
+            </div>
+            <div class="stat-box">
+                <h3>Checked-In (Certificates)</h3>
+                <p class="number">{{ event.attendances.count }}</p>
+            </div>
+        </div>
+
+        <a href="{% url 'core:import_csv' event.id %}" class="btn btn-blue">Upload CSV</a>
+
+        <a href="{% url 'core:download_certificates' event.id %}" class="btn btn-green">
+            📥 Download All Certificates (ZIP)
+        </a>
+
+        <a href="/admin/core/preregisteredattendee/?event__id={{ event.id }}" class="btn btn-gray" target="_blank">
+            📋 View RSVP List
+        </a>
+    </div>
+    {% empty %}
+    <p>No events found. Create one in the Admin panel!</p>
+    {% endfor %}
+
+</body>
+
+</html>

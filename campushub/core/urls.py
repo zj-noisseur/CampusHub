@@ -1,16 +1,16 @@
 from django.urls import path
-from . import views
+from .views import dashboards, certificates, imports
 
 app_name = 'core'
 urlpatterns = [
-    #dashboard list
-    path('dashboard/admin/', views.club_admin_dashboard, name='club_admin_dashboard'),
-    path('dashboard/student/', views.student_dashboard, name='student_dashboard'),
+    # Dashboards
+    path('dashboard/admin/', dashboards.club_admin_dashboard, name='club_admin_dashboard'),
+    path('dashboard/student/', dashboards.student_dashboard, name='student_dashboard'),
     
-    #clubadmin tool
-    path('import-csv/<int:event_id>/', views.import_attendees_csv, name='import_csv'),
-    path('download-certificates/<int:event_id>/', views.download_certificates, name='download_certificates'),
+    # Imports
+    path('import-csv/<int:event_id>/', imports.import_attendees_csv, name='import_csv'),
     
-    #student tool
-    path('download-my-certificate/<uuid:attendance_id>/', views.download_my_certificate, name='download_my_certificate'),
+    # Certificates
+    path('download-certificates/<int:event_id>/', certificates.download_certificates, name='download_certificates'),
+    path('download-my-certificate/<uuid:attendance_id>/', certificates.download_my_certificate, name='download_my_certificate'),
 ]
