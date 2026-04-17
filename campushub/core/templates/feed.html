@@ -4,23 +4,23 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>Campus Feed</title>
+	<link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 </head>
 <body>
 	<h1>Campus Feed</h1>
-
 	<form method="get">
-		<label for="club">Filter by club:</label>
-		<select id="club" name="club">
-			<option value="">All clubs</option>
-			{% for club in clubs %}
-				<option value="{{ club.id }}" {% if selected_club == club.id|stringformat:"s" %}selected{% endif %}>
-					{{ club.name }}
+		<input type="text" class="input" placeholder="Enter the name of your club" list="club-dropdown">
+			<datalist id="club-dropdown">
+				{% for club in clubs %}
+				<option value="{{ club.name }}">
 				</option>
-			{% endfor %}
-		</select>
+				{% endfor %}
+			</datalist>
 		<button type="submit">Apply</button>
 	</form>
 
+	
 	<ul>
 		{% for post in page_obj %}
 			<li>
@@ -49,6 +49,7 @@
 		{% if page_obj.has_next %}
 			<a href="?page={{ page_obj.next_page_number }}{% if selected_club %}&club={{ selected_club }}{% endif %}">Next</a>
 		{% endif %}
-	</div>
+	</div> 
+	
 </body>
 </html>

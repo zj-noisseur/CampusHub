@@ -229,7 +229,7 @@ class ClubClaim(models.Model):
             designation=self.claimer_designation
         )
 """
-5.
+5.A
 """
 class Post(models.Model):
     club = models.ForeignKey(Club, on_delete=models.CASCADE, related_name='posts')
@@ -237,14 +237,15 @@ class Post(models.Model):
     ig_id = models.CharField(max_length=255, unique=True)
 
     # unique identifier for a particular post, at the end of the post route in Instagram
+    # instagram/p/{short_code}
     short_code = models.CharField(max_length=100)
-
+    # full caption text that is scraped, no editing performed
     caption = models.TextField(blank=True)
-    image_url = models.URLField(max_length=500, blank=True) # Remote IG link
-    local_image = models.ImageField(upload_to='posts/', null=True, blank=True) # Your local copy
-
-    # TO NOTE: this is ambiguous. Timestamp should ideally and strictly be the timestamp when the post was originally posted on Instagram 
+    # timestamp the post was first published
     timestamp = models.DateTimeField()
+
+    # parsed contents after processing done by Gemma and Langchain
+
 
     class Meta:
         indexes = [
@@ -252,6 +253,26 @@ class Post(models.Model):
             models.Index(fields=['-timestamp']),
         ]
 
+    def __str__(self):
+        return f"{self.club.name}"
+    
+"""
+5.B
+"""
+# stores all the images associated with a post, the image field is within a standalone table as somce posts are carousels and consist of more than a single image
+class PostImage(models.Model):
+    post = models.ForeignKey(Post, on_delete=models.CASCADE)
+    # storage bucket the images are currently stored in, currently configured to be local storage
+    image = models.ImageField(upload_to='posts/')
+    # retain order of images from a carousel psot
+    order = models.PositiveIntegerField()
+
+    class Meta:
+        ordering = ['order'] # retreive images in order
+    
+    def __str__(self):
+        return f"Image {self.order} for instagram.com/p/{self.post.short_code}"
+    
 """
 6. this is the model that keeps track of all the events that is associated with a post
 """

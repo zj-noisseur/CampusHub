@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+{% block title %}Directory{% endblock %}
+{% block content %}
+    <div class="container mx-auto">
+        <!-- Breadcrumb navigation -->
+        <div class="text-sm breadcrumbs mb-4">
+            <ul>
+                <li>Directory</li>
+            </ul>
+        </div>
+        <form method="get" class="mb-4 w-full">
+          <label class="input w-full">
+            <svg class="h-[1em] opacity-50" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+              <g
+                stroke-linejoin="round"
+                stroke-linecap="round"
+                stroke-width="2.5"
+                fill="none"
+                stroke="currentColor"
+              >
+                <circle cx="11" cy="11" r="8"></circle>
+                <path d="m21 21-4.3-4.3"></path>
+              </g>
+            </svg>
+            <input type="search" name="search" placeholder="Search via university or state..." class="input input-bordered w-full">
+          </label>
+        </form>
+
+        <ul class="list bg-base-300 rounded-box shadow-md">
+            {% for institution in institutions %}
+                <li class="list-row p-4">   
+                    <div class="list-col">
+                        <img 
+                        src="{{ institution.logo.url }}" 
+                        alt="{{ institution.university_name }} flag" 
+                        class="w-25 h-25 object-contain rounded-box" />
+                    </div>
+                    <div class="list-col-grow px-4">
+                        <h2 class="text-lg font-bold">{{ institution.university_name }}</h2>
+                        <p class="text-sm text-gray-600">{{ institution.state.name }} </p>
+                    </div>
+                    <div class="flex items-center">
+                        <a href="{% url 'core:clubs' state_id=institution.state.id university_id=institution.id %}" class="btn btn-primary">View Clubs</a>
+                    </div>
+                </li>
+            {% empty %}
+                <li class="p-4 text-center text-gray-500">No university found for "{{request.GET.search|default:''}}".</li>
+            {% endfor %}
+        </ul>
+
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const searchInput = document.querySelector('input[name="search"]');
+            const instituionList = document.querySelector('ul.list');
+            const institutions = Array.from(instituionList.children);
+            const noResultsMessage = document.createElement('li');
+
+            noResultsMessage.className = 'p-4 text-center text-gray-500';
+            noResultsMessage.textContent = `No institutions found for "${searchInput.value}".`;
+            noResultsMessage.style.display = 'none';
+            instituionList.appendChild(noResultsMessage);
+
+            searchInput.addEventListener('input', () => {
+                const query = searchInput.value.toLowerCase();
+                let hasResults = false;
+
+                institutions.forEach(institution => {
+                    if (institution !== noResultsMessage){
+                        const universityName = institution.querySelector('h2').textContent.toLowerCase();
+                        const stateName = institution.querySelector('p').textContent.toLowerCase();
+
+                        if (universityName.includes(query) || stateName.includes(query)) {
+                            institution.style.display = '';
+                            hasResults = true;
+                        } else{
+                            institution.style.display = 'none';
+                        }
+                    }
+                });
+                noResultsMessage.textContent = `No institutions found for "${searchInput.value}".`;
+                noResultsMessage.style.display = hasResults ? 'none' : '';
+            })
+        });
+    </script>
+{% endblock %}
