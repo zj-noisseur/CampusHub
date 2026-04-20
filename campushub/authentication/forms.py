@@ -15,7 +15,7 @@ class StudentRegistrationForm(UserCreationForm):
             }),
             'student_name': forms.TextInput(attrs={
                 'class': 'input input-bordered w-full rounded-xl', 
-                'placeholder': 'John Doe'
+                'placeholder': 'Your Full Name'
             }),
         }
 
