@@ -1,27 +1,35 @@
 <!DOCTYPE html>
-<html>
+<html lang="en" data-theme="light">
 <head>
-    <title>Upload Attendees</title>
-    <style>
-        body { font-family: sans-serif; padding: 40px; background-color: #f4f4f9; }
-        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); max-width: 500px; }
-        button { padding: 10px 15px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; margin-top: 15px;}
-        button:hover { background-color: #0056b3; }
-    </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload CSV - CampusHub</title>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.10.2/dist/full.min.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
+<body class="bg-base-200 min-h-screen p-8 flex items-center justify-center">
 
-    <div class="card">
-        <h2>Import Attendees</h2>
-        <p>Adding students for: <strong>{{ event.title }}</strong></p>
-        <p><small>Upload your Google Form CSV export. Make sure Column A is Names and Column B is Emails.</small></p>
+    <div class="max-w-xl w-full">
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title text-2xl mb-2">Upload Attendee CSV</h2>
+                <p class="text-gray-500 mb-6">Upload the spreadsheet containing your event attendees to generate their certificates.</p>
 
-        <form method="POST" enctype="multipart/form-data">
-            {% csrf_token %}
-            <input type="file" name="csv_file" accept=".csv" required>
-            <br>
-            <button type="submit">Import CSV</button>
-        </form>
+                <form method="POST" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    
+                    <label class="form-control w-full mb-6">
+                        <div class="label"><span class="label-text font-bold">Select CSV File</span></div>
+                        <input type="file" name="csv_file" accept=".csv" class="file-input file-input-bordered file-input-info w-full" required />
+                    </label>
+
+                    <div class="flex justify-end gap-3">
+                        <a href="javascript:history.back()" class="btn btn-ghost">Cancel</a>
+                        <button type="submit" class="btn btn-info">Next Step &rarr;</button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 
 </body>

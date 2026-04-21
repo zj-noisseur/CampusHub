@@ -4,7 +4,7 @@ from django.contrib.auth.decorators import login_required
 import zipfile
 import io
 
-from ..models import Event, EventCertificate, Attendance
+from ..models import Event, EventCertificate, Attendance, PreRegisteredAttendee
 from ..utils import generate_certificate_pdf
 
 def download_certificates(request, event_id):
@@ -14,22 +14,34 @@ def download_certificates(request, event_id):
     if not template:
         return HttpResponse(f"No certificate template uploaded for {event.title} yet!")
     
-    # Notice we added 'attended=True' here based on your earlier request!
+    # STRICTLY READS FROM THE ATTENDANCE TABLE
     attendees = Attendance.objects.filter(event=event)
+    
     if not attendees.exists():
-        return HttpResponse("No attendees found for this event!")
+        return HttpResponse("No one is in the Attendance database table yet! Mark someone as 'Present' first.")
 
     zip_buffer = io.BytesIO()
     
     with zipfile.ZipFile(zip_buffer, 'w') as zip_file:
         for person in attendees:
-            if person.guest_name:
-                student_name = person.guest_name
-            elif person.user:
+            
+            # 1. Get the name
+            if person.user:
                 student_name = person.user.first_name if person.user.first_name else person.user.username
+                # Double check they are "Ready" so it doesn't print broken certificates
+                prereg = PreRegisteredAttendee.objects.filter(event=event, user=person.user).first()
+            elif person.guest_name:
+                student_name = person.guest_name
+                prereg = PreRegisteredAttendee.objects.filter(event=event, guest_email=person.guest_email).first()
             else:
                 student_name = "Unknown_Attendee"
-            
+                prereg = None
+                
+            # If they are in the attendance list but missing data (Unready), skip printing
+            if prereg and not prereg.is_ready:
+                continue
+
+            # 2. Generate PDF
             pdf_buffer = generate_certificate_pdf(
                 student_name=student_name, 
                 background_path=template.template_image.path,

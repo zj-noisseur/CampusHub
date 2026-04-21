@@ -221,14 +221,15 @@ class Post(models.Model):
 6. this is the model that keeps track of all the events that is associated with a post
 """
 class Event(models.Model):
-    # one-to-one relation to prevent duplicates, so that all events can be associated to just one post only, some clubs might post in duplicates for promotional purposes 
-    post = models.OneToOneField(Post, on_delete=models.CASCADE, related_name='events')
+    club = models.ForeignKey(Club, on_delete=models.CASCADE, related_name='events', null=True, blank=True)
+    post = models.OneToOneField(Post, on_delete=models.CASCADE, related_name='post_events', null=True, blank=True)
     
-    # these fields are to be inferred from the caption itself
     title = models.CharField(max_length=255)
     event_date = models.DateField()
     location = models.CharField(max_length=255)
 
+    def __str__(self):
+        return self.title
 
 """
 7. 
@@ -295,6 +296,9 @@ class PreRegisteredAttendee(models.Model):
     
     created_at = models.DateTimeField(auto_now_add=True)
 
+    is_ready = models.BooleanField(default=False)
+    is_attended = models.BooleanField(default=False)
+    
     class Meta:
         unique_together = ('event', 'user') 
 

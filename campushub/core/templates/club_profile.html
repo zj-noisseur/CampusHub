@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Clubs - CampusHub</title>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.10.2/dist/full.min.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-base-200 min-h-screen p-8">
+
+    <div class="max-w-4xl mx-auto">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-3xl font-bold">My Clubs</h1>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {% for committee in committees %}
+            {% if committee.club %}
+            <div class="card bg-base-100 shadow-xl border border-base-200">
+                <div class="card-body">
+                    <h2 class="card-title">{{ committee.club.name }}</h2>
+                    <p class="text-sm text-gray-500">Institution: {{ committee.club.institution.university_name }}</p>
+
+                    <div class="card-actions justify-end mt-4">
+                        <a href="{% url 'core:club_admin_dashboard' committee.club.id %}" class="btn btn-primary">Manage Events</a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            {% empty %}
+            <div class="col-span-full text-center py-12 bg-base-100 rounded-box shadow">
+                <p class="text-gray-500">You are not managing any clubs.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+</body>
+</html>

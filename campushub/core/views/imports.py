@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.http import HttpResponse
 import csv
 
@@ -9,7 +9,6 @@ def import_attendees_csv(request, event_id):
 
     if request.method == 'POST':
         
-        # STEP 1: They uploaded a file
         if 'csv_file' in request.FILES:
             csv_file = request.FILES.get('csv_file')
             if not csv_file.name.endswith('.csv'):
@@ -26,27 +25,30 @@ def import_attendees_csv(request, event_id):
                 'headers': headers
             })
 
-        # STEP 2: They submitted the column mapping
-        elif 'name_column' in request.POST:
+        elif 'name_col' in request.POST:
             file_data = request.session.get('temp_csv_data')
             if not file_data:
                 return HttpResponse("Error: Session expired. Please upload the file again.")
 
-            name_col = request.POST.get('name_column')
-            email_col = request.POST.get('email_column')
-            student_id_col = request.POST.get('student_id_column')
+            name_col = request.POST.get('name_col')
+            email_col = request.POST.get('email_col')
+            student_id_col = request.POST.get('student_id_col')
             
             reader = csv.DictReader(file_data.splitlines())
             
             for row in reader:
                 name = row.get(name_col, 'Unknown').strip()    
                 email = row.get(email_col, '').strip()  
-                
                 student_id = row.get(student_id_col, '').strip() if student_id_col else ''
+
+                # SMART CHECK: Are all 3 required fields completely filled out?
+                is_complete = bool(name and name != 'Unknown' and email and student_id)
 
                 if email:
                     if not student_id and email.endswith('@student.mmu.edu.my'):
                         student_id = email.split('@')[0]
+                        # Re-evaluate in case we just successfully grabbed the ID from the email
+                        is_complete = bool(name and name != 'Unknown' and email and student_id)
 
                     if student_id:
                         user_account, created = User.objects.get_or_create(
@@ -61,23 +63,42 @@ def import_attendees_csv(request, event_id):
                         if created:
                             user_account.set_password('MMUClub123!') 
                             user_account.save()
+                        else:
+                            if name and name != 'Unknown':
+                                user_account.first_name = name
+                            if student_id:
+                                user_account.student_id = student_id
+                                user_account.username = student_id
+                            user_account.save()
 
-                        # SAVING TO: PreRegisteredAttendee
-                        PreRegisteredAttendee.objects.get_or_create(event=event, user=user_account)
+                        prereg, _ = PreRegisteredAttendee.objects.get_or_create(event=event, user=user_account)
+                        # Saves the smart check result
+                        prereg.is_ready = is_complete  
+                        prereg.save()
                     
                     else:
-                        # SAVING TO: PreRegisteredAttendee
-                        PreRegisteredAttendee.objects.get_or_create(
+                        prereg, _ = PreRegisteredAttendee.objects.get_or_create(
                             event=event, 
                             guest_email=email,
                             defaults={'guest_name': name}
                         )
+                        # Missing Student ID, instantly Unready
+                        prereg.is_ready = False  
+                        prereg.save()
+                    
+                else:
+                    prereg, _ = PreRegisteredAttendee.objects.get_or_create(
+                        event=event, 
+                        guest_email='no-email@guest.com',
+                        defaults={'guest_name': name}
+                    )
+                    # Missing Email and ID, instantly Unready
+                    prereg.is_ready = False  
+                    prereg.save()
             
             del request.session['temp_csv_data']
-            return HttpResponse(f"Success! Imported into Pre-Registration for {event.title}.")
+            return redirect('core:club_admin_dashboard', club_id=event.club.id)
         
-        # FAILSAFE: If a POST request happened but no file or mapping was found!
-        return HttpResponse("Error: No file detected. Check your HTML form tag for enctype='multipart/form-data'.")
+        return HttpResponse("Error: No file or mapping data detected.")
 
-    # STEP 0: Show the initial upload form
     return render(request, 'upload_csv.html', {'event': event})
