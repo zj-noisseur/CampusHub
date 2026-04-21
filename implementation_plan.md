@@ -103,6 +103,55 @@ Refactor the current proof-of-concept scraper in `apify.py` into a robust, reusa
 
 ---
 
+## 3. JSON Processing and Integration
+
+### **Objective**
+Integrate the processing of scraped JSON data into the CampusHub application to write the data to the database and display it on the site.
+
+### **Steps**
+
+#### **Phase 1: JSON Processing**
+1. **Inspect JSON Structure**:
+   - Analyze the structure of `official_clsc_mmu_data.json` to identify fields and their mapping to Django models.
+
+2. **Create a Management Command**:
+   - Write a Django management command to process the JSON file and write the data to the database.
+   - Example:
+     - Parse fields like `state`, `institution`, `club_name`, and `ig_handle`.
+     - Use `get_or_create` to avoid duplicate entries.
+
+3. **Test the Command**:
+   - Run the command locally to ensure data is correctly written to the database.
+   - Command: `python manage.py process_json`
+
+#### **Phase 2: Data Display**
+4. **Update Views**:
+   - Modify existing views (e.g., `directory`, `feed`) to include the newly added data.
+   - Use `select_related` and `prefetch_related` for efficient database queries.
+
+5. **Update Templates**:
+   - Ensure templates display the new data correctly.
+   - Example:
+     - Show institutions and their associated clubs in `directory.html`.
+     - Display posts and clubs in `feed.html`.
+
+#### **Phase 3: Automation (Optional)**
+6. **Integrate with Scraping Pipeline**:
+   - Automate the JSON processing step to run after the scraping process.
+   - Use Django signals or Celery tasks to trigger the `process_json` command programmatically.
+
+### **Verification**
+1. Verify that the JSON data is correctly written to the database.
+2. Ensure the data is displayed accurately on the site.
+3. Test edge cases, such as missing or malformed fields in the JSON.
+
+### **Deliverables**
+- A working management command to process JSON data.
+- Updated views and templates to display the data.
+- (Optional) Automated integration with the scraping pipeline.
+
+---
+
 ## Future Roadmap
 
 ### **Search and Filter Mechanism for States and Universities**

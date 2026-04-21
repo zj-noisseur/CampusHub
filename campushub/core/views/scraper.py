@@ -29,10 +29,13 @@ def fetch_instagram_posts(ig_handle, search_limit=20, max_items=50):
         "searchLimit": search_limit,
         "searchType": "hashtag",
     }
+    # `maxItems` caps billed dataset items for pay-per-result Actors,
+    # while `limit` controls the maximum number of items returned by the endpoint.
     return run_actor_sync_get_dataset_items(
         IG_ACTOR_ID,
         payload,
         max_items=max_items,
+        limit=max_items,
     )
 
 

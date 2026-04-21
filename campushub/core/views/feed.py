@@ -1,7 +1,8 @@
 from django.core.paginator import Paginator
 from django.shortcuts import render
+from django.db.models import Prefetch
 
-from core.models import Club, Post
+from core.models import Club, Post, PostImage
 
 
 def feed(request):
@@ -11,6 +12,14 @@ def feed(request):
         "club",
         "club__institution",
         "club__institution__state",
+    # this fetches from the PostImage table associated with a given post
+    ).prefetch_related(
+        # returns a list of PostImage objects arrranged according to their order, ie if more than one image 
+        Prefetch( 
+            "postimage_set",
+            queryset=PostImage.objects.order_by("order"),
+            to_attr="images",
+        )
     ).order_by("-timestamp")
 
     clubs = Club.objects.filter(ig_handle__isnull=False).exclude(ig_handle="").order_by("name")

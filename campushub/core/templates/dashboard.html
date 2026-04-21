@@ -1,0 +1,300 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+
+<div class="mb-6 flex flex-wrap items-center gap-3">
+    <label class="label">
+        <span class="label-text">Filter</span>
+    </label>
+    <select id="filter-type" class="select select-bordered w-full max-w-xs">
+        <option value="university">University</option>
+        <option value="date_updated">Date updated</option>
+    </select>
+    <select id="institution-filter" class="select select-bordered w-full max-w-xs">
+        <option value="">All universities</option>
+        {% for university in universities %}
+        <option value="{{ university.id }}">{{ university.university_name }}</option>
+        {% endfor %}
+    </select>
+    <select id="date-sort" class="select select-bordered w-full max-w-xs hidden">
+        <option value="desc">Newest first</option>
+        <option value="asc">Oldest first</option>
+        </select>
+</div>
+
+<div class="mb-4 flex flex-wrap items-center gap-3">
+    <label class="label">
+        <span class="label-text">Selection</span>
+    </label>
+    <select id="selection-mode" class="select select-bordered w-full max-w-xs">
+        <option value="select_all">Select all</option>
+        <option value="deselect_all">Deselect all</option>
+    </select>
+    <select id="bulk-action" class="select select-bordered w-full max-w-xs" disabled>
+        <option value="">Choose action</option>
+        <option value="scrape_posts">Scrape posts</option>
+        <option value="update_profile_picture">Update profile picture</option>
+    </select>
+    <button id="apply-action" type="button" class="btn btn-primary btn-disabled" disabled>Apply</button>
+    <span id="selected-count" class="text-sm text-base-content/70">Selected: 0</span>
+</div>
+
+<dialog id="confirm-action-modal" class="modal">
+    <form method="dialog" class="modal-box">
+        <h3 class="text-lg font-bold">Confirm action</h3>
+        <p class="py-4" id="confirm-action-text">Are you sure you want to perform this action?</p>
+        <div class="modal-action">
+            <button type="button" id="confirm-action-button" class="btn btn-primary">Confirm</button>
+            <button type="submit" class="btn">Cancel</button>
+        </div>
+    </form>
+</dialog>
+
+<form method="get" class="mb-4 w-full">
+    <label class="input w-full">
+    <svg class="h-[1em] opacity-50" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+        <g
+        stroke-linejoin="round"
+        stroke-linecap="round"
+        stroke-width="2.5"
+        fill="none"
+        stroke="currentColor"
+        >
+        <circle cx="11" cy="11" r="8"></circle>
+        <path d="m21 21-4.3-4.3"></path>
+        </g>
+    </svg>
+    <input type="search" name="search" required placeholder="Search" class="input input-bordered w-full" value="{{ request.GET.search|default:'' }}">
+    </label>
+</form>
+
+<div class="overflow-x-auto">
+<table class="table w-full table-zebra">
+    <thead>
+        <tr>
+            <th></th>
+            <th>Club</th>
+            <th>University</th>
+            <th>Last Published Date</th>
+            <th>Posts Scraped</th>
+            <th>Actions</th>
+            <th>Status</th> <!--If any task related to the club is running show an indeterminate progress indicator-->
+        </tr>
+    </thead>
+    <tbody>
+        {% for club in clubs %}
+        <tr data-club-id="{{ club.id }}" data-institution-id="{{ club.institution.id }}" data-timestamp="{{ club.latest_post_timestamp|date:'U'|default:'0' }}">
+            <th>
+                <label>
+                    <input type="checkbox" class="checkbox">
+                </label>
+            </th>
+            <td>
+                <div class="flex items-center gap-3">
+                    <div class="avatar">
+                        {% if club.logo %}
+                        <div class="mask mask-squircle h-12 w-12">
+                            <img src="{{ club.logo.url }}" alt="{{ club.name }} logo" />
+                        </div>
+                        {% else %}
+                        <span>No logo</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {{ club.name }}
+            </td>
+            <td>
+                <div class="flex items-center gap-3">
+                    <div class="avatar">
+                        <div class="mask mask-squircle h-12 w-12">
+                            <img src="{{ club.institution.logo.url }}" alt="{{ club.institution.university_name }} logo" />
+                        </div>
+                    </div>
+                </div>
+                {{ club.institution.university_name }}
+            </td>
+            <td>{{ club.latest_post_timestamp|date:"Y-m-d H:i:s" }}</td>
+            <td>{{ club.posts_count }}</td>
+            
+            <td>
+                <button class="btn btn-ghost btn-circle" popovertarget="action-popover-{{ club.id }}" style="anchor-name: --actions-anchor-{{ club.id }}">
+                    <i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i>
+                </button>
+                <ul class="dropdown menu w-52 rounded-box bg-base-100 shadow-sm" popover id="action-popover-{{ club.id }}" style="position-anchor: --actions-anchor-{{ club.id }}">
+                    <li><a>View information</a></li>
+                    <li>
+                        <button type="button" class="club-action-btn btn btn-ghost btn-sm w-full text-left" data-club-id="{{ club.id }}" data-action="update_profile_picture">
+                            Update profile
+                        </button>
+                    </li>
+                    <li>
+                        <button type="button" class="club-action-btn btn btn-ghost btn-sm w-full text-left" data-club-id="{{ club.id }}" data-action="scrape_posts">
+                            Scrape posts
+                        </button>
+                    </li>
+                </ul>
+            </td>
+           
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="7" class="text-center">No clubs found.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+</div>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const filterType = document.getElementById('filter-type');
+        const institutionFilter = document.getElementById('institution-filter');
+        const dateSort = document.getElementById('date-sort');
+        const searchInput = document.querySelector('input[name="search"]');
+        const selectionMode = document.getElementById('selection-mode');
+        const bulkActionSelect = document.getElementById('bulk-action');
+        const applyActionButton = document.getElementById('apply-action');
+        const selectedCountEl = document.getElementById('selected-count');
+        const tbody = document.querySelector('tbody');
+        const rows = Array.from(document.querySelectorAll('tbody tr[data-institution-id]'));
+        const checkboxes = Array.from(document.querySelectorAll('tbody tr[data-institution-id] input[type="checkbox"]'));
+        const actionButtons = Array.from(document.querySelectorAll('.club-action-btn'));
+        const dashboardActionUrl = '{% url "core:dashboard_action" %}';
+
+        const confirmModal = document.getElementById('confirm-action-modal');
+        const confirmActionText = document.getElementById('confirm-action-text');
+        const confirmActionButton = document.getElementById('confirm-action-button');
+        let pendingClubId = null;
+        let pendingAction = null;
+
+        const postClubAction = async (clubId, action) => {
+            const response = await fetch(dashboardActionUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ club_id: clubId, action })
+            });
+
+            const payload = await response.json().catch(() => null);
+            if (!response.ok) {
+                console.error('Club action failed', action, clubId, payload);
+                return;
+            }
+
+            console.log('Club action result', payload);
+        };
+
+        const noResultsMessage = document.createElement('tr');
+        noResultsMessage.innerHTML = '<td colspan="7" class="text-center">No clubs found.</td>';
+        noResultsMessage.style.display = 'none';
+        tbody.appendChild(noResultsMessage);
+
+        const updateSelectionState = () => {
+            const selectedCount = checkboxes.filter(checkbox => checkbox.checked).length;
+            selectedCountEl.textContent = `Selected: ${selectedCount}`;
+            const isActive = selectedCount > 0;
+            bulkActionSelect.disabled = !isActive;
+            applyActionButton.disabled = !isActive;
+            bulkActionSelect.classList.toggle('btn-disabled', !isActive);
+            applyActionButton.classList.toggle('btn-disabled', !isActive);
+        };
+
+        const rowMatchesSearch = row => {
+            const query = searchInput.value.trim().toLowerCase();
+            if (!query) return true;
+            const clubName = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
+            const universityName = row.querySelector('td:nth-child(3)').textContent.toLowerCase();
+            return clubName.includes(query) || universityName.includes(query);
+        };
+
+        const toggleControls = () => {
+            const type = filterType.value;
+            institutionFilter.classList.toggle('hidden', type !== 'university');
+            dateSort.classList.toggle('hidden', type !== 'date_updated');
+            applyFilter();
+        };
+
+        const applyFilter = () => {
+            const type = filterType.value;
+            let visibleCount = 0;
+
+            const sortedRows = type === 'date_updated'
+                ? rows.slice().sort((a, b) => {
+                    const aTs = Number(a.dataset.timestamp || '0');
+                    const bTs = Number(b.dataset.timestamp || '0');
+                    return dateSort.value === 'asc' ? aTs - bTs : bTs - aTs;
+                })
+                : rows.slice();
+
+            if (type === 'date_updated') {
+                sortedRows.forEach(row => tbody.appendChild(row));
+            }
+
+            sortedRows.forEach(row => {
+                const matchesUniversity = type !== 'university' || !institutionFilter.value || row.dataset.institutionId === institutionFilter.value;
+                const matchesSearch = rowMatchesSearch(row);
+                const visible = matchesUniversity && matchesSearch;
+                row.style.display = visible ? '' : 'none';
+                if (visible) visibleCount += 1;
+            });
+
+            noResultsMessage.style.display = visibleCount ? 'none' : '';
+        };
+
+        const handleBulkSelection = () => {
+            if (selectionMode.value === 'select_all') {
+                checkboxes.forEach(checkbox => {
+                    const tr = checkbox.closest('tr');
+                    if (tr && tr.style.display !== 'none') {
+                        checkbox.checked = true;
+                    }
+                });
+            } else if (selectionMode.value === 'deselect_all') {
+                checkboxes.forEach(checkbox => {
+                    checkbox.checked = false;
+                });
+            }
+
+            selectionMode.value = '';
+            updateSelectionState();
+        };
+
+        filterType.addEventListener('change', toggleControls);
+        institutionFilter.addEventListener('change', applyFilter);
+        dateSort.addEventListener('change', applyFilter);
+        searchInput.addEventListener('input', applyFilter);
+        selectionMode.addEventListener('change', handleBulkSelection);
+        checkboxes.forEach(checkbox => checkbox.addEventListener('change', updateSelectionState));
+        actionButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                pendingClubId = button.dataset.clubId;
+                pendingAction = button.dataset.action;
+                confirmActionText.textContent = `Confirm ${pendingAction.replace('_', ' ')} for club ${pendingClubId}?`;
+                confirmModal.showModal();
+            });
+        });
+
+        confirmActionButton.addEventListener('click', () => {
+            if (!pendingClubId || !pendingAction) {
+                confirmModal.close();
+                return;
+            }
+            postClubAction(pendingClubId, pendingAction);
+            pendingClubId = null;
+            pendingAction = null;
+            confirmModal.close();
+        });
+
+        applyActionButton.addEventListener('click', () => {
+            if (bulkActionSelect.value && checkboxes.some(checkbox => checkbox.checked)) {
+                const selectedRows = checkboxes.filter(checkbox => checkbox.checked).map(checkbox => checkbox.closest('tr').dataset.clubId);
+                console.log('Perform action', bulkActionSelect.value, 'on', selectedRows);
+                // TODO: submit selectedRows and bulkActionSelect.value to the backend
+            }
+        });
+
+        toggleControls();
+        updateSelectionState();
+    });
+</script>
+{% endblock %}

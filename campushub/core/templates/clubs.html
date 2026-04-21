@@ -33,9 +33,15 @@
         <ul class="list bg-base-300 rounded-box shadow-md">
                 {% for club in clubs %}
                     <li class="list-row p-4">
+                        {% if club.logo %}
                         <div class="list-col">
                             <img src="{{club.logo.url}}" alt="{{club.name}} logo" class="w-20 h-20 object-cover rounded-box">
                         </div>
+                        {% else %}
+                        <div class="list-col">
+                            <span>No logo</span>
+                        </div>
+                        {% endif %}
                         <div class="list-col-grow px-4">
                             <h2 class="text-lg font-bold">{{club.name}}</h2>
                         </div>

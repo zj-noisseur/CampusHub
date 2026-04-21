@@ -1,6 +1,7 @@
 from dotenv import load_dotenv
 import os
 import requests
+import json
 
 # Load environment variables from .env file
 load_dotenv()
@@ -109,3 +110,42 @@ def run_actor_sync_get_dataset_items(actorId, input_payload, timeout=None, memor
     else:
         raise Exception(f"Failed to run actor and get dataset items: {response.status_code} - {response.text}")
 
+IG_ACTOR_ID = 'shu8hvrXbJbY3Eb9W'
+
+
+def fetch_instagram_posts_via_apify(ig_handle, search_limit=20, max_items=50, actor_id=IG_ACTOR_ID, export_dir=None):
+    if not ig_handle:
+        raise ValueError('Instagram handle is required')
+
+    payload = {
+        'directUrls': [f'https://www.instagram.com/{ig_handle}/'],
+        'resultsType': 'posts',
+        'searchLimit': search_limit,
+    }
+
+    dataset = run_actor_sync_get_dataset_items(
+        actor_id,
+        payload,
+        max_items=max_items,
+        limit=max_items,
+    )
+
+    if export_dir is not None:
+        export_dataset(dataset, ig_handle, export_dir=export_dir)
+
+    return dataset
+
+
+def export_dataset(dataset, ig_handle, export_dir=None):
+    directory = export_dir or os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'export'))
+    os.makedirs(directory, exist_ok=True)
+    file_path = os.path.join(directory, f'{ig_handle}.json')
+    with open(file_path, 'w', encoding='utf-8') as f:
+        json.dump(dataset, f, ensure_ascii=False, indent=4)
+    return file_path
+
+
+if __name__ == '__main__':
+    default_handle = 'itsocietymmu'
+    result = fetch_instagram_posts_via_apify(default_handle, max_items=20)
+    export_dataset(result, default_handle)
