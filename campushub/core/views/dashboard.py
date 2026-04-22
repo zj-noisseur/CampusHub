@@ -10,7 +10,7 @@ from django.views.decorators.http import require_POST
 from core.models import Club, Institution
 from core.task import run_club_scrape_task
 
-def dashboard(request):
+def dashboard_home(request):
     selected_institution = request.GET.get("institution")
     universities = Institution.objects.order_by("university_name")
     clubs = Club.objects.select_related(
@@ -32,6 +32,9 @@ def dashboard(request):
         clubs = clubs.filter(institution_id=selected_institution)
 
     return render(request, 'dashboard.html', {'clubs': clubs, "universities": universities, "selected_institution": selected_institution})
+
+def dashboard_task_queue(request):
+    return render(request, 'dashboard_tasks_fragment.html')
 
 @csrf_exempt
 @require_POST
