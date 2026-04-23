@@ -1,5 +1,5 @@
-﻿from .register_student import register_student
+﻿from .sign_up import sign_up
 from .claim_club import claim_club
-from .apply_membership import apply_membership
+from .profile import user_profile
 
-__all__ = ['register_student', 'claim_club', 'apply_membership']
+__all__ = ['sign_up', 'claim_club', 'user_profile']

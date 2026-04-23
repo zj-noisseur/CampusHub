@@ -3,7 +3,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from ..forms import ClaimClubForm
 
-@login_required(login_url='/admin/login/')
+@login_required
 def claim_club(request):
     """View for claiming a club"""
     if request.method == 'POST':

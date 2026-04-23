@@ -6,7 +6,7 @@ class StudentRegistrationForm(UserCreationForm):
     class Meta(UserCreationForm.Meta):
         model = User
         # These are the exact fields the student will fill out
-        fields = ('email', 'student_name')
+        fields = ('email', 'student_name','student_id', 'phone_number')
         widgets = {
             'email': forms.EmailInput(attrs={
                 'class': 'input input-bordered w-full rounded-xl', 

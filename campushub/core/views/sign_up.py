@@ -1,16 +1,18 @@
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from ..forms import StudentRegistrationForm
+from django.contrib.auth import login
 
-def register_student(request):
+def sign_up(request):
     """View for student registration"""
     # If the user hits the "Submit" button:
     if request.method == 'POST':
         form = StudentRegistrationForm(request.POST)
         if form.is_valid():
-            form.save()  # This saves the new student to your database!
-            messages.success(request, 'Account created successfully! You can now log in.')
-            return redirect('register')  # For now, just reload the page
+            user = form.save()
+            login(request, user)
+            messages.success(request, 'Account created successfully! Welcome to CampusHub.')
+            return redirect('profile') #Redirect to home
 
     # If the user is just visiting the page for the first time:
     else:
@@ -18,4 +20,4 @@ def register_student(request):
 
     # Send the form to the HTML template
     
-    return render(request, 'core/register.html', {'form': form})
+    return render(request, 'core/sign_up.html', {'form': form})
