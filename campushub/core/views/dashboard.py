@@ -1,11 +1,13 @@
+from datetime import timedelta
 import json
 import os
 
-from django.db.models import Max
+from django.db.models import IntegerField, Max, ExpressionWrapper, F, Value, Count
 from django.http import JsonResponse
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
+from django.db.models.functions import Now, Coalesce
 
 from core.models import Club, Institution
 from core.task import run_club_scrape_task
@@ -16,7 +18,8 @@ def dashboard_home(request):
     clubs = Club.objects.select_related(
         "institution"
     ).annotate( # this is a derived field that does not write to the database nor is it part of the model
-        latest_post_timestamp=Max("posts__timestamp")
+        latest_post_timestamp=Max("posts__timestamp"),
+        post_count=Count('posts')
     )
      
 
@@ -44,6 +47,7 @@ def dashboard_action(request):
     except (json.JSONDecodeError, UnicodeDecodeError):
         return JsonResponse({'error': 'Invalid JSON payload'}, status=400)
 
+    # button which is within the same row as the club, sends the club_id, club_id then obtains the associated ig_handle, the output is then passed to the scraping function
     club_id = payload.get('club_id')
     action = payload.get('action')
     if not club_id or not action:

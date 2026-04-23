@@ -32,12 +32,7 @@ def parse_apify_timestamp(value):
     return parsed
 
 
-def process_club_dataset(club, dataset, full_sync=False):
-    if full_sync:
-        club.posts.all().delete()
-
-    created_count = 0
-
+def process_club_dataset(club, dataset):
     for item in dataset:
         ig_id = item.get('id')
         if not ig_id:
@@ -57,9 +52,6 @@ def process_club_dataset(club, dataset, full_sync=False):
             }
         )
 
-        if created:
-            created_count += 1
-
         for order, image_url in enumerate(image_urls):
             if not image_url:
                 continue
@@ -77,13 +69,12 @@ def process_club_dataset(club, dataset, full_sync=False):
                 continue
 
     club.last_fetched_date = timezone.now()
-    club.posts_count = club.posts.count()
-    club.save(update_fields=['last_fetched_date', 'posts_count'])
+    club.save(update_fields=['last_fetched_date'])
 
-    return created_count
+    return None
 
 
-def run_club_scrape_task(club, search_limit=20, max_items=50, export_dir=None, full_sync=False):
+def run_club_scrape_task(club, search_limit=20, max_items=50, export_dir=None):
     if not club.ig_handle:
         raise ValueError('Club does not have an Instagram handle')
 
@@ -97,7 +88,7 @@ def run_club_scrape_task(club, search_limit=20, max_items=50, export_dir=None, f
 
     created_count = 0
     if isinstance(dataset, list):
-        created_count = process_club_dataset(club, dataset, full_sync=full_sync)
+        created_count = process_club_dataset(club, dataset)
 
     return {
         'club_id': str(club.id),

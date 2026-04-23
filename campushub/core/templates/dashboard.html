@@ -84,7 +84,7 @@
             <th>Club</th>
             <th>University</th>
             <th>Last Published Date</th>
-            <th>Posts Scraped</th>
+            <th>Scrape info</th>
             <th>Actions</th>
             <th>Status</th> <!--If any task related to the club is running show an indeterminate progress indicator-->
         </tr>
@@ -121,9 +121,28 @@
                 </div>
                 {{ club.institution.university_name }}
             </td>
-            <td>{{ club.latest_post_timestamp|date:"Y-m-d H:i:s" }}</td>
-            <td>{{ club.posts_count }}</td>
+            {% if club.latest_post_timestamp %}
+            <td>{{ club.latest_post_timestamp|timesince }} ago</td>
+            {% else %}
+            <td>-</td>
+            {% endif %}
+            <!-- <td>{{ club.last_fetched_date|timesince }} ago</td>
+            <td>{{ club.posts_count }}</td> -->
             
+            <td>
+                {% if club.last_fetched_date %}
+                <div class="flex flex-col gap-1">
+                    <span class="text-sm text-base-content/80">
+                            Last scraped, {{ club.last_fetched_date|timesince }} ago
+                    </span>
+                    <span class="text-sm text-base-content/80">
+                        {{ club.post_count }} posts 
+                    </span>
+                    {% else %}
+                    -
+                {% endif %}
+                </div>
+
             <td>
                 <button class="btn btn-ghost btn-circle" popovertarget="action-popover-{{ club.id }}" style="anchor-name: --actions-anchor-{{ club.id }}">
                     <i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i>
