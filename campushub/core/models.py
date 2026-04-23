@@ -1,212 +1,119 @@
 from django.db import models
-import uuid
-from django.contrib.auth.models import AbstractUser
-from django.db import models, transaction
-from django.utils import timezone
-from datetime import timedelta
+from django.conf import settings
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.core.exceptions import ValidationError
-from django.db.models import Q
 
-# from campushub.feed.models import Institution
-# from campushub.feed.models import User
-# from campushub.feed.models import Club
-# from campushub.feed.models import Committee
-# from campushub.feed.models import Post
-# from campushub.feed.models import Event
+# Create your models here.
+def validate_mmu_email(value):
+    if not value.endswith('@student.mmu.edu.my'):
+        raise ValidationError("Only @student.mmu.edu.my email addresses are allowed for Phase 1.")
 
-"""
-1.
-"""
-class User(AbstractUser):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+class CustomUserManager(BaseUserManager):
+    def create_user(self, email, student_name, password=None, **extra_fields):
+        if not email:
+            raise ValueError('The Email field must be set')
+        email = self.normalize_email(email)
+        user = self.model(email=email, student_name=student_name, **extra_fields)
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
 
-    email = models.EmailField(unique=True, help_text="Please provide your student email address. A confirmation email will be sent for the purpose of activating your account.")
+    def create_superuser(self, email, student_name, password=None, **extra_fields):
+        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_superuser', True)
+        return self.create_user(email, student_name, password, **extra_fields)
 
-    student_id = models.CharField(
-        max_length=10,
-        unique=True,
-        help_text="Please provide your student ID."
+class User(AbstractBaseUser, PermissionsMixin):
+    email = models.EmailField(unique=True, validators=[validate_mmu_email])
+    student_name = models.CharField(max_length=255)
+    student_id = models.CharField(max_length=20, blank=True, null=True)
+    phone_number = models.CharField(max_length=20, blank=True, null=True)
+    
+    is_active = models.BooleanField(default=True)
+    is_staff = models.BooleanField(default=False)
+
+    groups = models.ManyToManyField(
+        'auth.Group',
+        related_name='customuser_auth_groups', 
+        blank=True,
+        help_text='The groups this user belongs to.',
+        verbose_name='groups',
     )
-    
+    user_permissions = models.ManyToManyField(
+        'auth.Permission',
+        related_name='customuser_auth_permissions',
+        blank=True,
+        help_text='Specific permissions for this user.',
+        verbose_name='user permissions',
+    )
+
+    objects = CustomUserManager()
+
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = ['student_name']
+
     def __str__(self):
-        return f"{self.username} ({self.student_id})"
-    
-"""
-2.
-"""
-class Institution(models.Model):
-    university_name = models.CharField(max_length=255, unique=True)
+        return f"{self.student_name} ({self.email})"
 
-    state = models.CharField(max_length=255)
-
-    def __str__(self):
-        return self.university_name
-
-"""
-3.
-"""
 class Club(models.Model):
-    institution = models.ForeignKey(Institution, on_delete=models.CASCADE, related_name='clubs')
+    CATEGORY_CHOICES = [
+        ('RECRUITMENT', 'Recruitment'),
+        ('COMPETITION', 'Competition'),
+        ('WORKSHOP', 'Workshop'),
+        ('PAST_EVENT', 'Past Event'),
+        ('MISC', 'Miscellaneous'),
+    ]
 
-    name = models.CharField(max_length=255)
-
-    ig_hanlde = models.CharField(max_length=255)
-
-    valid_till = models.DateTimeField(null=True, blank=True)
-
-    # to all clubs are valid, the associated admins have to make sure to check their email annually to maintain the verified checkmark
-    @property
-    def is_active(self):
-        if not self.valid_till:
-            return False
-        return self.valid_till > timezone.now()
-    
-    def add_committee_member(self, user, designation):
-        if not self.is_active:
-            raise ValidationError("Cannot add committee members to an inactive club.")
-        
-        return Committee.objects.create(
-            user=user,
-            club=self,
-            designation=designation,
-            is_root=False,
-            is_active=True
-        )
+    name = models.CharField(max_length=255, unique=True)
+    description = models.TextField(blank=True, null=True)
+    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='MISC')
+    is_claimed = models.BooleanField(default=False)
     
     def __str__(self):
         return self.name
 
+class ClubManager(models.Model):
+    ROLE_CHOICES = [
+        ('ROOT', 'Root Admin'),
+        ('NON_ROOT', 'Non-Root Admin'),
+    ]
 
-"""
-4.
-"""
-class Committee(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='managed_clubs')
+    club = models.ForeignKey(Club, on_delete=models.CASCADE, related_name='managers')
+    role = models.CharField(max_length=15, choices=ROLE_CHOICES)
+    assigned_date = models.DateTimeField(auto_now_add=True)
 
-    club = models.ForeignKey(Club, on_delete=models.CASCADE, related_name='committee')
+    def __str__(self):
+        return f"{self.user.student_name} - {self.get_role_display()} of {self.club.name}"
 
-    # ideally this should be optional and not strictly necessary but merely informational for displaying the organisational chart only
-    designation = models.CharField(max_length=100)
+class ClaimRequest(models.Model):
+    STATUS_CHOICES = [
+        ('PENDING', 'Pending'),
+        ('APPROVED', 'Approved'),
+        ('REJECTED', 'Rejected'),
+    ]
 
-    # the first person initiating the claiming process will be assigned true for is_root 
-    is_root = models.BooleanField(default=False)
-    is_active = models.BooleanField(default=True)
-
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(
-                fields=['club'],
-                condition=Q(is_root=True),
-                name='unique_root_per_club'
-            )
-        ]
-
-    @property
-    def has_admin_access(self):
-        return self.is_active and self.club.is_active
-
-    def trasaction_root_privileges(self, successor_member):
-        if not self.is_root:
-            raise ValidationError("Only the admin with root access can initiate a handover")
-
-        with transaction.atomic():
-            self.is_root = False
-            self.save()
-
-            successor_member.is_root = True
-            successor_member.save()
-    
-
-    
-
-"""
-5.
-"""
-class ClubClaim(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     club = models.ForeignKey(Club, on_delete=models.CASCADE)
+    proof_document = models.FileField(upload_to='claim_proofs/')
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='PENDING')
+    submitted_at = models.DateTimeField(auto_now_add=True)
 
-    proof_document = models.FileField(upload_to='claims/proof')
+    def __str__(self):
+        return f"Claim Request: {self.club.name} by {self.user.student_name} ({self.status})"
 
-    status = models.CharField(
-        max_length=20,
-        choices=[(
-            'Pending', 'Pending'
-        ), (
-            'Approved', 'Approved'
-        ), (
-            'Rejected', 'Rejected'
-        )],
-        default='Pending'
-    )
+class Membership(models.Model):
+    STATUS_CHOICES = [
+        ('PENDING', 'Pending'),
+        ('ACTIVE', 'Active'),
+        ('REJECTED', 'Rejected'),
+    ]
 
-    def approve(self):
-        self.status = 'Approved'
-        self.save()
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='memberships')
+    club = models.ForeignKey(Club, on_delete=models.CASCADE, related_name='members')
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='PENDING')
+    payment_proof = models.ImageField(upload_to='payment_proofs/', blank=True, null=True)
+    joined_at = models.DateTimeField(auto_now_add=True)
 
-        self.club.valid_till = timezone.now() + timedelta(days=365)
-        self.club.save()
-
-        Committee.objects.create(
-            user=self.user,
-            club=self.club,
-            is_root=True,
-            # TO NOTE: this is only for the first person performing the action
-            designation=self.claimer_designation
-        )
-"""
-6.
-"""
-class Post(models.Model):
-    club = models.ForeignKey(Club, on_delete=models.CASCADE, related_name='posts')
-
-    ig_id = models.CharField(max_length=255, unique=True)
-
-    # unique identifier for a particular post, at the end of the post route in Instagram
-    short_code = models.CharField(max_length=100)
-
-    caption = models.TextField(blank=True)
-
-    # TO NOTE: this is ambiguous. Timestamp should ideally and strictly be the timestamp when the post was originally posted on Instagram 
-    timestamp = models.DateTimeField()
-
-"""
-7. this is the model that keeps track of all the events that is associated with a post
-"""
-class Event(models.Model):
-    # one-to-one relation to prevent duplicates, so that all events can be associated to just one post only, some clubs might post in duplicates for promotional purposes 
-    post = models.OneToOneField(Post, on_delete=models.CASCADE, related_name='events')
-    
-    # these fields are to be inferred from the caption itself
-    title = models.CharField(max_length=255)
-    event_date = models.DateField()
-    location = models.CharField(max_length=255)
-
-
-"""
-8. 
-"""
-class Attendance(models.Model):
-    event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name='attendance_records')
-    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
-
-    # TO NOTE whether to drop or implement this at all as this is assuming the event is public and accepts walk-ins
-    guest_name = models.CharField(max_length=255, blank=True)
-    
-    scanned_at = models.DateTimeField(auto_now_add=True)
-
-"""
-9.
-"""
-class CertificateTemplate(models.Model):
-    club = models.ForeignKey(Club, on_delete=models.CASCADE)
-
-    # TO NOTE: the endpoint to be uploaded to has to be reviewed and pending changes, am considering to assign this to the dashboard enpoint instead
-    template_image = models.ImageField(upload_to='certificates/templates')
-
-    # TO NOTE: not really sure what these are meant for yet
-    name_x_pos = models.IntegerField(default=500)
-    name_y_pos = models.IntegerField(default=500)
+    def __str__(self):
+        return f"{self.user.student_name} - {self.club.name} ({self.status})"
