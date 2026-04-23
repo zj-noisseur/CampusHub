@@ -22,6 +22,8 @@ class User(AbstractUser):
         unique=True,
         help_text="Please provide your student ID."
     )
+
+    phone_number = models.CharField(max_length=20, blank=True, null=True)
     
     def __str__(self):
         return f"{self.username} ({self.student_id})"
@@ -74,6 +76,20 @@ class Club(models.Model):
         blank=True,
         null=True
     )
+
+    description = models.TextField(blank=True, null=True)
+    category = models.CharField(
+        max_length=20,
+        choices=[
+            ('RECRUITMENT', 'Recruitment'),
+            ('COMPETITION', 'Competition'),
+            ('WORKSHOP', 'Workshop'),
+            ('PAST_EVENT', 'Past Event'),
+            ('MISC', 'Miscellaneous'),
+        ],
+        default='MISC'
+    )
+    is_claimed = models.BooleanField(default=False)
 
     last_fetched_date = models.DateTimeField(null=True, blank=True)
 
@@ -130,66 +146,66 @@ class Committee(models.Model):
     is_active = models.BooleanField(default=True)
 
 
-    @property
-    def has_dashboard_access(self):
-        """Allows login to the portal as long as they are an active member."""
-        return self.is_active
+    # @property
+    # def has_dashboard_access(self):
+    #     """Allows login to the portal as long as they are an active member."""
+    #     return self.is_active
 
-    @property
-    def has_management_powers(self):
-        """Allows managing other members. Must be both a Root and Active."""
-        return self.is_active and self.is_root
+    # @property
+    # def has_management_powers(self):
+    #     """Allows managing other members. Must be both a Root and Active."""
+    #     return self.is_active and self.is_root
 
-    @property
-    def role_label(self):
-        """Convenience property for the Org Chart UI."""
-        if not self.is_active:
-            return f"Past {self.designation}"
-        return self.designation if self.designation else ("Root Admin" if self.is_root else "Member")
+    # @property
+    # def role_label(self):
+    #     """Convenience property for the Org Chart UI."""
+    #     if not self.is_active:
+    #         return f"Past {self.designation}"
+    #     return self.designation if self.designation else ("Root Admin" if self.is_root else "Member")
 
-    # --- Business Logic Methods ---
+    # # --- Business Logic Methods ---
 
-    def _verify_leadership_safety(self):
-        """
-        Internal safety check: Ensures a club always has at least one 
-        active Root admin before a change is committed.
-        """
-        active_roots = self.club.committee.filter(
-            is_root=True, 
-            is_active=True
-        ).count()
-        if active_roots <= 1:
-            raise ValidationError(
-                "Critical Error: You cannot demote or deactivate the last remaining Root admin. "
-                "Promote another member first."
-            )
+    # def _verify_leadership_safety(self):
+    #     """
+    #     Internal safety check: Ensures a club always has at least one 
+    #     active Root admin before a change is committed.
+    #     """
+    #     active_roots = self.club.committee.filter(
+    #         is_root=True, 
+    #         is_active=True
+    #     ).count()
+    #     if active_roots <= 1:
+    #         raise ValidationError(
+    #             "Critical Error: You cannot demote or deactivate the last remaining Root admin. "
+    #             "Promote another member first."
+    #         )
 
-    def toggle_active_status(self, requester):
-        """
-        Allows a Root admin to 'deactivate' a member (e.g., Graduation).
-        This keeps the record for the Org Chart but revokes dashboard access.
-        """
-        if not requester.has_management_powers:
-            raise ValidationError("Permission Denied: Only active Root admins can manage members.")
+    # def toggle_active_status(self, requester):
+    #     """
+    #     Allows a Root admin to 'deactivate' a member (e.g., Graduation).
+    #     This keeps the record for the Org Chart but revokes dashboard access.
+    #     """
+    #     if not requester.has_management_powers:
+    #         raise ValidationError("Permission Denied: Only active Root admins can manage members.")
         
-        # Guardrail: Prevents the last active Root user from setting himself or herself to inactive, without a remaning root user in place, no non-root user can promote themselves to possess root access
-        if self.is_root and self.is_active:
-            self._verify_leadership_safety()
+    #     # Guardrail: Prevents the last active Root user from setting himself or herself to inactive, without a remaning root user in place, no non-root user can promote themselves to possess root access
+    #     if self.is_root and self.is_active:
+    #         self._verify_leadership_safety()
 
-        self.is_active = not self.is_active
-        self.save()
+    #     self.is_active = not self.is_active
+    #     self.save()
 
-    def toggle_root_status(self, requester):
-        """Promote or demote members between Root and Standard levels."""
-        if not requester.has_management_powers:
-            raise ValidationError("Permission Denied: Only active Root admins can change roles.")
+    # def toggle_root_status(self, requester):
+    #     """Promote or demote members between Root and Standard levels."""
+    #     if not requester.has_management_powers:
+    #         raise ValidationError("Permission Denied: Only active Root admins can change roles.")
 
-        # Guardrail: Prevent demoting the last active Root
-        if self.is_root and self.is_active:
-            self._verify_leadership_safety()
+    #     # Guardrail: Prevent demoting the last active Root
+    #     if self.is_root and self.is_active:
+    #         self._verify_leadership_safety()
 
-        self.is_root = not self.is_root
-        self.save()
+    #     self.is_root = not self.is_root
+    #     self.save()
     
 
     
@@ -221,6 +237,8 @@ class ClubClaim(models.Model):
         default='Pending'
     )
 
+    submitted_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+
     def approve(self):
         self.status = 'Approved'
         self.save()
@@ -243,7 +261,6 @@ class Post(models.Model):
     # unique identifier for a particular post, at the end of the post route in Instagram
     # instagram/p/{short_code}
     short_code = models.CharField(max_length=100)
-    # full caption text that is scraped, no editing performed
     caption = models.TextField(blank=True)
     # timestamp the post was first published
     timestamp = models.DateTimeField()
@@ -258,7 +275,7 @@ class Post(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.club.name}"
+        return f"{self.club.name} - {self.short_code}"
     
 """
 5.B
@@ -282,6 +299,7 @@ class PostImage(models.Model):
 """
 class Event(models.Model):
     # one-to-one relation to prevent duplicates, so that all events can be associated to just one post only, some clubs might post in duplicates for promotional purposes 
+    club = models.ForeignKey(Club, on_delete=models.CASCADE, null=True, blank=True)
     post = models.OneToOneField(Post, on_delete=models.CASCADE, related_name='events')
     
     # these fields are to be inferred from the caption itself
@@ -293,7 +311,9 @@ class Event(models.Model):
         indexes = [
             models.Index(fields=['event_date']),
         ]
-
+    
+    def __str__(self):
+        return self.title
 
 """
 7. 
@@ -312,6 +332,9 @@ class Attendance(models.Model):
     # Attendance metadata
     scanned_at = models.DateTimeField(auto_now_add=True)
     certificate_sent = models.BooleanField(default=False)
+
+    class Meta:
+        unique_together = ('event', 'user') # Prevents double-attendance
 
     def __str__(self):
         attendee_name = self.user.username if self.user else self.guest_name
@@ -350,16 +373,23 @@ class PreRegisteredAttendee(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     event = models.ForeignKey('Event', on_delete=models.CASCADE, related_name='pre_registered')
     
-    email = models.EmailField(max_length=255)
-    name = models.CharField(max_length=255, null=True, blank=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    
+    guest_email = models.EmailField(max_length=255, null=True, blank=True)
+    guest_name = models.CharField(max_length=255, null=True, blank=True)
     
     created_at = models.DateTimeField(auto_now_add=True)
 
+    is_ready = models.BooleanField(default=False)
+    is_attended = models.BooleanField(default=False)
+    
     class Meta:
-        unique_together = ('event', 'email')
+        unique_together = ('event', 'user') 
 
     def __str__(self):
-        return f"{self.name or self.email} - {self.event.title}"
+        attendee_name = self.user.username if self.user else self.guest_name
+        return f"{attendee_name} - {self.event.title}"
+    
 
 """
 10.

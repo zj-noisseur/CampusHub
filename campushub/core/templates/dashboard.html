@@ -2,10 +2,18 @@
 {% block title %}Dashboard{% endblock %}
 {% block content %}
 
-<div class="mb-6 flex flex-wrap items-center gap-3">
-    <label class="label">
-        <span class="label-text">Filter</span>
-    </label>
+<div class="mb-4">
+    <div class="tabs">
+        <button type="button" class="tab tab-lifted tab-active" data-tab="clubs">Clubs</button>
+        <button type="button" class="tab tab-lifted" data-tab="queue">Queued Tasks</button>
+    </div>
+</div>
+
+<div id="dashboard-tab-clubs">
+    <div class="mb-6 flex flex-wrap items-center gap-3">
+        <label class="label">
+            <span class="label-text">Filter</span>
+        </label>
     <select id="filter-type" class="select select-bordered w-full max-w-xs">
         <option value="university">University</option>
         <option value="date_updated">Date updated</option>
@@ -144,8 +152,22 @@
     </tbody>
 </table>
 </div>
+</div>
+
+<div id="dashboard-tab-queue" class="hidden p-4">
+    <div class="text-center py-6">Loading queued tasks…</div>
+</div>
+
 <script>
     document.addEventListener('DOMContentLoaded', () => {
+        const tabs = Array.from(document.querySelectorAll('[data-tab]'));
+        const tabPanels = {
+            clubs: document.getElementById('dashboard-tab-clubs'),
+            queue: document.getElementById('dashboard-tab-queue'),
+        };
+        const queueUrl = '{% url "core:dashboard_task_queue" %}';
+        let queueLoaded = false;
+
         const filterType = document.getElementById('filter-type');
         const institutionFilter = document.getElementById('institution-filter');
         const dateSort = document.getElementById('date-sort');
@@ -291,6 +313,36 @@
                 console.log('Perform action', bulkActionSelect.value, 'on', selectedRows);
                 // TODO: submit selectedRows and bulkActionSelect.value to the backend
             }
+        });
+
+        const activateTab = (tabName) => {
+            tabs.forEach(tab => {
+                tab.classList.toggle('tab-active', tab.dataset.tab === tabName);
+            });
+            Object.entries(tabPanels).forEach(([name, panel]) => {
+                panel.classList.toggle('hidden', name !== tabName);
+            });
+            if (tabName === 'queue' && !queueLoaded) {
+                loadQueueTab();
+            }
+        };
+
+        const loadQueueTab = async () => {
+            tabPanels.queue.innerHTML = '<div class="text-center py-6">Loading queued tasks…</div>';
+            const response = await fetch(queueUrl);
+            if (!response.ok) {
+                tabPanels.queue.innerHTML = '<div class="text-error">Unable to load queued tasks.</div>';
+                return;
+            }
+            tabPanels.queue.innerHTML = await response.text();
+            queueLoaded = true;
+        };
+
+        tabs.forEach(tab => {
+            tab.addEventListener('click', (event) => {
+                event.preventDefault();
+                activateTab(tab.dataset.tab);
+            });
         });
 
         toggleControls();
