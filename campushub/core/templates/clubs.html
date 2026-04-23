@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+{% block title %}Clubs at {{ university.university_name }}{% endblock %}
+{% block content %}
+    <div class="container mx-auto">
+        <!-- Breadcrumb navigation -->
+        <div class="text-sm breadcrumbs mb-4">
+            <ul>
+                <li>Directory</li>
+                <li><a href="{% url 'core:directory' %}">Universities</a></li>
+                <li>{{ university.university_name }}</li>
+                <li>Clubs</li>
+            </ul>
+        </div>
+
+        
+        <form method="get" class="mb-4 w-full">
+            <label class="input w-full">
+                <svg class="h-[1em] opacity-50" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                    <g
+                        stroke-linejoin="round"
+                        stroke-linecap="round"
+                        stroke-width="2.5"
+                        fill="none"
+                        stroke="currentColor"
+                    >
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path d="m21 21-4.3-4.3"></path>
+                    </g>
+                </svg>
+                <input type="search" name="search" required placeholder="Search" class="input input-bordered w-full" value="{{ request.GET.search|default:'' }}">
+            </label>
+        </form>
+        <ul class="list bg-base-300 rounded-box shadow-md">
+                {% for club in clubs %}
+                    <li class="list-row p-4">
+                        {% if club.logo %}
+                        <div class="list-col">
+                            <img src="{{club.logo.url}}" alt="{{club.name}} logo" class="w-20 h-20 object-cover rounded-box">
+                        </div>
+                        {% else %}
+                        <div class="list-col">
+                            <span>No logo</span>
+                        </div>
+                        {% endif %}
+                        <div class="list-col-grow px-4">
+                            <h2 class="text-lg font-bold">{{club.name}}</h2>
+                        </div>
+                        <div class="flex items-center">
+                            <a href="{% url 'core:feed' %}?club={{ club.id }}" class="btn btn-primary">View posts</a>
+                        </div>
+                    </li>
+                {% empty %}
+                    <li class="p-4 text-center text-gray-500">No clubs found for this university.</li>
+                {% endfor %}
+        </ul>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const searchInput = document.querySelector('input[name="search"]');
+            const clubList = document.querySelector('ul.list');
+            const clubs = Array.from(clubList.children);
+            const noResultsMessage = document.createElement('li');
+
+            noResultsMessage.className = 'p-4 text-center text-gray-500';
+            noResultsMessage.textContent = 'No clubs found.';
+            noResultsMessage.style.display = 'none';
+            clubList.appendChild(noResultsMessage);
+
+            searchInput.addEventListener('input', () => {
+            const query = searchInput.value.toLowerCase();
+            let hasResults = false;
+
+            clubs.forEach(club => {
+                if (club !== noResultsMessage) {
+                const name = club.querySelector('h2').textContent.toLowerCase();
+                if (query === '' || name.includes(query)) {
+                    club.style.display = '';
+                    hasResults = true;
+                } else {
+                    club.style.display = 'none';
+                }
+                }
+            });
+
+            noResultsMessage.style.display = hasResults ? 'none' : '';
+            });
+        });
+    </script>
+{% endblock %}

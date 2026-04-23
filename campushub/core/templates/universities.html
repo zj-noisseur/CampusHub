@@ -1,0 +1,88 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Select Your University{% endblock %}</title>
+    <!--
+    <link href="{% static 'css/output.css' %}" rel="stylesheet" type="text/css" />
+    -->
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+</head>
+<body class="bg-base-200 min-h-screen p-8">
+    <div class="container mx-auto">
+        <h1 class="text-3xl font-bold mb-8 text-center text-primary">Select Your University</h1>
+        
+        <form method="get" class="mb-4 w-full">
+          <label class="input w-full">
+            <svg class="h-[1em] opacity-50" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+              <g
+                stroke-linejoin="round"
+                stroke-linecap="round"
+                stroke-width="2.5"
+                fill="none"
+                stroke="currentColor"
+              >
+                <circle cx="11" cy="11" r="8"></circle>
+                <path d="m21 21-4.3-4.3"></path>
+              </g>
+            </svg>
+            <input type="search" name="search" required placeholder="Search" class="input input-bordered w-full" value="{{ request.GET.search|default:'' }}">
+          </label>
+        </form>
+
+        <ul class="list bg-base-300 rounded-box shadow-md">
+            {% for university in universities %}
+                <li class="list-row p-4">
+                    <div class="list-col">
+                        <img src="{{university.logo.url}}" alt="{{university.university_name}} logo" class="w-25 h-25 object-contain rounded-box">
+                    </div>
+                    <div class="list-col-grow px-4">
+                        <h2 class="text-lg font-bold">{{university.university_name}}</h2>
+                    </div>
+                    <div class="flex items-center">
+                        <a href="{% url 'core:clubs' state_id=state.id university_id=university.id %}" class="btn btn-primary">{{university.club_count}} clubs registered</a>
+                    </div>
+                </li>
+            {% empty %}
+                <li class="p-4 text-center text-gray-500">No universities found for "{{ request.GET.search|default:'' }}".</li>
+            {% endfor %}
+        </ul>
+    </div>
+</body>
+</html>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const searchInput = document.querySelector('input[name="search"]');
+    const universityList = document.querySelector('ul.list');
+    const universities = Array.from(universityList.children);
+    const noResultsMessage = document.createElement('li');
+
+    noResultsMessage.className = 'p-4 text-center text-gray-500';
+    noResultsMessage.textContent = `No universities found for "${searchInput.value}".`;
+    noResultsMessage.style.display = 'none';
+    universityList.appendChild(noResultsMessage);
+
+    searchInput.addEventListener('input', () => {
+      const query = searchInput.value.toLowerCase();
+      let hasResults = false;
+
+      universities.forEach(university => {
+        if (university !== noResultsMessage) {
+          const name = university.querySelector('h2').textContent.toLowerCase();
+          if (name.includes(query)) {
+            university.style.display = '';
+            hasResults = true;
+          } else {
+            university.style.display = 'none';
+          }
+        }
+      });
+
+      noResultsMessage.style.display = hasResults ? 'none' : '';
+    });
+  });
+</script>
