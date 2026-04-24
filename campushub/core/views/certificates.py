@@ -1,6 +1,7 @@
 from django.shortcuts import get_object_or_404
 from django.http import FileResponse, HttpResponse
 from django.contrib.auth.decorators import login_required
+from django.db.models import Q
 import zipfile
 import io
 
@@ -59,15 +60,25 @@ def download_certificates(request, event_id):
     return FileResponse(zip_buffer, as_attachment=True, filename=zip_filename)
 
 @login_required
-def download_my_certificate(request, attendance_id):
-    attendance = get_object_or_404(Attendance, id=attendance_id, user=request.user)
+def download_my_certificate(request, event_id):
+    user = request.user
+    
+    # Find attendance by user account OR guest email
+    attendance = Attendance.objects.filter(
+        Q(event_id=event_id) & (Q(user=user) | Q(guest_email=user.email))
+    ).first()
+    
+    if not attendance:
+        return HttpResponse("Attendance record not found for this event.", status=404)
+        
     event = attendance.event
     
     template = EventCertificate.objects.filter(event=event).first()
     if not template:
         return HttpResponse(f"No certificate template uploaded for {event.title} yet!")
         
-    student_name = attendance.guest_name if attendance.guest_name else request.user.first_name
+    # Determine the name to print on the certificate
+    student_name = attendance.guest_name if attendance.guest_name else (user.first_name if user.first_name else user.username)
         
     pdf_buffer = generate_certificate_pdf(
         student_name=student_name,

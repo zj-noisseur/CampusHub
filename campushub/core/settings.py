@@ -7,4 +7,5 @@ APIFY_API_KEY = os.getenv("APIFY_API_KEY", "")
 
 TIME_ZONE = 'Asia/Kuala_Lumpur'
 
+
 USE_TZ = True

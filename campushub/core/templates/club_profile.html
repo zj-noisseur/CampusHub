@@ -3,38 +3,180 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Clubs - CampusHub</title>
+    <title>{{ club.name }} - CampusHub</title>
     <link href="https://cdn.jsdelivr.net/npm/daisyui@4.10.2/dist/full.min.css" rel="stylesheet" type="text/css" />
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #FAFAFA; }
+        .luma-card { border: 1px solid #EAEAEA; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
+    </style>
 </head>
-<body class="bg-base-200 min-h-screen p-8">
+<body class="min-h-screen text-gray-900 pb-20">
 
-    <div class="max-w-4xl mx-auto">
-        <div class="flex justify-between items-center mb-6">
-            <h1 class="text-3xl font-bold">My Clubs</h1>
+    <div class="px-8 py-4 flex justify-between items-center bg-white border-b border-gray-100">
+        <a href="{% url 'core:student_dashboard' %}" class="text-xl font-bold tracking-tight hover:opacity-70">&larr; CampusHub</a>
+        
+        {% if user.is_authenticated %}
+        <div class="avatar placeholder">
+            <div class="bg-gray-900 text-white rounded-full w-8 font-medium">
+                <span class="text-xs">{{ user.first_name|first|default:"U" }}</span>
+            </div>
+        </div>
+        {% else %}
+        <a href="#" class="btn btn-sm rounded-full">Sign In</a>
+        {% endif %}
+    </div>
+
+    <div class="max-w-5xl mx-auto mt-6 px-4 md:px-8">
+        
+        <div class="relative">
+            <div class="w-full h-48 md:h-64 rounded-3xl overflow-hidden bg-gradient-to-r from-blue-100 to-purple-100 relative shadow-sm">
+                {% if club.banner %}
+                    <img src="{{ club.banner.url }}" alt="Banner" class="w-full h-full object-cover">
+                {% endif %}
+            </div>
+
+            <div class="absolute -bottom-12 left-6 md:left-10">
+                <div class="w-24 h-24 md:w-32 md:h-32 rounded-2xl bg-white border-4 border-[#FAFAFA] shadow-md overflow-hidden flex items-center justify-center">
+                    {% if club.logo %}
+                        <img src="{{ club.logo.url }}" alt="Logo" class="w-full h-full object-cover">
+                    {% else %}
+                        <span class="text-4xl font-bold text-gray-300">{{ club.name|first }}</span>
+                    {% endif %}
+                </div>
+            </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {% for committee in committees %}
-            {% if committee.club %}
-            <div class="card bg-base-100 shadow-xl border border-base-200">
-                <div class="card-body">
-                    <h2 class="card-title">{{ committee.club.name }}</h2>
-                    <p class="text-sm text-gray-500">Institution: {{ committee.club.institution.university_name }}</p>
+        <div class="mt-16 md:mt-20 px-2 md:px-6 flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+            <div>
+                <h1 class="text-4xl md:text-5xl font-bold tracking-tight">{{ club.name }}</h1>
+                <div class="flex items-center gap-4 mt-3 text-sm text-gray-500 font-medium">
+                    <span class="flex items-center gap-1">📍 Cyberjaya Campus</span>
+                    <span>•</span>
+                    <span class="flex items-center gap-1">👥 {{ club.members.count }} Members</span>
+                </div>
+                <p class="mt-4 max-w-2xl text-gray-600 leading-relaxed">
+                    {{ club.description|default:"Welcome to our official CampusHub page. Join us to stay updated on our latest meetups, workshops, and campus activities." }}
+                </p>
+                
+                <div class="flex gap-3 mt-4">
+                    {% if club.ig_handle %}
+                    <a href="https://instagram.com/{{ club.ig_handle }}" target="_blank" class="btn btn-sm btn-ghost btn-circle text-gray-500 hover:text-gray-900 bg-gray-100">
+                        📸
+                    </a>
+                    {% endif %}
+                    <a href="#" class="btn btn-sm btn-ghost btn-circle text-gray-500 hover:text-gray-900 bg-gray-100">
+                        🌐
+                    </a>
+                </div>
+            </div>
 
-                    <div class="card-actions justify-end mt-4">
-                        <a href="{% url 'core:club_admin_dashboard' committee.club.id %}" class="btn btn-primary">Manage Events</a>
+            <div class="flex-shrink-0">
+                {% if is_manager %}
+                    <a href="{% url 'core:club_admin_dashboard' club.id %}" class="btn border-none bg-gray-200 text-gray-800 hover:bg-gray-300 rounded-full px-8 font-medium">
+                        ⚙️ Manage Events
+                    </a>
+                {% else %}
+                    <button class="btn border-none bg-gray-900 text-white hover:bg-gray-700 rounded-full px-8 font-medium shadow-sm transition-transform hover:scale-105">
+                        Join Club
+                    </button>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="divider my-10 before:bg-gray-100 after:bg-gray-100"></div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-10 px-2 md:px-6">
+            
+            <div class="lg:col-span-2">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-gray-900">Events</h2>
+                    
+                    {% if is_manager %}
+                    <a href="#" class="btn btn-sm bg-gray-900 text-white hover:bg-gray-800 rounded-lg border-none shadow-sm">
+                        + Create Event
+                    </a>
+                    {% endif %}
+                </div>
+
+                <div class="flex flex-col gap-4">
+                    {% for event in events %}
+                    <div class="luma-card bg-white rounded-2xl p-5 flex flex-col sm:flex-row gap-5 group hover:border-gray-300 transition-all cursor-pointer">
+                        
+                        <div class="w-16 h-16 rounded-xl bg-gray-50 border border-gray-100 flex flex-col items-center justify-center flex-shrink-0">
+                            <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">{{ event.event_date|date:"M" }}</span>
+                            <span class="text-xl font-bold text-gray-900 leading-none">{{ event.event_date|date:"d" }}</span>
+                        </div>
+                        
+                        <div class="flex-1">
+                            <div class="text-sm text-gray-500 font-medium mb-1">{{ event.event_date|time:"g:i A" }}</div>
+                            <h3 class="text-lg font-bold text-gray-900 group-hover:text-blue-600 transition-colors">{{ event.title }}</h3>
+                            <div class="text-sm text-gray-500 mt-2 flex items-center gap-2">
+                                <span>📍 {{ event.location|default:"TBA" }}</span>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-center mt-4 sm:mt-0 border-t sm:border-t-0 pt-4 sm:pt-0 border-gray-100">
+                            <div class="flex -space-x-2 mb-2">
+                                <div class="w-6 h-6 rounded-full bg-gray-300 border-2 border-white"></div>
+                                <div class="w-6 h-6 rounded-full bg-gray-400 border-2 border-white"></div>
+                                <div class="w-6 h-6 rounded-full bg-gray-800 text-white text-[10px] flex items-center justify-center font-bold border-2 border-white">+{{ event.attendances.count|default:"12" }}</div>
+                            </div>
+                            <button class="btn btn-xs bg-blue-50 text-blue-600 hover:bg-blue-100 border-none rounded-md px-3">RSVP</button>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="py-12 text-center luma-card bg-white rounded-2xl border-dashed">
+                        <span class="text-4xl block mb-3">📭</span>
+                        <h3 class="font-medium text-gray-900">No upcoming events</h3>
+                        <p class="text-sm text-gray-500 mt-1">Check back later for new activities!</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="lg:col-span-1 space-y-6">
+                
+                <div class="luma-card bg-gray-900 rounded-2xl p-5 text-white shadow-lg">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-bold">April 2026</h3>
+                        <div class="flex gap-2">
+                            <button class="text-gray-400 hover:text-white">&lt;</button>
+                            <button class="text-gray-400 hover:text-white">&gt;</button>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-7 gap-1 text-center text-xs font-medium">
+                        <div class="text-gray-500 pb-2">S</div><div class="text-gray-500 pb-2">M</div><div class="text-gray-500 pb-2">T</div><div class="text-gray-500 pb-2">W</div><div class="text-gray-500 pb-2">T</div><div class="text-gray-500 pb-2">F</div><div class="text-gray-500 pb-2">S</div>
+                        
+                        <div class="py-1 text-gray-600">29</div><div class="py-1 text-gray-600">30</div><div class="py-1 text-gray-600">31</div>
+                        <div class="py-1">1</div><div class="py-1">2</div><div class="py-1">3</div><div class="py-1">4</div>
+                        <div class="py-1">19</div><div class="py-1">20</div><div class="py-1">21</div><div class="py-1">22</div><div class="py-1">23</div>
+                        <div class="py-1 bg-blue-500 text-white rounded-full">24</div>
+                        <div class="py-1">25</div>
+                    </div>
+                </div>
+
+                <div class="luma-card bg-white rounded-2xl p-5">
+                    <h3 class="font-bold text-gray-900 mb-4">Committee</h3>
+                    <div class="flex flex-col gap-3">
+                        {% for manager in club.committee.all|slice:":3" %}
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-bold text-gray-600">
+                                {{ manager.user.first_name|first|default:manager.user.username|first }}
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium text-gray-900">{{ manager.user.first_name|default:manager.user.username }}</p>
+                                <p class="text-xs text-gray-500">{{ manager.designation|default:"Manager" }}</p>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <p class="text-sm text-gray-500">No committee members listed.</p>
+                        {% endfor %}
                     </div>
                 </div>
             </div>
-            {% endif %}
-            {% empty %}
-            <div class="col-span-full text-center py-12 bg-base-100 rounded-box shadow">
-                <p class="text-gray-500">You are not managing any clubs.</p>
-            </div>
-            {% endfor %}
+
         </div>
     </div>
-
 </body>
 </html>

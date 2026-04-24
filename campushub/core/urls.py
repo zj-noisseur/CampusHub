@@ -1,19 +1,23 @@
 from django.urls import path
-from .views import dashboards, certificates, imports, clubs
+from .views import certificates, imports, clubs, dashboards
 
 app_name = 'core'
 urlpatterns = [
     #Choose a club
-    path('my-clubs/', clubs.club_profile, name='club_profile'),
 
-    #The Event List
+    #The Dashboard List
+    path('club/<int:club_id>/', dashboards.club_profile, name='club_profile'),
     path('club/<int:club_id>/dashboard/', dashboards.club_admin_dashboard, name='club_admin_dashboard'),
+    path('dashboard/', dashboards.student_dashboard, name='student_dashboard'),
 
     # The Core Features you want to show
     path('import-csv/<int:event_id>/', imports.import_attendees_csv, name='import_csv'),
     path('download-certificates/<int:event_id>/', certificates.download_certificates, name='download_certificates'),
+    path('download-my-certificate/<int:event_id>/', certificates.download_my_certificate, name='download_my_certificate'),
 
     #button to mark as ready and attanded
     path('event/<int:event_id>/toggle-ready/<str:prereg_id>/', dashboards.toggle_ready_status, name='toggle_ready'),
     path('event/<int:event_id>/toggle-attended/<str:prereg_id>/', dashboards.toggle_attended_status, name='toggle_attended'),
+
+    path('event/<int:event_id>/toggle-finish/', dashboards.toggle_event_status, name='toggle_event_status'),
 ]
