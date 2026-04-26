@@ -1,12 +1,16 @@
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timezone as dt_timezone
 
 import requests
 from django.core.files.base import ContentFile
+from django.db import transaction
 from django.utils import timezone
 
-from core.models import Post, PostImage
+from celery import shared_task, current_task
+import time
+
+from core.models import Club, Post, PostImage
 from core.views.apify import fetch_instagram_posts_via_apify
 
 EXPORT_BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), 'export'))
@@ -36,7 +40,7 @@ def process_club_dataset(club, dataset, full_sync=False):
     if full_sync:
         club.posts.all().delete()
 
-    created_count = 0
+    # created_count = 0
 
     for item in dataset:
         ig_id = item.get('id')
@@ -57,8 +61,8 @@ def process_club_dataset(club, dataset, full_sync=False):
             }
         )
 
-        if created:
-            created_count += 1
+        # if created:
+        #     created_count += 1
 
         for order, image_url in enumerate(image_urls):
             if not image_url:
@@ -80,29 +84,88 @@ def process_club_dataset(club, dataset, full_sync=False):
     club.posts_count = club.posts.count()
     club.save(update_fields=['last_fetched_date', 'posts_count'])
 
-    return created_count
+    # return created_count
 
+@shared_task(bind=True)
+def run_club_scrape_task(self, club_id, search_limit=20, max_items=50, export_dir=None, full_sync=False, only_posts_newer_than=None):
+    club = Club.objects.filter(id=club_id).only('id', 'ig_handle', 'name').first()
+    if not club:
+        raise ValueError('Club not found')
 
-def run_club_scrape_task(club, search_limit=20, max_items=50, export_dir=None, full_sync=False):
     if not club.ig_handle:
         raise ValueError('Club does not have an Instagram handle')
 
+    if only_posts_newer_than is None:
+        latest_timestamp = club.posts.order_by('-timestamp').values_list('timestamp', flat=True).first()
+        if latest_timestamp is not None:
+            if timezone.is_aware(latest_timestamp):
+                latest_timestamp = latest_timestamp.astimezone(dt_timezone.utc)
+            only_posts_newer_than = latest_timestamp.date().isoformat()
+
     export_dir = get_export_dir(export_dir)
+
+    # celery method to keep track of task
+    self.update_state(state='PROGRESS', meta={
+        'status': 'Fetching from Apify...', 
+        'progress': 0, 
+        'club_id': str(club.id),
+        'club_name': club.name
+    })
+
     dataset = fetch_instagram_posts_via_apify(
         club.ig_handle,
         search_limit=search_limit,
         max_items=max_items,
         export_dir=export_dir,
+        only_posts_newer_than=only_posts_newer_than,
     )
 
-    created_count = 0
-    if isinstance(dataset, list):
-        created_count = process_club_dataset(club, dataset, full_sync=full_sync)
+    self.update_state(state='PROGRESS', meta={
+        'status': 'Queuing database write...',
+        'progress': 50,
+        'club_id': str(club.id),
+        'club_name': club.name
+    })
+
+    write_task = persist_club_dataset.apply_async(
+        (str(club.id), dataset, full_sync),
+        queue='db_write'
+    )
 
     return {
         'club_id': str(club.id),
         'ig_handle': club.ig_handle,
         'items_returned': len(dataset) if isinstance(dataset, list) else None,
-        'created_count': created_count,
         'export_dir': export_dir,
+        'db_write_task_id': write_task.id,
+    }
+
+
+@shared_task(bind=True)
+def persist_club_dataset(self, club_id, dataset, full_sync=False):
+    club = Club.objects.filter(id=club_id).only('id', 'ig_handle', 'name').first()
+    if not club:
+        raise ValueError('Club not found')
+
+    self.update_state(state='PROGRESS', meta={
+        'status': 'Writing dataset to database...',
+        'progress': 0,
+        'club_id': str(club.id),
+        'club_name': club.name
+    })
+
+    with transaction.atomic():
+        process_club_dataset(club, dataset, full_sync=full_sync)
+
+    self.update_state(state='PROGRESS', meta={
+        'status': 'Database write complete',
+        'progress': 100,
+        'club_id': str(club.id),
+        'club_name': club.name
+    })
+
+    return {
+        'club_id': str(club.id),
+        'items_processed': len(dataset) if isinstance(dataset, list) else 0,
+        'full_sync': full_sync,
     }
