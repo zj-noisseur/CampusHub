@@ -63,7 +63,7 @@ def upsert_posts_for_club(club, items):
     return created_count
 
 
-def scrape_club(club, full_sync=False, search_limit=20, max_items=50):
+def scrape_club(club, search_limit=20, max_items=50):
     if not club.ig_handle:
         return 0
 
@@ -76,9 +76,6 @@ def scrape_club(club, full_sync=False, search_limit=20, max_items=50):
     if not isinstance(data, list):
         return 0
 
-    if full_sync:
-        club.posts.all().delete()
-        items_to_save = data
     elif club.last_fetched_date:
         items_to_save = [
             item
