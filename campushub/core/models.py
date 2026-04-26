@@ -28,7 +28,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     student_name = models.CharField(max_length=255)
     student_id = models.CharField(max_length=20, blank=True, null=True)
     phone_number = models.CharField(max_length=20, blank=True, null=True)
-    
+    alt_email = models.EmailField(max_length=255, blank=True, null=True, unique=True)
+
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
 

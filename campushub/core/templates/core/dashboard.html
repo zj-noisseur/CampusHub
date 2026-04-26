@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ club.name }} - Manager Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.10.2/dist/full.min.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen p-4 md:p-10 font-sans">
+    
+    <div class="max-w-6xl mx-auto">
+        <div class="flex justify-between items-end mb-8">
+            <div>
+                <span class="text-sm font-bold text-gray-400 uppercase tracking-wider">Manager Dashboard</span>
+                <h1 class="text-4xl font-bold text-black tracking-tight">{{ club.name }}</h1>
+            </div>
+            <a href="{% url 'profile' %}" class="btn btn-ghost">Back to Profile</a>
+        </div>
+
+        <div class="stats shadow-sm border border-gray-100 w-full mb-10 bg-white rounded-3xl">
+            <div class="stat place-items-center">
+                <div class="stat-title text-gray-500 font-medium">Total Members</div>
+                <div class="stat-value text-black">{{ total_members }}</div>
+            </div>
+            
+            <div class="stat place-items-center">
+                <div class="stat-title text-gray-500 font-medium">Pending Approvals</div>
+                <div class="stat-value text-red-500">{{ pending_requests }}</div>
+                <div class="stat-desc text-gray-400">Requires attention</div>
+            </div>
+            
+            <div class="stat place-items-center">
+                <div class="stat-title text-gray-500 font-medium">Club Status</div>
+                <div class="stat-value text-green-500 text-3xl">Active</div>
+            </div>
+        </div>
+
+        <div class="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
+            <h2 class="text-2xl font-bold text-black mb-6">Student Roster</h2>
+            
+            <div class="overflow-x-auto">
+                <table class="table w-full">
+                    <thead>
+                        <tr class="text-gray-500 border-b-2 border-gray-100">
+                            <th>Name</th>
+                            <th>Student ID</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for member in memberships %}
+                        <tr class="hover:bg-gray-50 border-b border-gray-50">
+                            <td>
+                                <div class="font-bold text-black">{{ member.user.student_name }}</div>
+                                <div class="text-xs text-gray-400">{{ member.user.email }}</div>
+                            </td>
+                            <td class="text-gray-600 font-medium">{{ member.user.student_id|default:"-" }}</td>
+                            <td>
+                                {% if member.status == approved %}
+                                    <span class="badge bg-green-100 text-green-800 border-none font-medium px-3 py-3 rounded-xl">Approved</span>
+                                {% else %}
+                                    <span class="badge bg-yellow-100 text-yellow-800 border-none font-medium px-3 py-3 rounded-xl">Pending</span>
+                                {% endif %}
+                            </td>
+                                <td class="flex gap-2">
+                                    {% if not member.status == approved %}
+                                        <form method="POST" action="{% url 'process_membership' member.id 'approve' %}">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-sm bg-black hover:bg-gray-800 text-white rounded-full border-none">
+                                                Approve
+                                            </button>
+                                        </form>
+        
+                                        <form method="POST" action="{% url 'process_membership' member.id 'reject' %}">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-sm btn-ghost text-red-500 hover:bg-red-50 rounded-full">
+                                                Reject
+                                            </button>
+                                        </form>
+                                    {% else %}
+                                            <button class="btn btn-sm btn-outline border-gray-300 rounded-full text-black hover:bg-gray-100" disabled>
+                                                Approved
+                                            </button>
+                                    {% endif %}
+                                </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center py-8 text-gray-400 italic">No members found for this club.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+    </div>
+
+</body>
+</html>

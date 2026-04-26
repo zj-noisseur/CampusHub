@@ -125,3 +125,8 @@ AUTH_USER_MODEL = 'core.User'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 LOGIN_URL = 'login'
+
+AUTHENTICATION_BACKENDS = [
+    'core.backends.DualEmailBackend',  # Our custom backend that checks both email fields
+    'django.contrib.auth.backends.ModelBackend',  # Default backend for admin access
+]
