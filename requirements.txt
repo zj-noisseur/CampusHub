@@ -1,3 +1,6 @@
 Django
 python-dotenv
 Pillow
+celery
+redis
+django-celery-results
