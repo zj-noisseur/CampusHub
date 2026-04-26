@@ -19,13 +19,17 @@ def manager_dashboard(request):
     
     # Get all the students who have applied or joined this club
     memberships = Membership.objects.filter(club=my_club)
+
+    approved_members = memberships.filter(status='APPROVED')
+    pending_members = memberships.filter(status='PENDING')
     
     context = {
         'club': my_club,
-        'memberships': memberships,
+        'approved_members': approved_members,
+        'pending_members': pending_members,
         # Let's count them for some cool stats on the dashboard
-        'total_members': memberships.filter(status='approved').count(),
-        'pending_requests': memberships.filter(status='pending').count(),
+        'total_members': approved_members.count(),
+        'pending_requests': pending_members.count(),
     }
     
     return render(request, 'core/dashboard.html', context)
@@ -36,17 +40,18 @@ def process_membership(request, membership_id, action):
     membership = get_object_or_404(Membership, id=membership_id)
     
     # 2. Security Check: Is the person clicking this actually the manager of THIS club?
-    if membership.club.manager != request.user:
+    if not membership.club.managers.filter(user=request.user).exists():
         messages.error(request, 'You do not have permission to manage this club.')
         return redirect('manager_dashboard')
         
     # 3. Process the action
     if action == 'approve':
-        membership.is_approved = True
+        membership.status = 'APPROVED'
         membership.save()
         messages.success(request, f'Approved {membership.user.student_name}!')
     elif action == 'reject':
-        membership.delete() # Or you could add an 'is_rejected' field if you want to keep the record
+        membership.status = 'REJECTED'
+        membership.save()
         messages.success(request, 'Membership request rejected.')
         
     # 4. Refresh the dashboard

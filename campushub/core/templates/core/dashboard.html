@@ -17,6 +17,16 @@
             <a href="{% url 'profile' %}" class="btn btn-ghost">Back to Profile</a>
         </div>
 
+        {% if messages %}
+            <div class="mb-6">
+                {% for message in messages %}
+                    <div class="alert bg-black text-white rounded-xl mb-2 border-none">
+                        <span>{{ message }}</span>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
         <div class="stats shadow-sm border border-gray-100 w-full mb-10 bg-white rounded-3xl">
             <div class="stat place-items-center">
                 <div class="stat-title text-gray-500 font-medium">Total Members</div>
@@ -35,21 +45,62 @@
             </div>
         </div>
 
-        <div class="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
-            <h2 class="text-2xl font-bold text-black mb-6">Student Roster</h2>
+        {% if pending_members %}
+        <div class="bg-white p-8 rounded-3xl shadow-sm border border-yellow-200 mb-8">
+            <div class="flex items-center gap-3 mb-6">
+                <div class="w-3 h-3 bg-yellow-400 rounded-full animate-pulse"></div>
+                <h2 class="text-2xl font-bold text-black">Action Required: Pending Requests</h2>
+            </div>
             
             <div class="overflow-x-auto">
                 <table class="table w-full">
                     <thead>
                         <tr class="text-gray-500 border-b-2 border-gray-100">
-                            <th>Name</th>
+                            <th>Student</th>
                             <th>Student ID</th>
-                            <th>Status</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for member in memberships %}
+                        {% for member in pending_members %}
+                        <tr class="hover:bg-gray-50 border-b border-gray-50">
+                            <td>
+                                <div class="font-bold text-black">{{ member.user.student_name }}</div>
+                                <div class="text-xs text-gray-400">{{ member.user.email }}</div>
+                            </td>
+                            <td class="text-gray-600 font-medium">{{ member.user.student_id|default:"-" }}</td>
+                            <td class="flex gap-2">
+                                <form method="POST" action="{% url 'process_membership' member.id 'approve' %}">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm bg-black hover:bg-gray-800 text-white rounded-full border-none">Approve</button>
+                                </form>
+                                <form method="POST" action="{% url 'process_membership' member.id 'reject' %}">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-ghost text-red-500 hover:bg-red-50 rounded-full">Reject</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
+            <h2 class="text-2xl font-bold text-black mb-6">Official Club Members</h2>
+            
+            <div class="overflow-x-auto">
+                <table class="table w-full">
+                    <thead>
+                        <tr class="text-gray-500 border-b-2 border-gray-100">
+                            <th>Student</th>
+                            <th>Student ID</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for member in approved_members %}
                         <tr class="hover:bg-gray-50 border-b border-gray-50">
                             <td>
                                 <div class="font-bold text-black">{{ member.user.student_name }}</div>
@@ -57,37 +108,12 @@
                             </td>
                             <td class="text-gray-600 font-medium">{{ member.user.student_id|default:"-" }}</td>
                             <td>
-                                {% if member.status == approved %}
-                                    <span class="badge bg-green-100 text-green-800 border-none font-medium px-3 py-3 rounded-xl">Approved</span>
-                                {% else %}
-                                    <span class="badge bg-yellow-100 text-yellow-800 border-none font-medium px-3 py-3 rounded-xl">Pending</span>
-                                {% endif %}
+                                <span class="badge bg-green-100 text-green-800 border-none font-medium px-3 py-3 rounded-xl">Member</span>
                             </td>
-                                <td class="flex gap-2">
-                                    {% if not member.status == approved %}
-                                        <form method="POST" action="{% url 'process_membership' member.id 'approve' %}">
-                                            {% csrf_token %}
-                                            <button type="submit" class="btn btn-sm bg-black hover:bg-gray-800 text-white rounded-full border-none">
-                                                Approve
-                                            </button>
-                                        </form>
-        
-                                        <form method="POST" action="{% url 'process_membership' member.id 'reject' %}">
-                                            {% csrf_token %}
-                                            <button type="submit" class="btn btn-sm btn-ghost text-red-500 hover:bg-red-50 rounded-full">
-                                                Reject
-                                            </button>
-                                        </form>
-                                    {% else %}
-                                            <button class="btn btn-sm btn-outline border-gray-300 rounded-full text-black hover:bg-gray-100" disabled>
-                                                Approved
-                                            </button>
-                                    {% endif %}
-                                </td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="4" class="text-center py-8 text-gray-400 italic">No members found for this club.</td>
+                            <td colspan="3" class="text-center py-8 text-gray-400 italic">No approved members yet. Approve some requests above!</td>
                         </tr>
                         {% endfor %}
                     </tbody>

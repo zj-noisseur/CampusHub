@@ -9,4 +9,5 @@ urlpatterns = [
     path('login/', auth_views.LoginView.as_view(template_name='core/login.html'), name='login'),
     path('profile/', views.user_profile, name='profile'),
     path('dashboard/', views.manager_dashboard, name='manager_dashboard'),
+    path('dashboard/member/<int:membership_id>/<str:action>/', views.process_membership, name='process_membership'),
 ]
