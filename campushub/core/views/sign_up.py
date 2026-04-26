@@ -9,10 +9,10 @@ def sign_up(request):
     if request.method == 'POST':
         form = StudentRegistrationForm(request.POST)
         if form.is_valid():
-            user = form.save()
-            login(request, user)
-            messages.success(request, 'Account created successfully! Welcome to CampusHub.')
-            return redirect('profile') #Redirect to home
+            user = form.save()  # This saves the new student to your database!
+            login(request, user)  # Log the user in automatically
+            messages.success(request, 'Account created successfully! Welcome to CampusHub!')
+            return redirect('profile')  # Redirect to profile page after successful registration
 
     # If the user is just visiting the page for the first time:
     else:
