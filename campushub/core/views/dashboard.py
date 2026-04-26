@@ -1,13 +1,16 @@
 import json
 import os
 
+from celery.result import AsyncResult
 from django.db.models import Max
 from django.http import JsonResponse
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
+from django.db.models import Count
 
-from core.models import Club, Institution
+from django_celery_results.models import TaskResult
+from core.models import Institution, Club
 from core.task import run_club_scrape_task
 
 def dashboard_home(request):
@@ -16,7 +19,9 @@ def dashboard_home(request):
     clubs = Club.objects.select_related(
         "institution"
     ).annotate( # this is a derived field that does not write to the database nor is it part of the model
-        latest_post_timestamp=Max("posts__timestamp")
+        latest_post_timestamp=Max("posts__timestamp"),
+        # to avoid collision with the related name, ie "posts", use the singular noun instead
+        post_count  = Count("posts")
     )
      
 
@@ -34,7 +39,105 @@ def dashboard_home(request):
     return render(request, 'dashboard.html', {'clubs': clubs, "universities": universities, "selected_institution": selected_institution})
 
 def dashboard_task_queue(request):
-    return render(request, 'dashboard_tasks_fragment.html')
+    # Fetch tasks that are queued, running, successful, or failed.
+    # We order by creation/done time so the newest tasks appear first.
+    task_results = TaskResult.objects.filter(
+        status__in=['PENDING', 'PROGRESS', 'SUCCESS', 'FAILURE']
+    ).order_by('-date_done', '-date_created')
+
+    tasks_data = []
+    active_task_count = task_results.filter(status='PROGRESS').count()
+
+    for task in task_results:
+        try:
+            meta = json.loads(task.meta) if task.meta else {}
+        except (json.JSONDecodeError, TypeError):
+            meta = {}
+
+
+        result_data = task.result
+        if isinstance(result_data, str):
+            try:
+                result_data = json.loads(result_data)
+            except json.JSONDecodeError:
+                result_data = None
+
+        if isinstance(result_data, dict):
+            club_id = result_data.get('club_id')
+            from core.models import Club
+            club = Club.objects.filter(id=club_id).only('name').first()
+            if club:
+                club_name = club.name
+
+        if not club_id and task.task_args:
+            try:
+                task_args = json.loads(task.task_args)
+                if isinstance(task_args, (list, tuple)) and task_args:
+                    club_id = task_args[0]
+            except (json.JSONDecodeError, TypeError):
+                pass
+
+        if not club_id and task.task_kwargs:
+            try:
+                task_kwargs = json.loads(task.task_kwargs)
+                club_id = task_kwargs.get('club_id') or task_kwargs.get('club_id')
+            except (json.JSONDecodeError, TypeError):
+                pass
+        
+        if club_id and not club_name:
+            from core.models import Club
+            club = Club.objects.filter(id=club_id).only('name').first()
+            if club:
+                club_name = club.name
+
+        if not club_name:
+            club_name = 'Unknown Club'
+
+        label = task.status
+        if task.status == 'PENDING':
+            label = 'Queued'
+        elif task.status == 'PROGRESS':
+            label = meta.get('status', 'Running...')
+        elif task.status == 'SUCCESS':
+            label = meta.get('status', 'Completed')
+        elif task.status == 'FAILURE':
+            label = meta.get('status', 'Failed')
+            club_name = 'N/A'
+
+        tasks_data.append({
+            'task_id': task.task_id,
+            'club_id': club_id,
+            'club_name': club_name,
+            'progress': meta.get('progress', 100 if task.status == 'SUCCESS' else 0),
+            'status': label,
+            'eta': meta.get('eta'),
+            'elapsed': meta.get('elapsed'),
+            'state': task.status,
+            'date_done': task.date_done,
+        })
+
+    return render(request, 'dashboard_tasks_fragment.html', {
+        'tasks': tasks_data,
+        'active_task_count': active_task_count,
+        'history_task_count': len(tasks_data),
+    })
+
+def dashboard_task_status(request):
+    task_id = request.GET.get('task_id')
+    if not task_id:
+        return JsonResponse({'error': 'task_id is required'}, status=400)
+
+    result = AsyncResult(task_id)
+    info = result.info or {}
+
+    return JsonResponse({
+        'task_id': task_id,
+        'state': result.state,
+        'status': info.get('status'),
+        'progress': info.get('progress'),
+        'eta': info.get('eta'),
+        'elapsed': info.get('elapsed'),
+    })
 
 @csrf_exempt
 @require_POST
@@ -58,15 +161,17 @@ def dashboard_action(request):
 
     if action == 'scrape_posts':
         export_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'export'))
-        result = run_club_scrape_task(club, export_dir=export_dir)
+        result = run_club_scrape_task.delay(str(club.id), export_dir=export_dir)
         return JsonResponse({
             'ok': True,
             'action': action,
             'club_id': str(club.id),
             'ig_handle': club.ig_handle,
-            'items_returned': result.get('items_returned'),
-            'created_count': result.get('created_count'),
-            'export_dir': result.get('export_dir'),
+            'task_id': result.id,
+            'status': 'queued',
+            'items_returned': None,
+            'created_count': None,
+            'export_dir': export_dir,
         })
 
     if action == 'update_profile_picture':

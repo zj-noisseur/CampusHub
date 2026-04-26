@@ -2,6 +2,7 @@ from dotenv import load_dotenv
 import os
 import requests
 import json
+from datetime import date, datetime
 
 # Load environment variables from .env file
 load_dotenv()
@@ -113,7 +114,15 @@ def run_actor_sync_get_dataset_items(actorId, input_payload, timeout=None, memor
 IG_ACTOR_ID = 'shu8hvrXbJbY3Eb9W'
 
 
-def fetch_instagram_posts_via_apify(ig_handle, search_limit=20, max_items=50, actor_id=IG_ACTOR_ID, export_dir=None):
+def _normalize_date_string(value):
+    if isinstance(value, datetime):
+        return value.date().isoformat()
+    if isinstance(value, date):
+        return value.isoformat()
+    return str(value)
+
+
+def fetch_instagram_posts_via_apify(ig_handle, search_limit=20, max_items=50, actor_id=IG_ACTOR_ID, export_dir=None, only_posts_newer_than=None):
     if not ig_handle:
         raise ValueError('Instagram handle is required')
 
@@ -122,6 +131,9 @@ def fetch_instagram_posts_via_apify(ig_handle, search_limit=20, max_items=50, ac
         'resultsType': 'posts',
         'searchLimit': search_limit,
     }
+
+    if only_posts_newer_than is not None:
+        payload['onlyPostsNewerThan'] = _normalize_date_string(only_posts_newer_than)
 
     dataset = run_actor_sync_get_dataset_items(
         actor_id,
