@@ -6,12 +6,15 @@ from django.utils import timezone
 from django.db.models import Q
 
 @login_required
-def club_admin_dashboard(request, club_id):
+def club_admin_dashboard(request, club_id, event_id=None):
     club = get_object_or_404(Club, id=club_id)
-    # Get all events for this club
-    events = Event.objects.filter(club=club).order_by('-event_date')
+    # Get events for this club
+    if event_id:
+        events = Event.objects.filter(club=club, id=event_id)
+    else:
+        events = Event.objects.filter(club=club).order_by('-event_date')
     
-    return render(request, 'club_admin_dashboard.html', {
+    return render(request, 'event_manage.html', {
         'club': club,
         'events': events,
     })
@@ -29,26 +32,25 @@ def toggle_ready_status(request, event_id, prereg_id):
 def toggle_attended_status(request, event_id, prereg_id):
     prereg = get_object_or_404(PreRegisteredAttendee, id=prereg_id, event_id=event_id)
     
-    # Flip the visual status on the RSVP list
-    prereg.is_attended = not prereg.is_attended
-    prereg.save()
+    # We check if an Attendance record already exists to decide whether to create or delete it.
+    # The PreRegisteredAttendee.is_attended status will be updated via Django signals.
     
-    # PUSH TO THE OFFICIAL ATTENDANCE DATABASE TABLE
-    if prereg.is_attended:
+    if prereg.user:
+        attendance = Attendance.objects.filter(event=prereg.event, user=prereg.user)
+    else:
+        attendance = Attendance.objects.filter(event=prereg.event, guest_email=prereg.guest_email)
+
+    if attendance.exists():
+        attendance.delete()
+    else:
         if prereg.user:
-            Attendance.objects.get_or_create(event=prereg.event, user=prereg.user)
+            Attendance.objects.create(event=prereg.event, user=prereg.user)
         else:
-            Attendance.objects.get_or_create(
+            Attendance.objects.create(
                 event=prereg.event, 
                 guest_email=prereg.guest_email,
-                defaults={'guest_name': prereg.guest_name}
+                guest_name=prereg.guest_name
             )
-    else:
-        # If toggled back to Absent, delete them from the Attendance database table
-        if prereg.user:
-            Attendance.objects.filter(event=prereg.event, user=prereg.user).delete()
-        else:
-            Attendance.objects.filter(event=prereg.event, guest_email=prereg.guest_email).delete()
             
     return redirect('core:club_admin_dashboard', club_id=prereg.event.club.id)
 
@@ -83,17 +85,13 @@ def student_dashboard(request):
     return render(request, 'student_dashboard.html', context)
 
 @login_required
-def toggle_event_status(request, event_id):
+def set_event_status(request, event_id, status):
     event = get_object_or_404(Event, id=event_id)
     
-    # Optional security check: make sure only the club committee can do this
-    # if request.user not in event.club.committee.all():
-    #     return HttpResponseForbidden("You are not authorized to do this.")
-        
-    event.is_finished = not event.is_finished
-    event.save()
+    if status.upper() in dict(Event.STATUS_CHOICES):
+        event.status = status.upper()
+        event.save()
     
-    # Redirect back to the admin dashboard
     return redirect('core:club_admin_dashboard', club_id=event.club.id)
 
 def club_profile(request, club_id):
@@ -106,9 +104,18 @@ def club_profile(request, club_id):
         # Looking through the committee table to see if they are an active admin/manager
         is_manager = club.committee.filter(user=request.user, is_active=True).exists()
         
+    attended_event_ids = []
+    if request.user.is_authenticated:
+        attended_event_ids = list(Attendance.objects.filter(
+            event__club=club,
+            user=request.user
+        ).values_list('event_id', flat=True))
+
     context = {
         'club': club,
         'events': events,
         'is_manager': is_manager,
+        'is_member': club.members.filter(user=request.user, status='ACTIVE').exists() if request.user.is_authenticated else False,
+        'attended_event_ids': attended_event_ids,
     }
     return render(request, 'club_profile.html', context)

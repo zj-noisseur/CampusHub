@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage {{ club.name }} Events - CampusHub</title>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.10.2/dist/full.min.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #FAFAFA; }
+        .luma-card { border: 1px solid #EAEAEA; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
+    </style>
+</head>
+<body class="min-h-screen text-gray-900 pb-20">
+
+    <div class="px-8 py-4 flex justify-between items-center bg-white border-b border-gray-100">
+        <div class="flex items-center gap-4">
+            <a href="{% url 'core:student_dashboard' %}" class="text-xl font-bold tracking-tight hover:opacity-70">CampusHub</a>
+            <span class="text-gray-300">/</span>
+            <span class="text-sm font-medium text-gray-500">Event Management</span>
+        </div>
+        
+        <div class="avatar placeholder">
+            <div class="bg-gray-900 text-white rounded-full w-8 font-medium">
+                <span class="text-xs">{{ user.first_name|first|default:"U" }}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-5xl mx-auto mt-8 px-4 md:px-8">
+        <div class="mb-10">
+            <h1 class="text-4xl font-bold tracking-tight text-gray-900">Manage {{ club.name }} Events</h1>
+            <p class="text-gray-500 mt-2">Manage your attendees, track student attendance, and issue certificates for all your events.</p>
+        </div>
+
+        <div class="flex flex-col gap-10">
+            {% for event in events %}
+            <div class="luma-card bg-white rounded-3xl overflow-hidden shadow-sm transition-all" id="event-{{ event.id }}">
+                <!-- Card Header -->
+                <div class="p-6 md:p-8 border-b border-gray-100 bg-gray-50/50 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                    <div class="flex gap-5">
+                        <div class="w-14 h-14 rounded-2xl bg-white border border-gray-100 flex flex-col items-center justify-center flex-shrink-0 shadow-sm">
+                            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{{ event.event_date|date:"M" }}</span>
+                            <span class="text-xl font-bold text-gray-900 leading-none">{{ event.event_date|date:"d" }}</span>
+                        </div>
+                        <div>
+                            <h2 class="text-2xl font-bold text-gray-900">{{ event.title }}</h2>
+                            <div class="flex items-center gap-3 mt-1 text-sm text-gray-500 font-medium">
+                                <span>📅 {{ event.event_date|date:"F j, Y" }}</span>
+                                <span>•</span>
+                                <span>📍 {{ event.location|default:"Cyberjaya Campus" }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-wrap gap-2 w-full md:w-auto">
+                        <a href="{% url 'core:import_csv' event.id %}" class="btn btn-sm border-none bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-full px-4 font-medium">
+                            📤 Import CSV
+                        </a>
+                        <a href="{% url 'core:download_certificates' event.id %}" class="btn btn-sm border-none bg-green-50 text-green-600 hover:bg-green-100 rounded-full px-4 font-medium">
+                            🎓 Certificates
+                        </a>
+                        <div class="dropdown dropdown-end">
+                            <label tabindex="0" class="btn btn-sm border-none 
+                                {% if event.status == 'FINISHED' %}bg-gray-900 text-white
+                                {% elif event.status == 'ONGOING' %}bg-blue-600 text-white
+                                {% else %}bg-amber-50 text-amber-700{% endif %} 
+                                rounded-full px-4 font-medium flex items-center gap-2 cursor-pointer">
+                                {% if event.status == 'FINISHED' %}✅ Finished
+                                {% elif event.status == 'ONGOING' %}⏳ Ongoing
+                                {% else %}🛠️ Preparing{% endif %}
+                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                            </label>
+                            <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow-xl bg-white rounded-2xl w-40 mt-2 border border-gray-100">
+                                <li><a href="{% url 'core:set_event_status' event.id 'PREPARING' %}" class="flex items-center gap-2 py-2.5 {% if event.status == 'PREPARING' %}bg-gray-50 font-bold{% endif %}">🛠️ Preparing</a></li>
+                                <li><a href="{% url 'core:set_event_status' event.id 'ONGOING' %}" class="flex items-center gap-2 py-2.5 {% if event.status == 'ONGOING' %}bg-gray-50 font-bold{% endif %}">⏳ Ongoing</a></li>
+                                <li><a href="{% url 'core:set_event_status' event.id 'FINISHED' %}" class="flex items-center gap-2 py-2.5 {% if event.status == 'FINISHED' %}bg-gray-50 font-bold{% endif %}">✅ Finished</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stats Section -->
+                <div class="grid grid-cols-1 md:grid-cols-2 border-b border-gray-100">
+                    <div class="p-6 border-r border-gray-100 flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center text-xl">👥</div>
+                        <div>
+                            <div class="text-2xl font-bold text-gray-900">{{ event.pre_registered.count }}</div>
+                            <div class="text-xs text-gray-500 uppercase tracking-wide font-medium">Students Joined</div>
+                        </div>
+                    </div>
+                    <div class="p-6 flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-full bg-green-50 flex items-center justify-center text-xl">✅</div>
+                        <div>
+                            <div class="text-2xl font-bold text-gray-900">{{ event.attendances.count }}</div>
+                            <div class="text-xs text-gray-500 uppercase tracking-wide font-medium">Total Attended</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Table Section -->
+                <div class="overflow-x-auto">
+                    <table class="table table-zebra w-full">
+                        <thead class="bg-gray-50/50 text-gray-500 text-xs uppercase tracking-wider border-b border-gray-100">
+                            <tr>
+                                <th class="py-4 pl-8">Attendee</th>
+                                <th>Student ID</th>
+                                <th>Cert. Status</th>
+                                <th class="pr-8">Attendance</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-sm">
+                            {% for prereg in event.pre_registered.all %}
+                            <tr class="hover:bg-gray-50/50 transition-colors">
+                                <td class="py-4 pl-8">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center font-bold text-xs text-gray-400">
+                                            {{ prereg.user.first_name|default:""|first|default:prereg.guest_name|default:""|first|default:"?" }}
+                                        </div>
+                                        <div>
+                                            <div class="font-bold text-gray-900">{{ prereg.user.first_name|default:prereg.guest_name|default:"Missing Name" }}</div>
+                                            <div class="text-[10px] text-gray-500">{{ prereg.user.email|default:prereg.guest_email }}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="font-mono text-gray-500">{{ prereg.user.student_id|default:"-" }}</td>
+                                <td>
+                                    <a href="{% url 'core:toggle_ready' event.id prereg.id %}" 
+                                       class="badge badge-sm border-none {% if prereg.is_ready %}bg-green-100 text-green-700{% else %}bg-gray-100 text-gray-400{% endif %} rounded-full px-3 py-2.5 font-medium hover:opacity-70 transition-all">
+                                        {% if prereg.is_ready %}Ready{% else %}Unready{% endif %}
+                                    </a>
+                                </td>
+                                <td class="pr-8">
+                                    <a href="{% url 'core:toggle_attended' event.id prereg.id %}" 
+                                       class="badge badge-sm border-none {% if prereg.is_attended %}bg-blue-600 text-white{% else %}bg-gray-100 text-gray-400{% endif %} rounded-full px-3 py-2.5 font-medium hover:opacity-70 transition-all">
+                                        {% if prereg.is_attended %}Present{% else %}Absent{% endif %}
+                                    </a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="py-12 text-center text-gray-400 italic">
+                                    No attendees imported yet.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% empty %}
+            <div class="py-20 text-center luma-card bg-white rounded-3xl border-dashed">
+                <span class="text-5xl block mb-4">📅</span>
+                <h3 class="text-xl font-bold text-gray-900">No events found</h3>
+                <p class="text-gray-500 mt-1">Create an event to start managing your community.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</body>
+</html>

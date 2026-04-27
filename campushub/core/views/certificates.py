@@ -73,6 +73,9 @@ def download_my_certificate(request, event_id):
         
     event = attendance.event
     
+    if event.status != 'FINISHED':
+        return HttpResponse("Certificates are not yet available for this event.", status=403)
+    
     template = EventCertificate.objects.filter(event=event).first()
     if not template:
         return HttpResponse(f"No certificate template uploaded for {event.title} yet!")

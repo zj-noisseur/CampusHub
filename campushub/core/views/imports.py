@@ -3,6 +3,8 @@ from django.http import HttpResponse
 import csv
 
 from ..models import Event, PreRegisteredAttendee, User
+from django.db import IntegrityError
+from django.db.models import Q
 
 def import_attendees_csv(request, event_id):
     event = Event.objects.get(id=event_id)
@@ -51,14 +53,19 @@ def import_attendees_csv(request, event_id):
                         is_complete = bool(name and name != 'Unknown' and email and student_id)
 
                     if student_id:
-                        user_account, created = User.objects.get_or_create(
-                            email=email,
-                            defaults={
-                                'username': student_id, 
-                                'first_name': name,
-                                'student_id': student_id
-                            }
-                        )
+                        try:
+                            user_account, created = User.objects.get_or_create(
+                                email=email,
+                                defaults={
+                                    'username': student_id, 
+                                    'first_name': name,
+                                    'student_id': student_id
+                                }
+                            )
+                        except IntegrityError:
+                            # If email wasn't found but student_id exists, look it up by student_id
+                            user_account = User.objects.get(Q(student_id=student_id) | Q(username=student_id))
+                            created = False
                         
                         if created:
                             user_account.set_password('MMUClub123!') 
@@ -96,7 +103,7 @@ def import_attendees_csv(request, event_id):
                     prereg.is_ready = False  
                     prereg.save()
             
-            del request.session['temp_csv_data']
+            request.session.pop('temp_csv_data', None)
             return redirect('core:club_admin_dashboard', club_id=event.club.id)
         
         return HttpResponse("Error: No file or mapping data detected.")

@@ -8,6 +8,8 @@ from django.core.exceptions import ValidationError
 from django.db.models import Q
 
 from core import settings
+from django.db.models.signals import post_save, post_delete
+from django.dispatch import receiver
 
 """
 1.
@@ -227,8 +229,16 @@ class Event(models.Model):
     title = models.CharField(max_length=255)
     event_date = models.DateField()
     location = models.CharField(max_length=255)
-    is_finished = models.BooleanField(default=False)
-    revenue = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    STATUS_CHOICES = [
+        ('PREPARING', 'Preparing'),
+        ('ONGOING', 'Ongoing'),
+        ('FINISHED', 'Finished'),
+    ]
+    status = models.CharField(max_length=15, choices=STATUS_CHOICES, default='PREPARING')
+
+    @property
+    def is_finished(self):
+        return self.status == 'FINISHED'
 
     def __str__(self):
         return self.title
@@ -325,3 +335,22 @@ class EventCertificate(models.Model):
 
     def __str__(self):
         return f"Certificate Template for {self.event.title}"
+
+# --- Signals to Sync Attendance ---
+
+@receiver(post_save, sender=Attendance)
+def sync_prereg_on_save(sender, instance, created, **kwargs):
+    """When an Attendance record is created (via admin or app), mark the PreRegistered record as Present."""
+    if created:
+        if instance.user:
+            PreRegisteredAttendee.objects.filter(event=instance.event, user=instance.user).update(is_attended=True)
+        elif instance.guest_email:
+            PreRegisteredAttendee.objects.filter(event=instance.event, guest_email=instance.guest_email).update(is_attended=True)
+
+@receiver(post_delete, sender=Attendance)
+def sync_prereg_on_delete(sender, instance, **kwargs):
+    """When an Attendance record is deleted, mark the PreRegistered record as Absent."""
+    if instance.user:
+        PreRegisteredAttendee.objects.filter(event=instance.event, user=instance.user).update(is_attended=False)
+    elif instance.guest_email:
+        PreRegisteredAttendee.objects.filter(event=instance.event, guest_email=instance.guest_email).update(is_attended=False)
