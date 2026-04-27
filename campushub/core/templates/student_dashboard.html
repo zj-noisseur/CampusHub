@@ -16,15 +16,7 @@
 
     <div class="px-8 py-4 flex justify-between items-center bg-white border-b border-gray-100">
         <a class="text-xl font-bold tracking-tight">CampusHub</a>
-        <div class="dropdown dropdown-end">
-            <button tabindex="0" class="btn btn-ghost btn-sm rounded-full text-gray-500 hover:bg-gray-100">
-                Settings ⚙️
-            </button>
-            <ul tabindex="0" class="mt-2 z-[1] p-2 shadow-lg menu menu-sm dropdown-content bg-white rounded-xl w-52 border border-gray-100">
-                <li><a class="hover:bg-gray-50 rounded-lg">Edit Profile</a></li>
-                <li><a class="hover:bg-gray-50 rounded-lg text-error">Log Out</a></li>
-            </ul>
-        </div>
+
     </div>
 
     <div class="max-w-5xl mx-auto p-8 mt-4">
@@ -32,9 +24,6 @@
         <div class="flex flex-col md:flex-row items-center md:items-start gap-6 mb-16">
             <div class="w-24 h-24 md:w-32 md:h-32 rounded-full overflow-hidden border-4 border-white shadow-sm bg-gray-50 flex items-center justify-center relative group">
                 <span class="text-4xl font-bold text-gray-200">{{ user.first_name|first|default:user.username|first }}</span>
-                <button class="absolute bottom-0 right-0 p-2 bg-white rounded-full shadow-md border border-gray-100 opacity-0 group-hover:opacity-100 transition-opacity">
-                    ⚙️
-                </button>
             </div>
             
             <div class="text-center md:text-left flex-1 mt-2">
@@ -71,6 +60,7 @@
             <section>
                 <div class="flex justify-between items-center mb-6">
                     <h2 class="text-lg font-semibold text-gray-900">My Clubs</h2>
+                
                     <a href="#" class="text-sm text-gray-500 hover:text-gray-900 transition-colors">Explore &rarr;</a>
                 </div>
                 
