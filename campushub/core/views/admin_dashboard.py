@@ -13,7 +13,7 @@ from django_celery_results.models import TaskResult
 from core.models import Institution, Club
 from core.task import run_club_scrape_task
 
-def dashboard_home(request):
+def admin_dashboard_home(request):
     selected_institution = request.GET.get("institution")
     universities = Institution.objects.order_by("university_name")
     clubs = Club.objects.select_related(
@@ -36,9 +36,9 @@ def dashboard_home(request):
     if selected_institution:
         clubs = clubs.filter(institution_id=selected_institution)
 
-    return render(request, 'dashboard.html', {'clubs': clubs, "universities": universities, "selected_institution": selected_institution})
+    return render(request, 'admin_dashboard.html', {'clubs': clubs, "universities": universities, "selected_institution": selected_institution})
 
-def dashboard_task_queue(request):
+def admin_dashboard_task_queue(request):
     # Fetch tasks that are queued, running, successful, or failed.
     # We order by creation/done time so the newest tasks appear first.
     task_results = TaskResult.objects.filter(
@@ -116,13 +116,13 @@ def dashboard_task_queue(request):
             'date_done': task.date_done,
         })
 
-    return render(request, 'dashboard_tasks_fragment.html', {
+    return render(request, 'admin_dashboard_tasks_fragment.html', {
         'tasks': tasks_data,
         'active_task_count': active_task_count,
         'history_task_count': len(tasks_data),
     })
 
-def dashboard_task_status(request):
+def admin_dashboard_task_status(request):
     task_id = request.GET.get('task_id')
     if not task_id:
         return JsonResponse({'error': 'task_id is required'}, status=400)
@@ -141,7 +141,7 @@ def dashboard_task_status(request):
 
 @csrf_exempt
 @require_POST
-def dashboard_action(request):
+def admin_dashboard_action(request):
     try:
         payload = json.loads(request.body.decode('utf-8'))
     except (json.JSONDecodeError, UnicodeDecodeError):
