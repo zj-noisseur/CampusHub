@@ -184,8 +184,8 @@
             clubs: document.getElementById('dashboard-tab-clubs'),
             queue: document.getElementById('dashboard-tab-queue'),
         };
-        const queueUrl = '{% url "core:dashboard_task_queue" %}';
-        const taskStatusUrl = '{% url "core:dashboard_task_status" %}';
+        const queueUrl = '{% url "core:admin_task_queue" %}';
+        const taskStatusUrl = '{% url "core:admin_task_status" %}';
         let queueLoaded = false;
 
         const filterType = document.getElementById('filter-type');
@@ -200,7 +200,7 @@
         const rows = Array.from(document.querySelectorAll('tbody tr[data-institution-id]'));
         const checkboxes = Array.from(document.querySelectorAll('tbody tr[data-institution-id] input[type="checkbox"]'));
         const actionButtons = Array.from(document.querySelectorAll('.club-action-btn'));
-        const dashboardActionUrl = '{% url "core:dashboard_action" %}';
+        const dashboardActionUrl = '{% url "core:admin_action" %}';
 
         const pollingTasks = new Set();
         window.registerGlobalTask = (taskId, clubId) => {
