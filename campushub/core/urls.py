@@ -10,4 +10,5 @@ urlpatterns = [
     path('profile/', views.user_profile, name='profile'),
     path('dashboard/', views.manager_dashboard, name='manager_dashboard'),
     path('dashboard/member/<int:membership_id>/<str:action>/', views.process_membership, name='process_membership'),
+    path('profile/edit/', views.edit_profile, name='edit_profile'),
 ]
