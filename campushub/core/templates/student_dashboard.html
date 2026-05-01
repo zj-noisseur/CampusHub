@@ -47,12 +47,6 @@
                     </div>
                 </div>
             </div>
-            
-            <div class="mt-6 md:mt-4">
-                <a href="#" class="btn border-none bg-gray-900 text-white hover:bg-gray-700 rounded-full px-6 font-medium shadow-sm transition-all hover:scale-105">
-                    + Apply for Manager
-                </a>
-            </div>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
@@ -69,7 +63,13 @@
                     {% for club in managed_clubs %}
                     <div class="luma-card bg-white rounded-2xl p-4 flex justify-between items-center group hover:border-gray-300 transition-colors">
                         <div class="flex items-center gap-4">
-                            <div class="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center text-lg">🛡️</div>
+                            {% if club.logo %}
+                                <div class="w-10 h-10 rounded-lg overflow-hidden border border-gray-200 flex-shrink-0">
+                                    <img src="{{ club.logo.url }}" alt="Logo" class="w-full h-full object-cover">
+                                </div>
+                            {% else %}
+                                <div class="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center text-lg flex-shrink-0">🛡️</div>
+                            {% endif %}
                             <div>
                                 <h3 class="font-medium text-gray-900">{{ club.name }}</h3>
                                 <p class="text-xs text-gray-500 mt-0.5">Manager</p>
@@ -84,7 +84,13 @@
                     {% for club in joined_clubs %}
                     <div class="luma-card bg-white rounded-2xl p-4 flex justify-between items-center group hover:border-gray-300 transition-colors">
                         <div class="flex items-center gap-4">
-                            <div class="w-10 h-10 rounded-lg bg-gray-50 flex items-center justify-center text-lg opacity-70">⛺</div>
+                            {% if club.logo %}
+                                <div class="w-10 h-10 rounded-lg overflow-hidden border border-gray-200 flex-shrink-0 opacity-80">
+                                    <img src="{{ club.logo.url }}" alt="Logo" class="w-full h-full object-cover">
+                                </div>
+                            {% else %}
+                                <div class="w-10 h-10 rounded-lg bg-gray-50 flex items-center justify-center text-lg opacity-70 flex-shrink-0">⛺</div>
+                            {% endif %}
                             <div>
                                 <h3 class="font-medium text-gray-900">{{ club.name }}</h3>
                                 <p class="text-xs text-gray-500 mt-0.5">Member</p>
