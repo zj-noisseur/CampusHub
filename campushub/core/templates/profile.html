@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CampusHub - My Profile</title>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.10.2/dist/full.min.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen flex items-center justify-center p-4 font-sans">
+    
+    <div class="max-w-2xl w-full">
+        <div class="mb-6 flex justify-between items-center">
+            <h1 class="text-3xl font-bold tracking-tight text-black">My Profile</h1>
+            <a href="{% url 'home' %}" class="btn btn-ghost btn-sm">← Back to Home</a>
+        </div>
+
+        <div class="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="bg-black h-24 w-full"></div>
+            
+            <div class="p-8 relative">
+                <div class="absolute -top-12 left-8 w-24 h-24 bg-white rounded-full p-1 border-4 border-white shadow-sm flex items-center justify-center">
+                    <div class="w-24 h-24 rounded-full overflow-hidden border-4 border-white bg-gray-100 flex items-center justify-center shadow-sm">
+                        {% if user.profile_picture %}
+                            <img src="{{ user.profile_picture.url }}" alt="Profile Picture" class="w-full h-full object-cover" />
+                        {% else %}
+                            <span class="text-3xl font-bold text-gray-400">{{ user.student_name|make_list|first|upper }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="mt-12">
+                    <h2 class="text-2xl font-bold text-black">{{ user.student_name }}</h2>
+                    <p class="text-gray-500 mb-6">{{ user.email }}</p>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                        <div class="bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                            <span class="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Student ID</span>
+                            <span class="text-gray-800 font-medium">{{ user.student_id|default:"Not set" }}</span>
+                        </div>
+                    </div> <div class="mt-6 bg-gray-50 p-5 rounded-2xl border border-gray-100">
+                        <span class="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-2">About Me</span>
+                        <p class="text-gray-700 leading-relaxed">
+                            {{ user.bio|default:"This user hasn't written a bio yet." }}
+                        </p>
+                    </div>
+
+                    <div class="mt-8 pt-6 border-t border-gray-100 flex justify-between items-center">
+                        <div>
+                            <span class="text-sm text-gray-500">Account Role</span>
+                            <div class="font-medium mt-1">
+                                {% if user.is_superuser %}
+                                    <span class="badge badge-error gap-2"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> System Admin</span>
+                                {% elif user.is_staff %}
+                                    <span class="badge badge-primary gap-2"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Club Manager</span>
+                                {% else %}
+                                    <span class="badge bg-gray-200 text-gray-700 border-none">Student</span>
+                                {% endif %}
+                            </div>
+                        </div>    
+                        <a href="{% url 'edit_profile' %}" class="btn btn-outline btn-sm rounded-full">Edit Details</a>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>
