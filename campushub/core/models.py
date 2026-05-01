@@ -31,6 +31,34 @@ class User(AbstractBaseUser, PermissionsMixin):
     profile_picture = models.ImageField(upload_to='profile_pics/', blank=True, null=True)
     bio = models.TextField(blank=True, null=True)
     alt_email = models.EmailField(max_length=255, blank=True, null=True, unique=True)
+    FACULTY_CHOICES = [
+        ('FCI', 'Faculty of Computing and Informatics'),
+        ('FOM', 'Faculty of Management'),
+        ('FAIE', 'Faculty of Artificial Intelligence and Engineering'),
+        ('FCM', 'Faculty of Creative Multimedia'),
+        ('FAC', 'Faculty of Applied Communication'),
+        ('FCA', 'Faculty of Cinematic Arts'),
+        ('FOL', 'Faculty of Law'),
+        ('FIST', 'Faculty of Information Science and Technology'),
+        ('FOB', 'Faculty of Business'),
+    ]
+
+    faculty = models.CharField(max_length=50, choices=FACULTY_CHOICES, blank=True, null=True)
+    major = models.CharField(max_length=100, blank=True, null=True)
+
+    YEAR_CHOICES = [
+        ('Foundation', 'Foundation'),
+        ('Diploma', 'Diploma'),
+        ('YEAR 1', 'Degree - Year 1'),
+        ('YEAR 2', 'Degree - Year 2'),
+        ('YEAR 3', 'Degree - Year 3'),
+        ('YEAR 4', 'Degree - Year 4'),
+        ('Masters', 'Masters'),
+        ('PhD', 'PhD'),
+    ]
+    year_of_study = models.CharField(max_length=20, choices=YEAR_CHOICES, blank=True, null=True)
+
+    joined_clubs = models.ManyToManyField('Club', related_name='members_joined', blank=True)
 
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)

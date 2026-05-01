@@ -77,27 +77,19 @@ class ProfileUpdateForm(forms.ModelForm):
     class Meta:
         model = User
         # Only list the fields they are allowed to change!
-        fields = ['student_name', 'bio','profile_picture', 'alt_email']
+        fields = ['student_name', 'bio','profile_picture', 'faculty', 'major', 'year_of_study']
+
+        widgets = {'student_name': forms.TextInput(attrs={'class': 'input input-bordered w-full rounded-xl'}),
+            'bio': forms.Textarea(attrs={'class': 'textarea textarea-bordered w-full rounded-xl', 'rows': 4}),
+            'profile_picture': forms.FileInput(attrs={'class': 'file-input file-input-bordered w-full rounded-xl'}),
+            
+            # Using DaisyUI 'select' classes for the dropdown menus!
+            'faculty': forms.Select(attrs={'class': 'select select-bordered w-full rounded-xl'}),
+            'major': forms.TextInput(attrs={'class': 'input input-bordered w-full rounded-xl', 'placeholder': 'e.g., Software Engineering'}),
+            'year_of_study': forms.Select(attrs={'class': 'select select-bordered w-full rounded-xl'}),
+        }
         
         # Optional: Add help text so they know what alt_email is for
         help_texts = {
             'alt_email': 'Add a personal email (like Gmail) so you can log in if you lose access to your student email.',
-        }
-
-        widgets = {
-            'student_name': forms.TextInput(attrs={
-                'class': 'input input-bordered w-full rounded-xl'
-            }),
-            'bio': forms.Textarea(attrs={
-                'class': 'textarea textarea-bordered w-full rounded-xl', 
-                'rows': 4,
-                'placeholder': 'Tell us a little about yourself...'
-            }),
-            'profile_picture': forms.FileInput(attrs={
-                'class': 'file-input file-input-bordered w-full rounded-xl'
-            }),
-            'alt_email': forms.EmailInput(attrs={
-                'class': 'input input-bordered w-full rounded-xl',
-                'placeholder': 'e.g., personal@gmail.com'
-            }),
         }
