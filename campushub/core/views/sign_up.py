@@ -20,4 +20,4 @@ def sign_up(request):
 
     # Send the form to the HTML template
     
-    return render(request, 'core/sign_up.html', {'form': form})
+    return render(request, 'sign_up.html', {'form': form})

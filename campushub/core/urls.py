@@ -1,11 +1,14 @@
 from django.urls import path
+from django.contrib.auth import views as auth_views
+
 from core.views.directory import directory
 from core.views.clubs import clubs
 from core.views.universities import universities
 from core.views.admin_dashboard import admin_dashboard_home, admin_dashboard_action, admin_dashboard_task_queue, admin_dashboard_task_status
-
 from core.views.feed import feed
-
+from core.views.sign_up import sign_up
+from core.views.claim_club import claim_club
+from core.views.profile import user_profile
 app_name = 'core'
 urlpatterns = [
     path('directory/', directory, name='directory'),
@@ -16,4 +19,8 @@ urlpatterns = [
     path('state/<int:state_id>/universities/', universities, name='universities'),
     path('state/<int:state_id>/universities/<int:university_id>/clubs/', clubs, name='clubs'),
     path('feed/', feed, name='feed'),
+    path('signup/', sign_up, name='signup'),
+    path('login/', auth_views.LoginView.as_view(template_name='login.html'), name='login'),
+    path('profile/', user_profile, name='profile'),
+    # path('claim/', claim_club, name='claimclub'),
 ]

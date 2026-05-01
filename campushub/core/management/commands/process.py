@@ -1,7 +1,8 @@
 import os
+from django.conf import settings
 from django.core.management.base import BaseCommand
 from core.models import Club
-from core.task import run_club_scrape_task
+from core.tasks import run_club_scrape_task
 
 class Command(BaseCommand):
     help = 'Run Instagram scrape and export tasks for a club'
@@ -14,12 +15,12 @@ class Command(BaseCommand):
             self.stderr.write(self.style.ERROR(f"Club with handle '{ig_handle}' not found."))
             return
 
-        export_dir = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'export'))
+        export_dir = str(settings.JSON_EXPORT_DIR)
         self.stdout.write(self.style.SUCCESS(f"Running scrape task for {ig_handle} and exporting to {export_dir}"))
 
-        result = run_club_scrape_task(club, export_dir=export_dir)
+        result = run_club_scrape_task(str(club.id), export_dir=export_dir)
         self.stdout.write(self.style.SUCCESS(
-            f"Completed scrape task: items_returned={result.get('items_returned')} created_count={result.get('created_count')} export_dir={result.get('export_dir')}"
+            f"Completed scrape task: items_returned={result.get('items_returned')} export_dir={result.get('export_dir')}"
         ))
 
 

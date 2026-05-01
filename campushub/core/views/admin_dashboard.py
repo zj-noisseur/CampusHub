@@ -2,6 +2,7 @@ import json
 import os
 
 from celery.result import AsyncResult
+from django.conf import settings
 from django.db.models import Max
 from django.http import JsonResponse
 from django.shortcuts import render
@@ -11,7 +12,7 @@ from django.db.models import Count
 
 from django_celery_results.models import TaskResult
 from core.models import Institution, Club
-from core.task import run_club_scrape_task
+from core.tasks import run_club_scrape_task
 
 def admin_dashboard_home(request):
     selected_institution = request.GET.get("institution")
@@ -160,7 +161,7 @@ def admin_dashboard_action(request):
         return JsonResponse({'error': 'Club missing Instagram handle'}, status=400)
 
     if action == 'scrape_posts':
-        export_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'export'))
+        export_dir = str(settings.JSON_EXPORT_DIR)
         result = run_club_scrape_task.delay(str(club.id), export_dir=export_dir)
         return JsonResponse({
             'ok': True,

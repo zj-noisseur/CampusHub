@@ -1,6 +1,6 @@
 from django.db import models
 import uuid
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractUser, AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models, transaction
 from django.utils import timezone
 from datetime import timedelta
@@ -9,24 +9,76 @@ from django.db.models import Q
 
 from core import settings
 
+def validate_mmu_email(value):
+    if not value.endswith('@student.mmu.edu.my'):
+        raise ValidationError("Only @student.mmu.edu.my email addresses are allowed for Phase 1.")
+
+class CustomUserManager(BaseUserManager):
+    def create_user(self, email, student_name, password=None, **extra_fields):
+        if not email:
+            raise ValueError('The Email field must be set')
+        email = self.normalize_email(email)
+        user = self.model(email=email, student_name=student_name, **extra_fields)
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
+
+    def create_superuser(self, email, student_name, password=None, **extra_fields):
+        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_superuser', True)
+        return self.create_user(email, student_name, password, **extra_fields)
+
 """
 1.
 """
-class User(AbstractUser):
+class User(AbstractBaseUser, PermissionsMixin):
+    email = models.EmailField(unique=True, validators=[validate_mmu_email])
+    student_name = models.CharField(max_length=255)
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    student_id = models.CharField(max_length=20, blank=True, null=True)
+    phone_number = models.CharField(max_length=20, blank=True, null=True)
+    alt_email = models.EmailField(max_length=255, blank=True, null=True, unique=True)
 
-    email = models.EmailField(unique=True, help_text="Please provide your student email address. A confirmation email will be sent for the purpose of activating your account.")
+    is_active = models.BooleanField(default=True)
+    is_staff = models.BooleanField(default=False)
 
-    student_id = models.CharField(
-        max_length=10,
-        unique=True,
-        help_text="Please provide your student ID."
+    groups = models.ManyToManyField(
+        'auth.Group',
+        related_name='customuser_auth_groups', 
+        blank=True,
+        help_text='The groups this user belongs to.',
+        verbose_name='groups',
+    )
+    user_permissions = models.ManyToManyField(
+        'auth.Permission',
+        related_name='customuser_auth_permissions',
+        blank=True,
+        help_text='Specific permissions for this user.',
+        verbose_name='user permissions',
     )
 
-    phone_number = models.CharField(max_length=20, blank=True, null=True)
-    
+    objects = CustomUserManager()
+
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = ['student_name']
+
     def __str__(self):
-        return f"{self.username} ({self.student_id})"
+        return f"{self.student_name} ({self.email})"
+# class User(AbstractUser):
+#     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+
+#     email = models.EmailField(unique=True, help_text="Please provide your student email address. A confirmation email will be sent for the purpose of activating your account.")
+
+#     student_id = models.CharField(
+#         max_length=10,
+#         unique=True,
+#         help_text="Please provide your student ID."
+#     )
+
+#     phone_number = models.CharField(max_length=20, blank=True, null=True)
+    
+#     def __str__(self):
+#         return f"{self.username} ({self.student_id})"
 
 """
 2.A
@@ -98,23 +150,23 @@ class Club(models.Model):
     valid_till = models.DateTimeField(null=True, blank=True)
 
     # to all clubs are valid, the associated admins have to make sure to check their email annually to maintain the verified checkmark
-    @property
-    def is_active(self):
-        if not self.valid_till:
-            return False
-        return self.valid_till > timezone.now()
+    # @property
+    # def is_active(self):
+    #     if not self.valid_till:
+    #         return False
+    #     return self.valid_till > timezone.now()
     
-    def add_committee_member(self, user, designation):
-        if not self.is_active:
-            raise ValidationError("Cannot add committee members to an inactive club.")
+    # def add_committee_member(self, user, designation):
+    #     if not self.is_active:
+    #         raise ValidationError("Cannot add committee members to an inactive club.")
         
-        return Committee.objects.create(
-            user=user,
-            club=self,
-            designation=designation,
-            is_root=False,
-            is_active=True
-        )
+    #     return Committee.objects.create(
+    #         user=user,
+    #         club=self,
+    #         designation=designation,
+    #         is_root=False,
+    #         is_active=True
+    #     )
     
     def __str__(self):
         return self.name
@@ -293,7 +345,37 @@ class PostImage(models.Model):
     
     def __str__(self):
         return f"Image {self.order} for instagram.com/p/{self.post.short_code}"
-    
+
+class ClubManager(models.Model):
+    ROLE_CHOICES = [
+        ('ROOT', 'Root Admin'),
+        ('NON_ROOT', 'Non-Root Admin'),
+    ]
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='managed_clubs')
+    club = models.ForeignKey(Club, on_delete=models.CASCADE, related_name='managers')
+    role = models.CharField(max_length=15, choices=ROLE_CHOICES)
+    assigned_date = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user.student_name} - {self.get_role_display()} of {self.club.name}"
+
+class ClaimRequest(models.Model):
+    STATUS_CHOICES = [
+        ('PENDING', 'Pending'),
+        ('APPROVED', 'Approved'),
+        ('REJECTED', 'Rejected'),
+    ]
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    club = models.ForeignKey(Club, on_delete=models.CASCADE)
+    proof_document = models.FileField(upload_to='claim_proofs/')
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='PENDING')
+    submitted_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Claim Request: {self.club.name} by {self.user.student_name} ({self.status})"
+
 """
 6. this is the model that keeps track of all the events that is associated with a post
 """
@@ -344,28 +426,43 @@ class Attendance(models.Model):
 """
 8. 
 """
+# class Membership(models.Model):
+#     STATUS_CHOICES = [
+#         ('PENDING', 'Pending'),
+#         ('ACTIVE', 'Active'),
+#         ('REJECTED', 'Rejected'),
+#     ]
+    
+#     TYPE_CHOICES = [
+#         ('UNLIMITED', 'Unlimited (Paid)'),
+#         ('LIMITED', 'Limited (Interest)'),
+#     ]
+
+#     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='memberships')
+#     club = models.ForeignKey(Club, on_delete=models.CASCADE, related_name='members')
+#     membership_type = models.CharField(max_length=15, choices=TYPE_CHOICES)
+#     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='PENDING')
+#     payment_proof = models.ImageField(upload_to='memberships/', blank=True, null=True)
+#     joined_at = models.DateTimeField(auto_now_add=True)
+
+#     def __str__(self):
+#         return f"{self.user.student_id} - {self.club.name} ({self.status})"
+
 class Membership(models.Model):
     STATUS_CHOICES = [
         ('PENDING', 'Pending'),
         ('ACTIVE', 'Active'),
         ('REJECTED', 'Rejected'),
     ]
-    
-    TYPE_CHOICES = [
-        ('UNLIMITED', 'Unlimited (Paid)'),
-        ('LIMITED', 'Limited (Interest)'),
-    ]
 
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='memberships')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='memberships')
     club = models.ForeignKey(Club, on_delete=models.CASCADE, related_name='members')
-    membership_type = models.CharField(max_length=15, choices=TYPE_CHOICES)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='PENDING')
-    payment_proof = models.ImageField(upload_to='memberships/', blank=True, null=True)
+    payment_proof = models.ImageField(upload_to='payment_proofs/', blank=True, null=True)
     joined_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.user.student_id} - {self.club.name} ({self.status})"
-
+        return f"{self.user.student_name} - {self.club.name} ({self.status})"
 """
 9. 
 """    

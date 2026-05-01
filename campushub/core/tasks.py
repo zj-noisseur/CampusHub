@@ -10,14 +10,13 @@ from django.utils import timezone
 from celery import shared_task, current_task
 import time
 
+from django.conf import settings
 from core.models import Club, Post, PostImage
 from core.views.apify import fetch_instagram_posts_via_apify
 
-EXPORT_BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), 'export'))
-
-
 def get_export_dir(export_dir=None):
-    directory = export_dir or EXPORT_BASE_DIR
+    # Prefer provided export_dir or fallback to the central JSON_EXPORT_DIR
+    directory = str(export_dir) if export_dir else str(settings.JSON_EXPORT_DIR)
     os.makedirs(directory, exist_ok=True)
     return directory
 
