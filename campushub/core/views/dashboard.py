@@ -12,7 +12,7 @@ def manager_dashboard(request):
     
     if not managed_clubs.exists():
         messages.error(request, 'You do not have permission to view the manager dashboard.')
-        return redirect('profile')
+        return redirect('core:profile')
         
     # For now, let's assume they manage one club and grab the first one
     my_club = managed_clubs.first()
@@ -42,7 +42,7 @@ def process_membership(request, membership_id, action):
     # 2. Security Check: Is the person clicking this actually the manager of THIS club?
     if not membership.club.managers.filter(user=request.user).exists():
         messages.error(request, 'You do not have permission to manage this club.')
-        return redirect('manager_dashboard')
+        return redirect('core:manager_dashboard')
         
     # 3. Process the action
     if action == 'approve':
@@ -55,4 +55,4 @@ def process_membership(request, membership_id, action):
         messages.success(request, 'Membership request rejected.')
         
     # 4. Refresh the dashboard
-    return redirect('manager_dashboard')
+    return redirect('core:manager_dashboard')
