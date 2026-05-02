@@ -8,5 +8,6 @@ from .dashboards import club_profile, club_admin_dashboard, club_settings, stude
 from .imports import import_attendees_csv
 from .certificates import download_certificates, download_my_certificate
 from .dashboards import toggle_ready_status, toggle_attended_status, set_event_status
+from .clubs import join_club
 
 __all__ = ['sign_up', 'claim_club', 'user_profile', 'manager_dashboard', 'process_membership', 'edit_profile', 'club_profile', 'club_admin_dashboard', 'club_settings', 'student_dashboard', 'import_attendees_csv', 'download_certificates', 'download_my_certificate']

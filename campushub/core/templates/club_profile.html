@@ -104,9 +104,12 @@
                         ✓ Club Joined
                     </button>
                 {% else %}
-                    <button class="btn border-none bg-gray-900 text-white hover:bg-gray-700 rounded-full px-8 font-medium shadow-sm transition-transform hover:scale-105">
-                        Join Club
-                    </button>
+                    <form action="{% url 'core:join_club' club.id %}" method="POST" class="inline-block">
+                        {% csrf_token %}
+                        <button type="submit" class="btn border-none bg-gray-900 text-white hover:bg-gray-700 rounded-full px-8 font-medium shadow-sm transition-transform hover:scale-105">
+                            Join Club
+                        </button>
+                    </form>
                 {% endif %}
             </div>
         </div>
