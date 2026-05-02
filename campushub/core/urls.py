@@ -1,8 +1,18 @@
 from django.urls import path
-from .views import certificates, imports, clubs, dashboards
+from .views import certificates, imports, clubs, dashboards, claim_club, dashboard, profile, sign_up
+from django.contrib.auth import views as auth_views
 
 app_name = 'core'
 urlpatterns = [
+    # Auth & Profile
+    path('', sign_up.sign_up, name='home'),
+    path('sign_up/', sign_up.sign_up, name='sign_up'),
+    path('claim/', claim_club.claim_club, name='claim_club'),
+    path('login/', auth_views.LoginView.as_view(template_name='login.html'), name='login'),
+    path('profile/', profile.user_profile, name='profile'),
+    path('manager-dashboard/', dashboard.manager_dashboard, name='manager_dashboard'),
+    path('dashboard/member/<int:membership_id>/<str:action>/', dashboard.process_membership, name='process_membership'),
+    path('profile/edit/', profile.edit_profile, name='edit_profile'),
     #Choose a club
 
     #The Dashboard List

@@ -14,7 +14,7 @@
                 <span class="text-sm font-bold text-gray-400 uppercase tracking-wider">Manager Dashboard</span>
                 <h1 class="text-4xl font-bold text-black tracking-tight">{{ club.name }}</h1>
             </div>
-            <a href="{% url 'profile' %}" class="btn btn-ghost">Back to Profile</a>
+            <a href="{% url 'core:profile' %}" class="btn btn-ghost">Back to Profile</a>
         </div>
 
         {% if messages %}
@@ -70,11 +70,11 @@
                             </td>
                             <td class="text-gray-600 font-medium">{{ member.user.student_id|default:"-" }}</td>
                             <td class="flex gap-2">
-                                <form method="POST" action="{% url 'process_membership' member.id 'approve' %}">
+                                <form method="POST" action="{% url 'core:process_membership' member.id 'approve' %}">
                                     {% csrf_token %}
                                     <button type="submit" class="btn btn-sm bg-black hover:bg-gray-800 text-white rounded-full border-none">Approve</button>
                                 </form>
-                                <form method="POST" action="{% url 'process_membership' member.id 'reject' %}">
+                                <form method="POST" action="{% url 'core:process_membership' member.id 'reject' %}">
                                     {% csrf_token %}
                                     <button type="submit" class="btn btn-sm btn-ghost text-red-500 hover:bg-red-50 rounded-full">Reject</button>
                                 </form>

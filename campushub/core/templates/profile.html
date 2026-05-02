@@ -12,7 +12,7 @@
     <div class="max-w-2xl w-full">
         <div class="mb-6 flex justify-between items-center">
             <h1 class="text-3xl font-bold tracking-tight text-black">My Profile</h1>
-            <a href="{% url 'home' %}" class="btn btn-ghost btn-sm">← Back to Home</a>
+            <a href="{% url 'core:home' %}" class="btn btn-ghost btn-sm">← Back to Home</a>
         </div>
 
         <div class="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
@@ -58,7 +58,7 @@
                                 {% endif %}
                             </div>
                         </div>    
-                        <a href="{% url 'edit_profile' %}" class="btn btn-outline btn-sm rounded-full">Edit Details</a>
+                        <a href="{% url 'core:edit_profile' %}" class="btn btn-outline btn-sm rounded-full">Edit Details</a>
                     </div>
 
                 </div>
