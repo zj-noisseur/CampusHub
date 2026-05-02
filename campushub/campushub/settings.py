@@ -123,6 +123,7 @@ AUTH_USER_MODEL = 'core.User'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 LOGIN_URL = 'core:login'
+LOGIN_REDIRECT_URL = 'core:profile'
 
 AUTHENTICATION_BACKENDS = [
     'core.backends.DualEmailBackend',

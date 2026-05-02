@@ -6,16 +6,17 @@
     <link href="https://cdn.jsdelivr.net/npm/daisyui@4.10.2/dist/full.min.css" rel="stylesheet" type="text/css" />
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-50 min-h-screen flex flex-col font-sans">
+<body class="bg-gray-50 min-h-screen flex flex-col font-sans pt-24">
     
-    <div class="navbar bg-white border-b border-gray-100 px-4 md:px-8 h-20">
+    <div class="navbar bg-white border-b border-gray-100 px-4 md:px-8 h-20 w-full absolute top-0 left-0 z-50">
         <div class="flex-1">
-            <a href="/" class="text-2xl font-bold text-black tracking-tight hover:opacity-80">CampusHub.</a>
+            <a href="/" class="text-2xl font-bold text-black tracking-tight hover:opacity-80">CampusHub</a>
         </div>
     </div>
 
     <div class="flex-grow flex items-center justify-center p-4">
-        <div class="max-w-md w-full bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
+        <!-- Made it max-w-3xl for the form -->
+        <div class="max-w-3xl w-full bg-white p-8 md:p-12 rounded-3xl shadow-sm border border-gray-100">
             
             <div class="flex justify-between items-center mb-8">
                 <h1 class="text-3xl font-bold tracking-tight text-black">Profile Settings</h1>
@@ -25,29 +26,61 @@
             <form method="POST" enctype="multipart/form-data" class="space-y-5">
                 {% csrf_token %}
 
-                {% for field in form %}
-                    <div class="form-control">
-                        <label class="label pb-1" for="{{ field.id_for_label }}">
-                            <span class="label-text text-base text-gray-800 font-medium">{{ field.label }}</span>
-                        </label>
-                        
-                        {{ field }}
-                        
-                        {% if field.help_text %}
-                            <label class="label pt-1 pb-0">
-                                <span class="label-text-alt text-gray-500">{{ field.help_text|safe }}</span>
-                            </label>
-                        {% endif %}
-                        
-                        {% if field.errors %}
-                            <label class="label pt-1 pb-0">
-                                <span class="label-text-alt text-red-500">{{ field.errors.0 }}</span>
-                            </label>
-                        {% endif %}
-                    </div>
-                {% endfor %}
+                <!-- 1. PROFILE PICTURE -->
+                <div class="form-control flex flex-col items-center gap-4 mb-10">
+                    <label class="label pb-1 text-center"><span class="label-text text-base text-gray-800 font-medium">Profile Picture</span></label>
+                    
+                    <div class="relative w-40 h-40 group cursor-pointer">
+                        <div class="w-full h-full rounded-full overflow-hidden border-4 border-gray-100 bg-gray-50 flex items-center justify-center shadow-inner">
+                            <img id="imagePreview" 
+                                 src="{% if user.profile_picture %}{{ user.profile_picture.url }}{% else %}/static/core/img/default-avatar.png{% endif %}" 
+                                 alt="Profile Preview" 
+                                 class="w-full h-full object-cover" />
+                        </div>
 
-                <button type="submit" class="btn bg-black hover:bg-gray-800 text-white w-full rounded-full text-lg mt-8 h-14 border-none">
+                        <div class="absolute inset-0 bg-black/60 rounded-full flex flex-col items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 backdrop-blur-[1px]">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                            <span class="text-xs font-semibold text-white uppercase tracking-wider">Change Photo</span>
+                        </div>
+                        
+                        <label for="{{ form.profile_picture.id_for_label }}" class="absolute inset-0 z-10 cursor-pointer"></label>
+                    </div>
+
+                    <div class="hidden">
+                        {{ form.profile_picture }}
+                    </div>
+                    
+                    {% if form.profile_picture.errors %}<label class="label pt-1 pb-0"><span class="label-text-alt text-red-500">{{ form.profile_picture.errors.0 }}</span></label>{% endif %}
+                </div>
+
+                <!-- 2. THE REST OF THE FIELDS -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {% for field in form %}
+                        {% if field.name != 'profile_picture' %}
+                            <div class="form-control {% if field.name == 'bio' %}md:col-span-2{% endif %}">
+                                <label class="label pb-1" for="{{ field.id_for_label }}">
+                                    <span class="label-text text-base text-gray-800 font-medium">{{ field.label }}</span>
+                                </label>
+                            
+                                {{ field }}
+                            
+                                {% if field.help_text %}
+                                    <label class="label pt-1 pb-0">
+                                        <span class="label-text-alt text-gray-500">{{ field.help_text|safe }}</span>
+                                    </label>
+                                {% endif %}
+
+                                {% if field.errors %}
+                                    <label class="label pt-1 pb-0">
+                                        <span class="label-text-alt text-red-500">{{ field.errors.0 }}</span>
+                                    </label>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+
+                <button type="submit" class="btn bg-black hover:bg-gray-800 text-white w-full rounded-full text-lg mt-10 h-14 border-none">
                     Save Changes
                 </button>
             </form>
@@ -55,5 +88,20 @@
         </div>
     </div>
 
+<script>
+    const fileInput = document.getElementById('{{ form.profile_picture.id_for_label }}');
+    const imagePreview = document.getElementById('imagePreview');
+
+    fileInput.addEventListener('change', function(event) {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                imagePreview.src = e.target.result;
+            }
+            reader.readAsDataURL(file);
+        }
+    });
+</script>
 </body>
 </html>
