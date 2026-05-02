@@ -10,6 +10,7 @@ urlpatterns = [
     path('club/<int:club_id>/dashboard/', dashboards.club_admin_dashboard, name='club_admin_dashboard'),
     path('club/<int:club_id>/settings/', dashboards.club_settings, name='club_settings'),
     path('club/<int:club_id>/event/<int:event_id>/', dashboards.club_admin_dashboard, name='event_admin_dashboard'),
+    path('club/<int:club_id>/event/create/', dashboards.create_event, name='create_event'),
     path('dashboard/', dashboards.student_dashboard, name='student_dashboard'),
 
     # The Core Features you want to show

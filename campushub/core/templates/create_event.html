@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Event - {{ club.name }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.10.2/dist/full.min.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #FAFAFA; }
+        .luma-card { border: 1px solid #EAEAEA; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
+    </style>
+</head>
+<body class="min-h-screen text-gray-900 pb-20">
+
+    <div class="px-8 py-4 flex justify-between items-center bg-white border-b border-gray-100">
+        <div class="flex items-center gap-4">
+            <a href="{% url 'core:student_dashboard' %}" class="text-xl font-bold tracking-tight hover:opacity-70">CampusHub</a>
+            <span class="text-gray-300">/</span>
+            <span class="text-sm font-medium text-gray-500">Create Event</span>
+        </div>
+    </div>
+
+    <div class="max-w-3xl mx-auto mt-12 px-4 md:px-8">
+        <div class="mb-10 text-center">
+            <h1 class="text-4xl font-bold tracking-tight text-gray-900">Create New Event</h1>
+            <p class="text-gray-500 mt-2">Add a new event for {{ club.name }} manually without using Instagram.</p>
+        </div>
+
+        <div class="luma-card bg-white rounded-3xl p-8 md:p-10">
+            <form method="POST">
+                {% csrf_token %}
+                
+                <div class="space-y-6">
+                    <div class="form-control w-full">
+                        <label class="label"><span class="label-text font-bold text-gray-700">Event Title</span></label>
+                        {{ form.title }}
+                        {% if form.title.errors %}
+                        <label class="label"><span class="label-text-alt text-red-500">{{ form.title.errors.0 }}</span></label>
+                        {% endif %}
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="form-control w-full">
+                            <label class="label"><span class="label-text font-bold text-gray-700">Date</span></label>
+                            {{ form.event_date }}
+                            {% if form.event_date.errors %}
+                            <label class="label"><span class="label-text-alt text-red-500">{{ form.event_date.errors.0 }}</span></label>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-control w-full">
+                            <label class="label"><span class="label-text font-bold text-gray-700">Location</span></label>
+                            {{ form.location }}
+                            {% if form.location.errors %}
+                            <label class="label"><span class="label-text-alt text-red-500">{{ form.location.errors.0 }}</span></label>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-10 flex flex-col sm:flex-row justify-end gap-4 border-t border-gray-100 pt-8">
+                    <a href="{% url 'core:club_admin_dashboard' club.id %}" class="btn btn-ghost rounded-xl">Cancel</a>
+                    <button type="submit" class="btn bg-gray-900 text-white hover:bg-gray-800 border-none rounded-xl px-8">
+                        Create Event ✨
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

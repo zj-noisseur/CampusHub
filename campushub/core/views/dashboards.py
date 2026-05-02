@@ -145,3 +145,43 @@ def club_settings(request, club_id):
         'form': form,
     }
     return render(request, 'club_settings.html', context)
+
+@login_required
+def create_event(request, club_id):
+    club = get_object_or_404(Club, id=club_id)
+    
+    # Check if the user is a manager
+    is_manager = club.managers.filter(user=request.user, is_active=True).exists()
+    if not is_manager:
+        return redirect('core:club_profile', club_id=club.id)
+        
+    from ..forms import EventCreationForm
+    
+    if request.method == 'POST':
+        form = EventCreationForm(request.POST)
+        if form.is_valid():
+            event = form.save(commit=False)
+            event.club = club
+            event.status = 'PREPARING'
+            
+            # Create a mock IG post id since the model requires it to be unique
+            import uuid
+            from ..models import Post
+            from django.utils import timezone
+            dummy_post = Post.objects.create(
+                club=club,
+                ig_id=str(uuid.uuid4()),
+                short_code='manual',
+                timestamp=timezone.now()
+            )
+            event.post = dummy_post
+            event.save()
+            return redirect('core:club_admin_dashboard', club_id=club.id)
+    else:
+        form = EventCreationForm()
+        
+    context = {
+        'club': club,
+        'form': form,
+    }
+    return render(request, 'create_event.html', context)

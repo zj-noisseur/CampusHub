@@ -30,3 +30,15 @@ class ClubSettingsForm(forms.ModelForm):
             'banner': forms.FileInput(attrs={'class': 'file-input file-input-bordered w-full'}),
             'payment_qr': forms.FileInput(attrs={'class': 'file-input file-input-bordered w-full'}),
         }
+
+from .models import Event
+
+class EventCreationForm(forms.ModelForm):
+    class Meta:
+        model = Event
+        fields = ['title', 'event_date', 'location']
+        widgets = {
+            'title': forms.TextInput(attrs={'class': 'input input-bordered w-full', 'placeholder': 'e.g., Annual Tech Symposium'}),
+            'event_date': forms.DateInput(attrs={'class': 'input input-bordered w-full', 'type': 'date'}),
+            'location': forms.TextInput(attrs={'class': 'input input-bordered w-full', 'placeholder': 'e.g., Main Hall'}),
+        }
