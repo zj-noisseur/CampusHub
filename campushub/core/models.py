@@ -270,15 +270,9 @@ class Membership(models.Model):
         ('ACTIVE', 'Active'),
         ('REJECTED', 'Rejected'),
     ]
-    
-    TYPE_CHOICES = [
-        ('UNLIMITED', 'Unlimited (Paid)'),
-        ('LIMITED', 'Limited (Interest)'),
-    ]
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='memberships')
     club = models.ForeignKey(Club, on_delete=models.CASCADE, related_name='members')
-    membership_type = models.CharField(max_length=15, choices=TYPE_CHOICES, default='LIMITED')
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='PENDING')
     payment_proof = models.ImageField(upload_to='payment_proofs/', blank=True, null=True)
     joined_at = models.DateTimeField(auto_now_add=True)
