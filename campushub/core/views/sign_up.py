@@ -10,7 +10,7 @@ def sign_up(request):
         form = StudentRegistrationForm(request.POST)
         if form.is_valid():
             user = form.save()  # This saves the new student to your database!
-            login(request, user)  # Log the user in automatically
+            login(request, user, backend= "django.contrib.auth.backends.ModelBackend")  # Log the user in automatically
             messages.success(request, 'Account created successfully! Welcome to CampusHub!')
             return redirect('profile')  # Redirect to profile page after successful registration
 

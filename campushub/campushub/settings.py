@@ -125,6 +125,7 @@ AUTH_USER_MODEL = 'core.User'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 LOGIN_URL = 'login'
+LOGIN_REDIRECT_URL = 'profile'
 
 AUTHENTICATION_BACKENDS = [
     'core.backends.DualEmailBackend',  # Our custom backend that checks both email fields
