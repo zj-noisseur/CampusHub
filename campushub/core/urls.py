@@ -14,6 +14,7 @@ urlpatterns = [
     path('dashboard/member/<int:membership_id>/<str:action>/', views.process_membership, name='process_membership'),
     path('profile/edit/', views.edit_profile, name='edit_profile'),
     path('club/<int:club_id>/join/', views.join_club, name='join_club'),
+    path('club/<int:club_id>/apply-manager/', views.apply_manager, name='apply_manager'),
     #Choose a club
 
     #The Dashboard List

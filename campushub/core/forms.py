@@ -92,3 +92,32 @@ class ProfileUpdateForm(forms.ModelForm):
         help_texts = {
             'alt_email': 'Add a personal email (like Gmail) so you can log in if you lose access to your student email.',
         }
+
+class ClubSettingsForm(forms.ModelForm):
+    class Meta:
+        model = Club
+        # These are all the fields a manager should be allowed to edit!
+        fields = [
+            'description', 
+            'logo', 
+            'banner', 
+            'social_instagram', 
+            'social_linkedin', 
+            'social_twitter', 
+            'social_facebook', 
+            'social_discord', 
+            'social_website'
+        ]
+        
+        # Adding some basic DaisyUI/Tailwind styling to the inputs
+        widgets = {
+            'description': forms.Textarea(attrs={'class': 'textarea textarea-bordered w-full', 'rows': 4, 'placeholder': 'Describe your club...'}),
+            'logo': forms.FileInput(attrs={'class': 'file-input file-input-bordered w-full max-w-xs'}),
+            'banner': forms.FileInput(attrs={'class': 'file-input file-input-bordered w-full max-w-xs'}),
+            'social_instagram': forms.URLInput(attrs={'class': 'input input-bordered w-full', 'placeholder': 'https://instagram.com/...'}),
+            'social_linkedin': forms.URLInput(attrs={'class': 'input input-bordered w-full', 'placeholder': 'https://linkedin.com/...'}),
+            'social_twitter': forms.URLInput(attrs={'class': 'input input-bordered w-full', 'placeholder': 'https://twitter.com/...'}),
+            'social_facebook': forms.URLInput(attrs={'class': 'input input-bordered w-full', 'placeholder': 'https://facebook.com/...'}),
+            'social_discord': forms.URLInput(attrs={'class': 'input input-bordered w-full', 'placeholder': 'https://discord.gg/...'}),
+            'social_website': forms.URLInput(attrs={'class': 'input input-bordered w-full', 'placeholder': 'https://...'}),
+        }

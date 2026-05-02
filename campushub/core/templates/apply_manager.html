@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CampusHub - Apply for Manager</title>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.10.2/dist/full.min.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-white min-h-screen flex items-center justify-center p-4 font-sans">
+    
+    <div class="max-w-md w-full">
+        <h1 class="text-4xl font-bold mb-4 tracking-tight text-black">Apply to Manage.</h1>
+        <p class="text-gray-600 mb-8 text-lg">
+            Upload your official MMU appointment letter or proof of leadership below.
+        </p>
+
+        {% if messages %}
+            <div class="mb-6">
+                {% for message in messages %}
+                    <div class="alert alert-success bg-green-100 text-green-800 rounded-xl mb-2">
+                        <span>{{ message }}</span>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <!-- The Specific Application Form -->
+        <form method="POST" action="." enctype="multipart/form-data" class="mt-8 flex flex-col gap-6 text-left">
+            {% csrf_token %}
+
+            <div class="form-control w-full">
+                <label class="label">
+                    <span class="label-text font-semibold text-gray-700">Applying to manage:</span>
+                </label>
+                <input type="text" value="{{ club.name }}" class="input input-bordered w-full bg-gray-50 text-gray-500 font-bold" readonly />
+            </div>
+
+            <div class="form-control w-full">
+                <label class="label">
+                    <span class="label-text font-semibold text-gray-700">Your Role / Designation</span>
+                </label>
+                <input type="text" name="claimer_designation" placeholder="e.g., President, Vice President" class="input input-bordered w-full focus:border-blue-500" required />
+            </div>
+
+            <div class="form-control w-full">
+                <label class="label">
+                    <span class="label-text font-semibold text-gray-700">Proof of Leadership</span>
+                </label>
+                <input type="file" name="proof_document" class="file-input file-input-bordered file-input-primary w-full" accept=".pdf,.jpg,.jpeg,.png" required />
+            </div>
+
+            <button type="submit" class="btn bg-blue-600 hover:bg-blue-700 text-white w-full rounded-full text-lg mt-6 h-14 border-none shadow-sm transition-transform hover:scale-[1.02]">
+                Submit Application
+            </button>
+        </form>
+    </div>
+
+</body>
+</html>

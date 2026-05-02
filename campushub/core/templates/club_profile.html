@@ -17,6 +17,18 @@
         <a href="{% url 'core:student_dashboard' %}" class="text-xl font-bold tracking-tight hover:opacity-70">&larr; CampusHub</a>
     </div>
 
+    <!-- Pop-up Alert Box -->
+    {% if messages %}
+        <div class="max-w-5xl mx-auto px-8 mt-4 animate-bounce">
+            {% for message in messages %}
+                <div class="alert alert-success bg-green-100 text-green-800 rounded-xl shadow-sm border-none">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    <span class="font-medium">{{ message }}</span>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
     <div class="max-w-5xl mx-auto mt-6 px-4 md:px-8">
         
         <div class="relative">
@@ -37,7 +49,7 @@
             </div>
         </div>
 
-        <div class="mt-16 md:mt-20 px-2 md:px-6 flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+        <div class="mt-16 md:mt-20 px-2 md:px-6 flex flex-col md:flex-row justify-between items-start md:items-start gap-6">
             <div>
                 <h1 class="text-4xl md:text-5xl font-bold tracking-tight">{{ club.name }}</h1>
                 <div class="flex flex-wrap items-center gap-4 mt-3 text-sm text-gray-500 font-medium">
@@ -88,30 +100,54 @@
                 </div>
             </div>
 
-            <div class="flex-shrink-0 flex flex-col sm:flex-row gap-3">
-                {% if not is_manager %}
-                    <a href="#" class="btn border-none bg-white text-gray-900 hover:bg-gray-100 rounded-full px-6 font-medium shadow-sm border border-gray-200 transition-all hover:scale-105">
-                        + Apply for Manager
-                    </a>
-                {% endif %}
-
-                {% if is_manager %}
-                    <a href="{% url 'core:club_settings' club.id %}" class="btn border-none bg-gray-200 text-gray-800 hover:bg-gray-300 rounded-full px-8 font-medium">
-                        ⚙️ Manage Club
-                    </a>
-                {% elif is_member %}
-                    <button class="btn border-none bg-green-100 text-green-700 rounded-full px-8 font-medium cursor-default">
-                        ✓ Club Joined
+        <div class="flex-shrink-0 flex items-center gap-3">
+    
+            <!-- Primary Actions (The main buttons) -->
+            {% if is_manager %}
+                <a href="{% url 'core:club_settings' club.id %}" class="btn border-none bg-gray-900 text-white hover:bg-gray-800 rounded-full px-8 font-medium shadow-sm transition-transform hover:scale-105">
+                    ⚙️ Manage Club
+                </a>
+            {% elif is_member %}
+                <button class="btn border-none bg-green-100 text-green-700 rounded-full px-8 font-medium cursor-default">
+                    ✓ Club Joined
+                </button>
+            {% else %}
+                <form action="{% url 'core:join_club' club.id %}" method="POST" class="inline-block">
+                    {% csrf_token %}
+                    <button type="submit" class="btn border-none bg-gray-900 text-white hover:bg-gray-700 rounded-full px-8 font-medium shadow-sm transition-transform hover:scale-105">
+                        Join Club
                     </button>
-                {% else %}
-                    <form action="{% url 'core:join_club' club.id %}" method="POST" class="inline-block">
-                        {% csrf_token %}
-                        <button type="submit" class="btn border-none bg-gray-900 text-white hover:bg-gray-700 rounded-full px-8 font-medium shadow-sm transition-transform hover:scale-105">
-                            Join Club
+                </form>
+            {% endif %}
+
+            <!-- Secondary Actions (The 3-dot Dropdown Menu) -->
+            {% if not is_manager %}
+            <div class="dropdown dropdown-end">
+                <div tabindex="0" role="button" class="btn btn-circle bg-white border border-gray-200 hover:bg-gray-100 shadow-sm transition-all">
+                    <!-- 3 Dots SVG Icon -->
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="w-5 h-5 stroke-current text-gray-600"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path></svg>
+                </div>
+                <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow-lg bg-white rounded-2xl w-56 border border-gray-100 mt-2">
+                    <!-- Apply for Manager -->
+                    <li>
+                        <a href="{% url 'core:apply_manager' club.id %}" class="text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-xl">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                            Apply for Manager
+                        </a>
+                    </li>
+    
+                    <!-- Share Club -->
+                    <li>
+                        <button onclick="navigator.clipboard.writeText(window.location.href); alert('Club link copied to clipboard!');" class="text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-xl">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
+                            Share Club
                         </button>
-                    </form>
-                {% endif %}
+                    </li>
+                </ul>
             </div>
+            {% endif %}
+
+        </div>
         </div>
 
         <div class="divider my-10 before:bg-gray-100 after:bg-gray-100"></div>
