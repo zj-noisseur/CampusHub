@@ -13,11 +13,14 @@
 </head>
 <body class="min-h-screen text-gray-900 pb-20">
 
-    <div class="px-8 py-4 flex justify-between items-center bg-white border-b border-gray-100 sticky top-0 z-50">
-        <a href="{% url 'core:club_profile' club.id %}" class="text-xl font-bold tracking-tight hover:opacity-70">&larr; Back to Profile</a>
+    <!-- CampusHub Top Navbar -->
+    <div class="navbar bg-white border-b border-gray-100 px-4 md:px-8 h-20 w-full absolute top-0 left-0 z-50">
+        <div class="flex-1">
+            <a href="{% url 'core:home' %}" class="text-2xl font-bold text-black tracking-tight hover:opacity-80">CampusHub</a>
+        </div>
     </div>
 
-    <div class="max-w-4xl mx-auto mt-10 px-4 md:px-8">
+    <div class="max-w-4xl mx-auto pt-24 pb-10">
         
         <div class="mb-10">
             <h1 class="text-3xl font-bold tracking-tight text-gray-900">Manage {{ club.name }}</h1>
@@ -31,8 +34,8 @@
             <div class="luma-card bg-white rounded-2xl p-6 md:p-8">
                 <div class="flex justify-between items-center mb-6">
                     <h2 class="text-xl font-semibold">Club Details</h2>
-                    <a href="#" class="btn btn-sm bg-gray-100 hover:bg-gray-200 text-gray-700 border-none rounded-full px-4 shadow-sm transition-colors">
-                        👥 Manage Managers
+                    <a href="{% url 'core:manager_dashboard' club.id %}" class="btn btn-sm border-none bg-gray-900 text-white hover:bg-gray-800 rounded-full px-6 font-medium shadow-sm transition-transform hover:scale-105">
+                        👥 Manage Members
                     </a>
                 </div>
                 
@@ -78,6 +81,22 @@
                             </div>
                         {% endif %}
                         {{ form.banner }}
+                    </div>
+                    <!-- Finances Section -->
+                    <div class="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 mb-8 mt-8">
+                        <h3 class="text-xl font-bold text-black mb-6">Finances & Payment</h3>
+    
+                        <div class="form-control w-full mb-4">
+                            <label class="label"><span class="label-text font-bold text-gray-700">Membership Fee (RM)</span></label>
+                            {{ form.membership_fee }}
+                            <label class="label"><span class="label-text-alt text-gray-500">Leave as 0.00 if joining is free.</span></label>
+                        </div>
+
+                        <div class="form-control w-full">
+                            <label class="label"><span class="label-text font-bold text-gray-700">Payment QR Code</span></label>
+                            {{ form.payment_qr_code }}
+                            <label class="label"><span class="label-text-alt text-gray-500">Upload your DuitNow or Touch 'n Go QR code here.</span></label>
+                        </div>
                     </div>
                 </div>
             </div>

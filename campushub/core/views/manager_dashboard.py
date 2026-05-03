@@ -5,7 +5,7 @@ from ..models import Club, Membership
 from django.shortcuts import get_object_or_404
 
 @login_required
-def manager_dashboard(request):
+def manager_dashboard(request,club_id):
     # Fetch the club(s) this specific user manages. 
     # (Note: Change 'manager' below to whatever field name you used in your Club model to link the owner!)
     managed_clubs = Club.objects.filter(managers__user=request.user)
@@ -32,7 +32,7 @@ def manager_dashboard(request):
         'pending_requests': pending_members.count(),
     }
     
-    return render(request, 'dashboard.html', context)
+    return render(request, 'manager_dashboard.html', context)
 
 @login_required
 def process_membership(request, membership_id, action):

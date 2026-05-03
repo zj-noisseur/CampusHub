@@ -128,6 +128,8 @@ class Club(models.Model):
     description = models.TextField(blank=True, null=True)
     category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='MISC')
     is_claimed = models.BooleanField(default=False)
+    membership_fee= models.DecimalField(max_digits=6, decimal_places=2, default=0.00, help_text="Set to 0 if the club is free to join.")
+    payment_qr_code = models.ImageField(upload_to='club_qrs/', blank=True, null=True, help_text="Upload your DuitNow or TNG QR code.")
     
     ig_handle = models.CharField(max_length=255, blank=True, null=True) 
     valid_till = models.DateTimeField(null=True, blank=True)

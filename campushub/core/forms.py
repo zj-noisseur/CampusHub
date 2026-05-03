@@ -106,7 +106,9 @@ class ClubSettingsForm(forms.ModelForm):
             'social_twitter', 
             'social_facebook', 
             'social_discord', 
-            'social_website'
+            'social_website',
+            'membership_fee',
+            'payment_qr_code',
         ]
         
         # Adding some basic DaisyUI/Tailwind styling to the inputs
@@ -120,4 +122,6 @@ class ClubSettingsForm(forms.ModelForm):
             'social_facebook': forms.URLInput(attrs={'class': 'input input-bordered w-full', 'placeholder': 'https://facebook.com/...'}),
             'social_discord': forms.URLInput(attrs={'class': 'input input-bordered w-full', 'placeholder': 'https://discord.gg/...'}),
             'social_website': forms.URLInput(attrs={'class': 'input input-bordered w-full', 'placeholder': 'https://...'}),
+            'membership_fee': forms.NumberInput(attrs={'class': 'input input-bordered w-full max-w-xs', 'step': '0.01'}),
+            'payment_qr_code': forms.FileInput(attrs={'class': 'file-input file-input-bordered w-full max-w-xs'}),
         }
