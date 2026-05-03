@@ -21,6 +21,7 @@ urlpatterns = [
     path('feed/', feed, name='feed'),
     path('signup/', sign_up, name='signup'),
     path('login/', auth_views.LoginView.as_view(template_name='login.html'), name='login'),
+    path('logout/', auth_views.LogoutView.as_view(next_page='core:feed'), name='logout'),
     path('profile/', user_profile, name='profile'),
     # path('claim/', claim_club, name='claimclub'),
 ]
