@@ -17,85 +17,116 @@
     <table class="table w-full table-zebra">
         <thead>
             <tr>
+                <th>Date</th>
                 <th>Club</th>
                 <th>Task ID</th>
                 <th>Status</th>
-                <th>Progress/Result</th>
+                <!-- <th>Progress/Result</th> -->
+                <th>Progress Result 2</th>
                 <th>Timeline</th>
             </tr>
         </thead>
         <tbody id="queue-tbody">
-            {% for task in tasks %}
-            <tr class="task-row" data-task-id="{{ task.task_id }}" data-club-id="{{ task.club_id }}" data-state="{{ task.state }}">
-                <td><span class="font-bold">{{ task.club_name }}</span></td>
-                <td class="text-xs font-mono">{{ task.task_id }}</td>
-                <td>
-                    {% if task.state == 'PROGRESS' %}
-                        <span class="badge badge-primary status-label">Running</span>
-                    {% elif task.state == 'SUCCESS' %}
-                        <span class="badge badge-success status-label">Completed</span>
-                    {% elif task.state == 'FAILURE' %}
-                        <span class="badge badge-error status-label">Failed</span>
-                    {% elif task.state == 'PENDING' %}
-                        <span class="badge badge-ghost status-label">Queued</span>
-                    {% else %}
-                        <span class="badge badge-ghost status-label">{{ task.state }}</span>
+            {% regroup tasks by date_group as tasks_by_date %}
+            {% for date_group in tasks_by_date %}
+                {% for task in date_group.list %}
+                <tr class="task-row scrape-ui-row" data-task-id="{{ task.task_id }}" data-club-id="{{ task.club_id }}" data-state="{{ task.state }}" data-phase="{{ task.phase|default:'apify' }}" data-current-image="{{ task.current_image|default:0 }}" data-total-images="{{ task.total_images|default:0 }}" data-status-text="{{ task.status_text|default:'' }}" data-db-write-task-id="{{ task.db_write_task_id|default:'' }}">
+                    {% if forloop.first %}
+                    <td rowspan="{{ date_group.list|length }}" class="align-top font-bold whitespace-nowrap bg-base-200/50 border-r border-base-300 py-4">
+                        {{ date_group.grouper|date:"M d, Y"|default:"Unknown Date" }}
+                    </td>
                     {% endif %}
-                </td>
-                <td>
-                    {% if task.state == 'PROGRESS' %}
-                        <div class="flex flex-col gap-1">
-                            <progress class="progress progress-primary w-56 progress-bar" value="{{ task.progress }}" max="100"></progress>
-                            <span class="text-xs progress-text">{{ task.progress }}%</span>
-                        </div>
-                    {% elif task.state == 'PENDING' %}
-                        <span class="text-sm text-base-content/70">Waiting to start</span>
-                    {% elif task.state == 'SUCCESS' %}
-                        <span class="text-success flex items-center gap-1">
-                            <i class="fa-solid fa-circle-check"></i> Finished
-                        </span>
-                    {% elif task.state == 'FAILURE' %}
-                        <span class="text-error flex items-center gap-1">
-                            <i class="fa-solid fa-circle-xmark"></i> Error recorded
-                        </span>
-                    {% endif %}
-                </td>
-                <td class="text-xs status-detail">
-                    {% if task.state == 'PROGRESS' %}
-                        {% if task.eta %}ETA: {{ task.eta }}s{% endif %}
-                        {% if task.elapsed %} • Elapsed: {{ task.elapsed|floatformat:0 }}s{% endif %}
-                    {% elif task.state == 'PENDING' %}
-                        Queued recently
-                    {% else %}
-                        {% if task.date_done %}
-                            {{ task.date_done|timesince }} ago
+                    <td>
+                        <span class="font-bold">{{ task.club_name }}</span>
+                        <div class="text-xs text-base-content/60">{{ task.task_name|slice:"11:"|default:"Task" }}</div>
+                    </td>
+                    <td class="text-xs font-mono">{{ task.task_id }}</td>
+                    <td>
+                        {% if task.state == 'PROGRESS' %}
+                            <span class="loading loading-spinner loading-sm"></span>
+                            <span class="text-xs text-primary">Running</span>
+                        {% elif task.state == 'SUCCESS' %}
+                            <span class="badge badge-success status-label">Completed</span>
+                        {% elif task.state == 'FAILURE' %}
+                            <span class="badge badge-error status-label">Failed</span>
+                        {% elif task.state == 'PENDING' %}
+                            <span class="badge badge-ghost status-label">Queued</span>
                         {% else %}
-                            Not started yet
+                            <span class="badge badge-ghost status-label">{{ task.state }}</span>
                         {% endif %}
-                    {% endif %}
-                </td>
-            </tr>
+                    </td>
+                    <!-- <td class="w-1/2">
+                        <div class="flex flex-col gap-3">
+                            {% if task.status_text %}
+                                <div class="text-[10px] text-base-content/60">{{ task.status_text }}</div>
+                            {% elif task.state == 'PENDING' %}
+                                <span class="text-sm text-base-content/70">Waiting to start</span>
+                            {% elif task.state == 'PROGRESS' %}
+                                <span class="text-xs text-primary">Running</span>
+                            {% elif task.state == 'SUCCESS' %}
+                                <span class="text-success flex items-center gap-1">
+                                    <i class="fa-solid fa-circle-check"></i> Finished
+                                </span>
+                            {% elif task.state == 'FAILURE' %}
+                                <span class="text-error flex items-center gap-1">
+                                    <i class="fa-solid fa-circle-xmark"></i> Error recorded
+                                </span>
+                            {% endif %}
+                        </div>
+                    </td> -->
+                    <td class="w-1/2">
+                        <!--The elemnents for the steps element are always in existent, but visibility toggled via class handling-->
+                        {% if task.is_scrape_task or task.club_id %}
+                            <div class="scrape-task-ui"
+                            data-task-id="{{ task.task_id }}"
+                            data-state="{{ task.state }}"
+                            data-phase="{{ task.phase|default:'apify'}}"
+                            >
+
+                                        <ul class="steps steps-vertical text-xs w-full task-steps">
+                                    <li class="step task-step-apify {% if task.phase and task.phase != 'apify' and task.state != 'PENDING' or task.state == 'SUCCESS' %}step-primary{% endif %}"
+                                        data-content="{% if task.phase and task.phase != 'apify' and task.state != 'PENDING' or task.state == 'SUCCESS' %}✓{% else %}●{% endif %}">
+                                        Execute Apify actor
+                                    </li>
+
+                                        <li class="step task-step-download {% if task.phase == 'downloading' or task.phase == 'db_write' or task.state == 'SUCCESS' %}step-primary{% endif %}"
+                                        data-content="{% if task.phase == 'db_write' or task.state == 'SUCCESS' %}✓{% else %}●{% endif %}">
+                                        Retrieving images
+                                        <span class="block text-[10px] text-base-content/60 image-counters {% if not task.total_images %}hidden{% endif %}"><span class="cur">{{ task.current_image|default:0 }}</span>/<span class="tot">{{ task.total_images|default:0 }}</span></span>
+                                    </li>
+
+                                    <li class="step task-step-db {% if task.phase == 'db_write' or task.state == 'SUCCESS' %}step-primary{% endif %}"
+                                        data-content="{% if task.state == 'SUCCESS' %}✓{% else %}●{% endif %}">
+                                        Writing to database
+                                    </li>
+                                </ul>
+                            </div>
+                        {% else %}
+                            <span class="badge badge-ghost">{{ task.status}}</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-xs status-detail">
+                        {% if task.state == 'PROGRESS' %}
+                            {% if task.eta %}ETA: {{ task.eta }}s{% endif %}
+                            {% if task.elapsed %} • Elapsed: {{ task.elapsed|floatformat:0 }}s{% endif %}
+                        {% elif task.state == 'PENDING' %}
+                            Queued recently
+                        {% else %}
+                            {% if task.date_done %}
+                                {{ task.date_done|time:"H:i:s" }}
+                            {% else %}
+                                Not started yet
+                            {% endif %}
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
             {% empty %}
             <tr>
-                <td colspan="5" class="text-center py-4">No tasks found in history.</td>
+                <td colspan="6" class="text-center py-4">No tasks found in history.</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
 </div>
 
-<script>
-    (function() {
-        const rows = document.querySelectorAll('#queue-tbody .task-row');
-        rows.forEach(row => {
-            const taskId = row.dataset.taskId;
-            const clubId = row.dataset.clubId;
-            const state = row.dataset.state;
-            
-            // Only register for polling if it's still running
-            if (state === 'PROGRESS' && window.registerGlobalTask) {
-                window.registerGlobalTask(taskId, clubId);
-            }
-        });
-    })();
-</script>

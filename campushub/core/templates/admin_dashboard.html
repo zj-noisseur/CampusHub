@@ -2,12 +2,25 @@
 {% block title %}Dashboard{% endblock %}
 {% block content %}
 
-<div class="mb-4">
+<div class="mb-4 flex flex-wrap items-center justify-between gap-3">
     <div class="tabs">
         <button type="button" class="tab tab-lifted tab-active" data-tab="clubs">Clubs</button>
         <button type="button" class="tab tab-lifted" data-tab="queue">Queued Tasks</button>
     </div>
+    <label class="label cursor-pointer mb-0">
+        <span class="label-text mr-2">Debug mode</span>
+        <input id="debug-mode-toggle" type="checkbox" class="toggle toggle-secondary" />
+    </label>
 </div>
+<style>
+.scrape-ui-row[data-state="FAILURE"] {
+    display: none;
+}
+body.debug-mode .scrape-ui-row[data-state="FAILURE"] {
+    display: table-row;
+    opacity: 0.6;
+}
+</style>
 
 <!-- Flex container for the filter selection and the list of clubs to allow the user to trigger the scraping mechanism -->
 <div id="dashboard-tab-clubs">
@@ -187,6 +200,12 @@
         const queueUrl = '{% url "core:admin_task_queue" %}';
         const taskStatusUrl = '{% url "core:admin_task_status" %}';
         let queueLoaded = false;
+        const debugModeToggle = document.getElementById('debug-mode-toggle');
+        if (debugModeToggle) {
+            debugModeToggle.addEventListener('change', () => {
+                document.body.classList.toggle('debug-mode', debugModeToggle.checked);
+            });
+        }
 
         const filterType = document.getElementById('filter-type');
         const institutionFilter = document.getElementById('institution-filter');
@@ -205,10 +224,31 @@
         const pollingTasks = new Set();
         window.registerGlobalTask = (taskId, clubId) => {
         // if a specific task id does not exist or already has one registered, do nothing
-        // if not, add the task to the set of polling tasks and start querying its status 
+        // if not, add the task to the set of polling tasks and start querying its status
             if (!taskId || pollingTasks.has(taskId)) return;
             pollingTasks.add(taskId);
             queryTaskStatus(taskId, clubId);
+        };
+
+        const initializeQueueFragment = () => {
+            const rows = document.querySelectorAll('#queue-tbody .task-row');
+            console.log('initializeQueueFragment: found rows', rows.length);
+            rows.forEach(row => {
+                const taskId = row.dataset.taskId;
+                const clubId = row.dataset.clubId;
+                const state = row.dataset.state;
+                const phase = row.dataset.phase || '';
+                const currentImage = Number(row.dataset.currentImage || 0);
+                const totalImages = Number(row.dataset.totalImages || 0);
+                const statusText = row.dataset.statusText || '';
+
+                console.log('initializeQueueFragment row', { taskId, clubId, state, phase, currentImage, totalImages, statusText });
+                updateStatusLabel(clubId, state, 0, statusText, null, null, taskId, 0, 0, currentImage, totalImages, phase);
+
+                if (state === 'PROGRESS' && window.registerGlobalTask) {
+                    window.registerGlobalTask(taskId, clubId);
+                }
+            });
         };
 
         const getStatusElements = (clubId) => {
@@ -227,7 +267,7 @@
             return `${Math.round(value)}s`;
         };
 
-        const updateStatusLabel = (clubId, state, progress, statusText, eta, elapsed, taskId) => {
+        const updateStatusLabel = (clubId, state, progress, statusText, eta, elapsed, taskId, currentItem, totalItems, currentImage, totalImages, phase) => {
             const elements = getStatusElements(clubId);
             const queueRow = document.querySelector(`#queue-tbody tr[data-task-id="${taskId}"]`);
             
@@ -238,7 +278,7 @@
                 if (state === 'PENDING') {
                     elements.label.textContent = 'Queued';
                 } else if (state === 'PROGRESS') {
-                    elements.label.textContent = statusText ? `${statusText} (${percent}%)` : `Running (${percent}%)`;
+                    elements.label.textContent = 'Running';
                 } else if (state === 'SUCCESS') {
                     elements.label.textContent = 'Completed';
                 } else if (state === 'FAILURE') {
@@ -272,14 +312,49 @@
                 const qBar = queueRow.querySelector('.progress-bar');
                 const qText = queueRow.querySelector('.progress-text');
                 const qDetail = queueRow.querySelector('.status-detail');
+                const qTaskUi = queueRow.querySelector('.scrape-task-ui');
 
-                if (qLabel) qLabel.textContent = statusText || state;
+                if (qLabel) qLabel.textContent = state === 'PROGRESS' ? 'Running' : statusText || state;
                 if (qBar) qBar.value = percent;
-                if (qText) qText.textContent = `${percent}%`;
+                if (qText) qText.textContent = state === 'PROGRESS' ? '' : `${percent}%`;
                 if (qDetail) qDetail.textContent = detailParts.join(' • ');
+                if (queueRow.dataset) queueRow.dataset.state = state;
+                if (qTaskUi) {
+                    qTaskUi.dataset.state = state;
+                    if (phase) qTaskUi.dataset.phase = phase;
+                }
 
-                if (state === 'SUCCESS' || state === 'FAILURE') {
-                    setTimeout(() => queueRow.remove(), 5000);
+                // Update visual steps if applicable
+                    const qStepsBlock = queueRow.querySelector('.task-steps');
+                if (qStepsBlock) {
+                    const dbStep = qStepsBlock.querySelector('.task-step-db');
+                    const apifyStep = qStepsBlock.querySelector('.task-step-apify');
+                    const downloadStep = qStepsBlock.querySelector('.task-step-download');
+
+                    const phaseName = phase || 'apify';
+
+                    if (apifyStep) {
+                        apifyStep.classList.toggle('step-primary', (phaseName !== 'apify' && state !== 'PENDING') || state === 'SUCCESS');
+                        apifyStep.dataset.content = (phaseName !== 'apify' && state !== 'PENDING') || state === 'SUCCESS' ? '✓' : '●';
+                    }
+                    if (downloadStep) {
+                        downloadStep.classList.toggle('step-primary', phaseName === 'downloading' || phaseName === 'db_write' || state === 'SUCCESS');
+                        downloadStep.dataset.content = phaseName === 'db_write' || state === 'SUCCESS' ? '✓' : '●';
+                        const currentCounter = downloadStep.querySelector('.cur');
+                        const totalCounter = downloadStep.querySelector('.tot');
+                        const countersContainer = downloadStep.querySelector('.image-counters');
+                        if (currentCounter) currentCounter.textContent = currentImage || 0;
+                        if (totalCounter) totalCounter.textContent = totalImages || 0;
+                        if (countersContainer) {
+                            if (totalImages && totalImages > 0) {
+                                countersContainer.classList.remove('hidden');
+                            }
+                        }
+                    }
+                    if (dbStep) {
+                        dbStep.classList.toggle('step-primary', phaseName === 'db_write' || state === 'SUCCESS');
+                        dbStep.dataset.content = state === 'SUCCESS' ? '✓' : '●';
+                    }
                 }
             }
         };
@@ -296,6 +371,8 @@
             }
 
             const payload = await response.json().catch(() => null);
+            console.log('queryTaskStatus payload', { taskId, clubId, payload });
+            console.log('admin_task_status response', payload);
             if (!payload) {
                 pollingTasks.delete(taskId);
                 return;
@@ -303,12 +380,29 @@
 
             // If clubId was missing but payload has it, use it
             const effectiveClubId = clubId || payload.club_id;
+            const queueRow = document.querySelector(`#queue-tbody tr[data-task-id="${taskId}"]`);
+            console.log('queryTaskStatus effective', { taskId, effectiveClubId, queueRowExists: !!queueRow });
 
-            updateStatusLabel(effectiveClubId, payload.state, payload.progress, payload.status, payload.eta, payload.elapsed, taskId);
+            updateStatusLabel(effectiveClubId, payload.state, payload.progress, payload.status, payload.eta, payload.elapsed, taskId, payload.current_item, payload.total_items, payload.current_image, payload.total_images, payload.phase);
             
-            if (['PENDING', 'PROGRESS', 'RETRY'].includes(payload.state)) {
+            if (payload.state === 'SUCCESS' && payload.db_write_task_id) {
+                const nextTaskId = payload.db_write_task_id;
+                if (queueRow) {
+                    queueRow.dataset.chainActive = 'true';
+                    queueRow.dataset.taskId = nextTaskId;
+                    const uiContainer = queueRow.querySelector('.scrape-task-ui');
+                    if (uiContainer) uiContainer.dataset.taskId = nextTaskId;
+                }
+                pollingTasks.delete(taskId);
+                if (nextTaskId && !pollingTasks.has(nextTaskId)) {
+                    queryTaskStatus(nextTaskId, effectiveClubId);
+                }
+            } else if (['PENDING', 'PROGRESS', 'RETRY'].includes(payload.state)) {
                 setTimeout(() => queryTaskStatus(taskId, effectiveClubId), 2000);
             } else {
+                if (queueRow) {
+                    queueRow.dataset.chainActive = 'false';
+                }
                 pollingTasks.delete(taskId);
             }
         };
@@ -434,14 +528,14 @@
             if (pendingClubId && pendingAction) {
                 const payload = await postClubAction(pendingClubId, pendingAction);
                 if (pendingAction === 'scrape_posts' && payload && payload.task_id) {
-                    updateStatusLabel(pendingClubId, 'PENDING', 0, 'Queued', null, null, payload.task_id);
+                    updateStatusLabel(pendingClubId, 'PENDING', 0, 'Queued', null, null, payload.task_id, 0, 0, 0, 0, null);
                     queryTaskStatus(payload.task_id, pendingClubId);
                 }
             } else if (pendingBulkAction && pendingBulkClubIds.length) {
                 for (const clubId of pendingBulkClubIds) {
                     const payload = await postClubAction(clubId, pendingBulkAction);
                     if (pendingBulkAction === 'scrape_posts' && payload && payload.task_id) {
-                        updateStatusLabel(clubId, 'PENDING', 0, 'Queued', null, null, payload.task_id);
+                        updateStatusLabel(clubId, 'PENDING', 0, 'Queued', null, null, payload.task_id, 0, 0, 0, 0, null);
                         queryTaskStatus(payload.task_id, clubId);
                     }
                 }
@@ -497,6 +591,7 @@
             }
             tabPanels.queue.innerHTML = await response.text();
             queueLoaded = true;
+            initializeQueueFragment();
         };
 
         tabs.forEach(tab => {

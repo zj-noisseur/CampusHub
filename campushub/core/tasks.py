@@ -35,13 +35,30 @@ def parse_apify_timestamp(value):
     return parsed
 
 
-def process_club_dataset(club, dataset, full_sync=False):
+def process_club_dataset(club, dataset, full_sync=False, task=None):
     if full_sync:
         club.posts.all().delete()
 
     # created_count = 0
-
+    total_items = len(dataset)
+    processed_images = 0
+    total_images = 0
     for item in dataset:
+        if not item:
+            continue
+        image_urls = item.get('images') or ([item.get('displayUrl')] if item.get('displayUrl') else [])
+        total_images += len(image_urls)
+
+    if task is not None:
+        task.update_state(state='PROGRESS', meta={
+            'club_id': str(club.id),
+            'phase': 'downloading',
+            'status': 'Downloading images...',
+            'current_image': 0,
+            'total_images': total_images,
+        })
+
+    for index, item in enumerate(dataset):
         ig_id = item.get('id')
         if not ig_id:
             continue
@@ -66,6 +83,16 @@ def process_club_dataset(club, dataset, full_sync=False):
         for order, image_url in enumerate(image_urls):
             if not image_url:
                 continue
+
+            processed_images += 1
+            if task is not None:
+                task.update_state(state='PROGRESS', meta={
+                    'club_id': str(club.id),
+                    'phase': 'downloading',
+                    'status': 'Downloading images...',
+                    'current_image': processed_images,
+                    'total_images': total_images,
+                })
 
             if PostImage.objects.filter(post=post, order=order).exists():
                 continue
@@ -103,12 +130,11 @@ def run_club_scrape_task(self, club_id, search_limit=20, max_items=50, export_di
 
     export_dir = get_export_dir(export_dir)
 
-    # celery method to keep track of task
+    # celery method to keep track of task phases
     self.update_state(state='PROGRESS', meta={
-        'status': 'Fetching from Apify...', 
-        'progress': 0, 
         'club_id': str(club.id),
-        'club_name': club.name
+        'phase': 'apify',
+        'status': 'Scraping Instagram...',
     })
 
     dataset = fetch_instagram_posts_via_apify(
@@ -118,13 +144,6 @@ def run_club_scrape_task(self, club_id, search_limit=20, max_items=50, export_di
         export_dir=export_dir,
         only_posts_newer_than=only_posts_newer_than,
     )
-
-    self.update_state(state='PROGRESS', meta={
-        'status': 'Queuing database write...',
-        'progress': 50,
-        'club_id': str(club.id),
-        'club_name': club.name
-    })
 
     write_task = persist_club_dataset.apply_async(
         (str(club.id), dataset, full_sync),
@@ -146,25 +165,37 @@ def persist_club_dataset(self, club_id, dataset, full_sync=False):
     if not club:
         raise ValueError('Club not found')
 
+    total_images = 0
+    if isinstance(dataset, list):
+        for item in dataset:
+            if not item:
+                continue
+            image_urls = item.get('images') or ([item.get('displayUrl')] if item.get('displayUrl') else [])
+            total_images += len(image_urls)
+
     self.update_state(state='PROGRESS', meta={
-        'status': 'Writing dataset to database...',
-        'progress': 0,
         'club_id': str(club.id),
-        'club_name': club.name
+        'phase': 'downloading',
+        'status': 'Downloading images...',
+        'current_image': 0,
+        'total_images': total_images,
     })
 
-    with transaction.atomic():
-        process_club_dataset(club, dataset, full_sync=full_sync)
+    process_club_dataset(club, dataset, full_sync=full_sync, task=self)
 
     self.update_state(state='PROGRESS', meta={
-        'status': 'Database write complete',
-        'progress': 100,
+        'club_id': str(club_id),
+        'phase': 'db_write',
+        'status': 'Writing to database...',
+        'current_image': total_images,
+        'total_images': total_images,
         'club_id': str(club.id),
-        'club_name': club.name
     })
 
     return {
         'club_id': str(club.id),
         'items_processed': len(dataset) if isinstance(dataset, list) else 0,
         'full_sync': full_sync,
+        'phase': 'db_write',
+        'club_id': str(club.id),
     }

@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 
 from celery.result import AsyncResult
@@ -8,12 +9,19 @@ from django.http import JsonResponse
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
+from django.contrib.auth.decorators import user_passes_test
 from django.db.models import Count
 
 from django_celery_results.models import TaskResult
+
+logger = logging.getLogger(__name__)
 from core.models import Institution, Club
 from core.tasks import run_club_scrape_task
 
+def is_superuser(user):
+    return user.is_authenticated and user.is_superuser
+
+@user_passes_test(is_superuser)
 def admin_dashboard_home(request):
     selected_institution = request.GET.get("institution")
     universities = Institution.objects.order_by("university_name")
@@ -39,6 +47,7 @@ def admin_dashboard_home(request):
 
     return render(request, 'admin_dashboard.html', {'clubs': clubs, "universities": universities, "selected_institution": selected_institution})
 
+@user_passes_test(is_superuser)
 def admin_dashboard_task_queue(request):
     # Fetch tasks that are queued, running, successful, or failed.
     # We order by creation/done time so the newest tasks appear first.
@@ -48,8 +57,12 @@ def admin_dashboard_task_queue(request):
 
     tasks_data = []
     active_task_count = task_results.filter(status='PROGRESS').count()
-
+    
+    # once received task results, set the club_id and name to None first
     for task in task_results:
+        club_id = None
+        club_name = None
+
         try:
             meta = json.loads(task.meta) if task.meta else {}
         except (json.JSONDecodeError, TypeError):
@@ -64,7 +77,10 @@ def admin_dashboard_task_queue(request):
                 result_data = None
 
         if isinstance(result_data, dict):
-            club_id = result_data.get('club_id')
+            meta.update(result_data)
+
+        club_id = meta.get('club_id')
+        if club_id:
             from core.models import Club
             club = Club.objects.filter(id=club_id).only('name').first()
             if club:
@@ -72,17 +88,20 @@ def admin_dashboard_task_queue(request):
 
         if not club_id and task.task_args:
             try:
-                task_args = json.loads(task.task_args)
+                import ast
+                task_args = ast.literal_eval(task.task_args)
                 if isinstance(task_args, (list, tuple)) and task_args:
                     club_id = task_args[0]
-            except (json.JSONDecodeError, TypeError):
+            except Exception:
                 pass
 
         if not club_id and task.task_kwargs:
             try:
-                task_kwargs = json.loads(task.task_kwargs)
-                club_id = task_kwargs.get('club_id') or task_kwargs.get('club_id')
-            except (json.JSONDecodeError, TypeError):
+                import ast
+                task_kwargs = ast.literal_eval(task.task_kwargs)
+                if isinstance(task_kwargs, dict):
+                    club_id = task_kwargs.get('club_id')
+            except Exception:
                 pass
         
         if club_id and not club_name:
@@ -105,16 +124,34 @@ def admin_dashboard_task_queue(request):
             label = meta.get('status', 'Failed')
             club_name = 'N/A'
 
+        phase = meta.get('phase')
+
+        is_scrape_task = False
+        if isinstance(task.task_name, str):
+            task_name = task.task_name
+            is_scrape_task = any(name in task_name for name in ('run_club_scrape_task', 'persist_club_dataset'))
+
         tasks_data.append({
             'task_id': task.task_id,
+            'task_name': task.task_name,
             'club_id': club_id,
             'club_name': club_name,
+            'is_scrape_task': is_scrape_task,
+            'phase': meta.get('phase'),
             'progress': meta.get('progress', 100 if task.status == 'SUCCESS' else 0),
+            'current_item': meta.get('current_item', 0),
+            'total_items': meta.get('total_items', 0),
+            'current_image': meta.get('current_image', 0),
+            'total_images': meta.get('total_images', 0),
             'status': label,
+            'status_text': meta.get('status', ''),
+            'db_write_task_id': meta.get('db_write_task_id'),
             'eta': meta.get('eta'),
             'elapsed': meta.get('elapsed'),
             'state': task.status,
             'date_done': task.date_done,
+            'date_created': task.date_created,
+            'date_group': (task.date_done or task.date_created).date() if (task.date_done or task.date_created) else None,
         })
 
     return render(request, 'admin_dashboard_tasks_fragment.html', {
@@ -123,25 +160,57 @@ def admin_dashboard_task_queue(request):
         'history_task_count': len(tasks_data),
     })
 
+@user_passes_test(is_superuser)
 def admin_dashboard_task_status(request):
     task_id = request.GET.get('task_id')
     if not task_id:
         return JsonResponse({'error': 'task_id is required'}, status=400)
 
     result = AsyncResult(task_id)
-    info = result.info or {}
+    info = result.info
+    if isinstance(info, Exception):
+        info = {'status': str(info)}
+    elif info is None:
+        info = {}
+
+    task_meta = {}
+    task_result = TaskResult.objects.filter(task_id=task_id).only('meta', 'result').first()
+    if task_result is not None:
+        if task_result.meta:
+            try:
+                task_meta = json.loads(task_result.meta) if isinstance(task_result.meta, str) else task_result.meta
+            except (json.JSONDecodeError, TypeError):
+                pass
+        if task_result.result:
+            try:
+                res_data = json.loads(task_result.result) if isinstance(task_result.result, str) else task_result.result
+                if isinstance(res_data, dict):
+                    task_meta.update(res_data)
+            except (json.JSONDecodeError, TypeError):
+                pass
+
+    merged_info = {**task_meta, **info}
+    logger.debug('admin_dashboard_task_status raw info=%s task_meta=%s merged_info=%s', info, task_meta, merged_info)
 
     return JsonResponse({
         'task_id': task_id,
         'state': result.state,
-        'status': info.get('status'),
-        'progress': info.get('progress'),
-        'eta': info.get('eta'),
-        'elapsed': info.get('elapsed'),
+        'status': merged_info.get('status'),
+        'progress': merged_info.get('progress'),
+        'eta': merged_info.get('eta'),
+        'elapsed': merged_info.get('elapsed'),
+        'current_item': merged_info.get('current_item'),
+        'total_items': merged_info.get('total_items'),
+        'current_image': merged_info.get('current_image'),
+        'total_images': merged_info.get('total_images'),
+        'phase': merged_info.get('phase'),
+        'db_write_task_id': merged_info.get('db_write_task_id'),
+        'club_id': merged_info.get('club_id'),
     })
 
 @csrf_exempt
 @require_POST
+@user_passes_test(is_superuser)
 def admin_dashboard_action(request):
     try:
         payload = json.loads(request.body.decode('utf-8'))
