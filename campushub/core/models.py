@@ -40,7 +40,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     phone_number = models.CharField(max_length=20, blank=True, null=True)
     profile_picture = models.ImageField(upload_to='profile_pics/', blank=True, null=True)
     bio = models.TextField(blank=True, null=True)
-    alt_email = models.EmailField(max_length=255, blank=True, null=True, unique=True)
+    alternative_email = models.EmailField(max_length=255, blank=True, null=True, unique=True)
     
     FACULTY_CHOICES = [
         ('FCI', 'Faculty of Computing and Informatics'),
@@ -102,6 +102,17 @@ class User(AbstractBaseUser, PermissionsMixin):
     @property
     def first_name(self):
         return self.student_name
+    
+#=========================================
+# 1a. Alternative Email for Account Recovery & Login
+#=========================================
+class UserEmail(models.Model):
+    # This links the email directly to the user!
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='additional_emails')
+    email = models.EmailField(unique=True)
+
+    def __str__(self):
+        return self.email
 
 # ==========================================
 # 2. CORE SYSTEM
