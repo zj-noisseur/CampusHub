@@ -94,27 +94,16 @@
 
                         <div class="form-control w-full">
                             <label class="label"><span class="label-text font-bold text-gray-700">Payment QR Code</span></label>
+                            {%if club.payment_qr_code %}
+                                <div class="mb-4 bg-gray-50 p-4 rounded-2xl border border-gray-100 inline-block">
+                                    <img src="{{ club.payment_qr_code.url }}" alt="Current Payment QR" class="w-32 h-32 object-contain rounded-xl bg-white border border-gray-200 p-2">
+                                </div>
+                            {% endif %}
                             {{ form.payment_qr_code }}
-                            <label class="label"><span class="label-text-alt text-gray-500">Upload your DuitNow or Touch 'n Go QR code here.</span></label>
+                            <label class="label">
+                                <span class="label-text-alt text-gray-500">Upload your DuitNow or Touch 'n Go QR code here.</span>
+                            </label>
                         </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Payment Section -->
-            <div class="luma-card bg-white rounded-2xl p-6 md:p-8">
-                <h2 class="text-xl font-semibold mb-6">Membership Payment</h2>
-                
-                <div class="space-y-5">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Payment QR Code</label>
-                        <p class="text-sm text-gray-500 mb-3">Upload your club's DuitNow or Bank QR code for students to pay membership fees.</p>
-                        {% if club.payment_qr %}
-                            <div class="mb-3 w-32 h-32 rounded-lg overflow-hidden border border-gray-200">
-                                <img src="{{ club.payment_qr.url }}" alt="Current QR Code" class="w-full h-full object-cover">
-                            </div>
-                        {% endif %}
-                        {{ form.payment_qr }}
                     </div>
                 </div>
             </div>

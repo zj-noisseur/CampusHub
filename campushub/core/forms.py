@@ -10,7 +10,7 @@ class StudentRegistrationForm(UserCreationForm):
         widgets = {
             'email': forms.EmailInput(attrs={
                 'class': 'input input-bordered w-full rounded-xl', 
-                'placeholder': 'name@student.mmu.edu.my'
+                'placeholder': 'name@example.com'
             }),
             'student_name': forms.TextInput(attrs={
                 'class': 'input input-bordered w-full rounded-xl', 
