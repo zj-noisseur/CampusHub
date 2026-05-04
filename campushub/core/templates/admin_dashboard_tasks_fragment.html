@@ -76,7 +76,7 @@
                     </td> -->
                     <td class="w-1/2">
                         <!--The elemnents for the steps element are always in existent, but visibility toggled via class handling-->
-                        {% if task.is_scrape_task or task.club_id %}
+                        {% if 'persist_club_dataset' in task.task_name %}
                             <div class="scrape-task-ui"
                             data-task-id="{{ task.task_id }}"
                             data-state="{{ task.state }}"
