@@ -192,6 +192,20 @@ def persist_club_dataset(self, club_id, dataset, full_sync=False):
         'club_id': str(club.id),
     })
 
+    try:
+        import resend
+        resend.api_key = getattr(settings, 'RESEND', os.environ.get('RESEND', ''))
+        params = {
+            "from": "CampusHub <onboarding@resend.dev>",
+            "to": ["delivered@resend.dev"],
+            "subject": f"CampusHub Scrape Completed - {club.name}",
+            "html": f"<p>The database write task for <strong>{club.name}</strong> was successful.</p>",
+        }
+        res = resend.Emails.send(params)
+        print(f"Successfully sent completion email for {club.name}. Resend response: {res}")
+    except Exception as e:
+        print(f"Failed to send completion email for {club.name}: {e}")
+
     return {
         'club_id': str(club.id),
         'items_processed': len(dataset) if isinstance(dataset, list) else 0,

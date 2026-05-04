@@ -83,13 +83,13 @@
                             data-phase="{{ task.phase|default:'apify'}}"
                             >
 
-                                        <ul class="steps steps-vertical text-xs w-full task-steps">
-                                    <li class="step task-step-apify {% if task.phase and task.phase != 'apify' and task.state != 'PENDING' or task.state == 'SUCCESS' %}step-primary{% endif %}"
-                                        data-content="{% if task.phase and task.phase != 'apify' and task.state != 'PENDING' or task.state == 'SUCCESS' %}✓{% else %}●{% endif %}">
+                                <ul class="steps steps-vertical text-xs w-full task-steps">
+                                    <li class="step task-step-apify step-primary"
+                                        data-content="✓">
                                         Execute Apify actor
                                     </li>
 
-                                        <li class="step task-step-download {% if task.phase == 'downloading' or task.phase == 'db_write' or task.state == 'SUCCESS' %}step-primary{% endif %}"
+                                    <li class="step task-step-download {% if task.phase == 'downloading' or task.phase == 'db_write' or task.state == 'SUCCESS' %}step-primary{% endif %}"
                                         data-content="{% if task.phase == 'db_write' or task.state == 'SUCCESS' %}✓{% else %}●{% endif %}">
                                         Retrieving images
                                         <span class="block text-[10px] text-base-content/60 image-counters {% if not task.total_images %}hidden{% endif %}"><span class="cur">{{ task.current_image|default:0 }}</span>/<span class="tot">{{ task.total_images|default:0 }}</span></span>

@@ -1,0 +1,166 @@
+{% extends 'base.html' %}
+{% block title %}Calendar{% endblock %}
+{% block content %}
+<div class="container mx-auto">
+    <div class="text-sm breadcrumbs mb-4">
+        <ul>
+            <li>Calendar</li>
+        </ul>
+    </div>
+
+    <form method="get" class="mb-4 grid gap-4 sm:grid-cols-2">
+        <div class="space-y-2">
+            <label class="label">
+                <span class="label-text">University</span>
+            </label>
+            <input
+                type="search"
+                name="university"
+                id="university-input"
+                tabindex="1"
+                placeholder="Search university..."
+                class="input input-bordered w-full"
+                list="university-suggestions"
+                autocomplete="off"
+                value="{{ university }}"
+            />
+            <input type="hidden" name="university_id" id="university-id" value="{{ university_id }}" />
+            <datalist id="university-suggestions">
+                {% for university_item in universities %}
+                    <option value="{{ university_item.university_name }}"></option>
+                {% endfor %}
+            </datalist>
+        </div>
+
+        <div class="space-y-2">
+            <label class="label">
+                <span class="label-text">Club</span>
+            </label>
+            <input
+                type="search"
+                name="club"
+                id="club-input"
+                tabindex="2"
+                placeholder="Search club..."
+                class="input input-bordered w-full"
+                list="club-suggestions"
+                autocomplete="off"
+                value="{{ club }}"
+            />
+            <input type="hidden" name="club_id" id="club-id" value="{{ club_id }}" />
+            <datalist id="club-suggestions">
+                {% for suggestion in club_suggestions %}
+                    <option value="{{ suggestion }}"></option>
+                {% endfor %}
+            </datalist>
+        </div>
+
+        <div class="sm:col-span-2">
+            <button type="submit" class="btn btn-primary w-full">Search</button>
+        </div>
+    </form>
+
+    <div class="overflow-x-auto bg-base-300 rounded-box shadow-md">
+        <table class="table w-full table-zebra">
+            <thead>
+                <tr>
+                    <th>Club / University</th>
+                    <th>Category</th>
+                    <th>Post</th>
+                    <th>Date &amp; Time</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if posts.exists %}
+                    {% for post in posts %}
+                        <tr>
+                            <td>
+                                <div class="font-bold">{{ post.club.name }}</div>
+                                <div class="text-sm text-gray-600">{{ post.club.institution.university_name }}</div>
+                            </td>
+                            <td>
+                                {{ post.category|default:'Uncategorized' }}
+                            </td>
+                            <td class="break-words">
+                                <div>{{ post.short_code }}</div>
+                                {% if post.caption %}
+                                    <div class="text-sm text-gray-500 truncate">{{ post.caption|truncatechars:80 }}</div>
+                                {% endif %}
+                            </td>
+                            <td>{{ post.timestamp|date:"M d, Y H:i" }}</td>
+                        </tr>
+                    {% endfor %}
+                {% elif university or club or university_id or club_id %}
+                    <tr>
+                        <td colspan="3" class="text-center py-6 text-gray-500">
+                            No posts found for the selected university / club.
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="3" class="text-center py-6 text-gray-500">
+                            Select a university and optionally a club, then press Search to load results.
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+
+    {{ universities|json_script:"universities-data" }}
+    {{ all_clubs|json_script:"clubs-data" }}
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const universities = JSON.parse(document.getElementById('universities-data').textContent);
+            const clubs = JSON.parse(document.getElementById('clubs-data').textContent);
+
+            const universityInput = document.getElementById('university-input');
+            const clubInput = document.getElementById('club-input');
+            const universityIdInput = document.getElementById('university-id');
+            const clubIdInput = document.getElementById('club-id');
+            const clubDatalist = document.getElementById('club-suggestions');
+
+            const updateClubOptions = (institutionId) => {
+                const filtered = institutionId
+                    ? clubs.filter(club => club.institution_id.toString() === institutionId.toString())
+                    : clubs;
+                clubDatalist.innerHTML = '';
+                filtered.forEach(club => {
+                    const option = document.createElement('option');
+                    option.value = club.name;
+                    clubDatalist.appendChild(option);
+                });
+            };
+
+            const findUniversity = (value) => {
+                return universities.find(item => item.university_name.toLowerCase() === value.toLowerCase());
+            };
+            const findClub = (value) => {
+                return clubs.find(item => item.name.toLowerCase() === value.toLowerCase()
+                    && (!universityIdInput.value || item.institution_id.toString() === universityIdInput.value));
+            };
+
+            universityInput.addEventListener('input', () => {
+                const selected = findUniversity(universityInput.value);
+                if (selected) {
+                    universityIdInput.value = selected.id;
+                    updateClubOptions(selected.id);
+                } else {
+                    universityIdInput.value = '';
+                    updateClubOptions(null);
+                }
+                clubInput.value = '';
+                clubIdInput.value = '';
+            });
+
+            clubInput.addEventListener('input', () => {
+                const selected = findClub(clubInput.value);
+                clubIdInput.value = selected ? selected.id : '';
+            });
+
+            updateClubOptions(universityIdInput.value);
+        });
+    </script>
+</div>
+{% endblock %}

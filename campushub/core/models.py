@@ -130,17 +130,7 @@ class Club(models.Model):
     )
 
     description = models.TextField(blank=True, null=True)
-    category = models.CharField(
-        max_length=20,
-        choices=[
-            ('RECRUITMENT', 'Recruitment'),
-            ('COMPETITION', 'Competition'),
-            ('WORKSHOP', 'Workshop'),
-            ('PAST_EVENT', 'Past Event'),
-            ('MISC', 'Miscellaneous'),
-        ],
-        default='MISC'
-    )
+    
     is_claimed = models.BooleanField(default=False)
 
     last_fetched_date = models.DateTimeField(null=True, blank=True)
@@ -314,6 +304,17 @@ class Post(models.Model):
     # instagram/p/{short_code}
     short_code = models.CharField(max_length=100)
     caption = models.TextField(blank=True)
+    category = models.CharField(
+        max_length=20,
+        choices=[
+            ('RECRUITMENT', 'Recruitment'),
+            ('COMPETITION', 'Competition'),
+            ('WORKSHOP', 'Workshop'),
+            ('PAST_EVENT', 'Past Event'),
+            ('MISC', 'Miscellaneous'),
+        ],
+        default='MISC'
+    )
     # timestamp the post was first published
     timestamp = models.DateTimeField()
 
@@ -325,6 +326,13 @@ class Post(models.Model):
             models.Index(fields=['club', '-timestamp']),
             models.Index(fields=['-timestamp']),
         ]
+
+    def classify_category(self):
+        from core.services.post_categorization import predict_post_category
+
+        self.category = predict_post_category(self.caption)
+        self.save(update_fields=['category'])
+        return self.category
 
     def __str__(self):
         return f"{self.club.name} - {self.short_code}"

@@ -9,6 +9,7 @@ from core.views.feed import feed
 from core.views.sign_up import sign_up
 from core.views.claim_club import claim_club
 from core.views.profile import user_profile
+from core.views.calendar import calendar
 app_name = 'core'
 urlpatterns = [
     path('directory/', directory, name='directory'),
@@ -23,5 +24,6 @@ urlpatterns = [
     path('login/', auth_views.LoginView.as_view(template_name='login.html'), name='login'),
     path('logout/', auth_views.LogoutView.as_view(next_page='core:feed'), name='logout'),
     path('profile/', user_profile, name='profile'),
+    path('calendar/', calendar, name='calendar')
     # path('claim/', claim_club, name='claimclub'),
 ]
