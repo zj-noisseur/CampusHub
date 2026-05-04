@@ -52,7 +52,7 @@ class Migration(migrations.Migration):
                 ('last_login', models.DateTimeField(blank=True, null=True, verbose_name='last login')),
                 ('is_superuser', models.BooleanField(default=False, help_text='Designates that this user has all permissions without explicitly assigning them.', verbose_name='superuser status')),
                 ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ('email', models.EmailField(help_text='Please provide your student email address. A confirmation email will be sent for the purpose of activating your account.', max_length=254, unique=True, validators=[core.models.validate_mmu_email])),
+                ('email', models.EmailField(help_text='Please provide your student email address. A confirmation email will be sent for the purpose of activating your account.', max_length=254, unique=True, )),
                 ('student_name', models.CharField(max_length=255)),
                 ('student_id', models.CharField(blank=True, help_text='Please provide your student ID.', max_length=20, null=True, unique=True)),
                 ('phone_number', models.CharField(blank=True, max_length=20, null=True)),
