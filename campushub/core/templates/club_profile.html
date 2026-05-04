@@ -182,14 +182,14 @@
                 <div class="luma-card bg-white rounded-2xl p-5">
                     <h3 class="font-bold text-gray-900 mb-4">Committee</h3>
                     <div class="flex flex-col gap-3">
-                        {% for manager in club.committee.all|slice:":3" %}
+                        {% for manager in club.managers.all|slice:":5" %}
                         <div class="flex items-center gap-3">
                             <div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-bold text-gray-600">
-                                {{ manager.user.first_name|first|default:manager.user.username|first }}
+                                {{ manager.user.student_name|first }}
                             </div>
                             <div>
-                                <p class="text-sm font-medium text-gray-900">{{ manager.user.first_name|default:manager.user.username }}</p>
-                                <p class="text-xs text-gray-500">{{ manager.designation|default:"Manager" }}</p>
+                                <p class="text-sm font-medium text-gray-900">{{ manager.user.student_name }}</p>
+                                <p class="text-xs text-gray-500">{{ manager.designation|default:"Club Manager" }}</p>
                             </div>
                         </div>
                         {% empty %}

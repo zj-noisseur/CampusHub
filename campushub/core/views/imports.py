@@ -57,14 +57,13 @@ def import_attendees_csv(request, event_id):
                             user_account, created = User.objects.get_or_create(
                                 email=email,
                                 defaults={
-                                    'username': student_id, 
-                                    'first_name': name,
+                                    'student_name': name,
                                     'student_id': student_id
                                 }
                             )
                         except IntegrityError:
                             # If email wasn't found but student_id exists, look it up by student_id
-                            user_account = User.objects.get(Q(student_id=student_id) | Q(username=student_id))
+                            user_account = User.objects.get(student_id=student_id)
                             created = False
                         
                         if created:
@@ -72,10 +71,9 @@ def import_attendees_csv(request, event_id):
                             user_account.save()
                         else:
                             if name and name != 'Unknown':
-                                user_account.first_name = name
+                                user_account.student_name = name
                             if student_id:
                                 user_account.student_id = student_id
-                                user_account.username = student_id
                             user_account.save()
 
                         prereg, _ = PreRegisteredAttendee.objects.get_or_create(event=event, user=user_account)
@@ -86,8 +84,8 @@ def import_attendees_csv(request, event_id):
                     else:
                         prereg, _ = PreRegisteredAttendee.objects.get_or_create(
                             event=event, 
-                            guest_email=email,
-                            defaults={'guest_name': name}
+                            email=email,
+                            defaults={'name': name}
                         )
                         # Missing Student ID, instantly Unready
                         prereg.is_ready = False  
@@ -96,15 +94,15 @@ def import_attendees_csv(request, event_id):
                 else:
                     prereg, _ = PreRegisteredAttendee.objects.get_or_create(
                         event=event, 
-                        guest_email='no-email@guest.com',
-                        defaults={'guest_name': name}
+                        email='no-email@guest.com',
+                        defaults={'name': name}
                     )
                     # Missing Email and ID, instantly Unready
                     prereg.is_ready = False  
                     prereg.save()
             
             request.session.pop('temp_csv_data', None)
-            return redirect('core:club_admin_dashboard', club_id=event.club.id)
+            return redirect('core:event_admin_dashboard', club_id=event.club.id, event_id=event.id)
         
         return HttpResponse("Error: No file or mapping data detected.")
 

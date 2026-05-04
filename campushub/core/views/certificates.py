@@ -1,5 +1,5 @@
-from django.shortcuts import get_object_or_404
-from django.http import FileResponse, HttpResponse
+from django.shortcuts import get_object_or_404, redirect
+from django.http import FileResponse, HttpResponse, JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 import zipfile
@@ -7,6 +7,26 @@ import io
 
 from ..models import Event, EventCertificate, Attendance, PreRegisteredAttendee
 from ..utils import generate_certificate_pdf
+from ..forms import CertificateUploadForm
+
+@login_required
+def upload_certificate_template(request, event_id):
+    event = get_object_or_404(Event, id=event_id)
+    
+    # Check if a certificate already exists for this event
+    certificate = EventCertificate.objects.filter(event=event).first()
+    
+    if request.method == 'POST':
+        form = CertificateUploadForm(request.POST, request.FILES, instance=certificate)
+        if form.is_valid():
+            cert = form.save(commit=False)
+            cert.event = event
+            cert.save()
+            return JsonResponse({'status': 'success', 'message': 'Certificate template uploaded successfully!'})
+        else:
+            return JsonResponse({'status': 'error', 'errors': form.errors}, status=400)
+    
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method.'}, status=405)
 
 def download_certificates(request, event_id):
     event = Event.objects.get(id=event_id)

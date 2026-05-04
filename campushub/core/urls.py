@@ -17,6 +17,7 @@ urlpatterns = [
     path('import-csv/<int:event_id>/', imports.import_attendees_csv, name='import_csv'),
     path('download-certificates/<int:event_id>/', certificates.download_certificates, name='download_certificates'),
     path('download-my-certificate/<int:event_id>/', certificates.download_my_certificate, name='download_my_certificate'),
+    path('upload-certificate-template/<int:event_id>/', certificates.upload_certificate_template, name='upload_certificate_template'),
 
     #button to mark as ready and attanded
     path('event/<int:event_id>/toggle-ready/<str:prereg_id>/', dashboards.toggle_ready_status, name='toggle_ready'),

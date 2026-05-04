@@ -51,6 +51,9 @@
                         <a href="{% url 'core:import_csv' event.id %}" class="btn btn-sm border-none bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-full px-4 font-medium">
                             📤 Import CSV
                         </a>
+                        <button onclick="openUploadModal('{{ event.id }}', '{{ event.title|escapejs }}', '{% if event.certificates.first %}{{ event.certificates.first.template_image.url }}{% endif %}', '{{ event.certificates.first.name_center_x }}', '{{ event.certificates.first.name_center_y }}', '{{ event.certificates.first.font_color|default:'#000000' }}', '{{ event.certificates.first.font_size|default:'24' }}')" class="btn btn-sm border-none bg-purple-50 text-purple-600 hover:bg-purple-100 rounded-full px-4 font-medium">
+                            🎨 Upload Template
+                        </button>
                         <a href="{% url 'core:download_certificates' event.id %}" class="btn btn-sm border-none bg-green-50 text-green-600 hover:bg-green-100 rounded-full px-4 font-medium">
                             🎓 Certificates
                         </a>
@@ -109,11 +112,11 @@
                                 <td class="py-4 pl-8">
                                     <div class="flex items-center gap-3">
                                         <div class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center font-bold text-xs text-gray-400">
-                                            {{ prereg.user.first_name|default:""|first|default:prereg.guest_name|default:""|first|default:"?" }}
+                                            {{ prereg.user.first_name|default:""|first|default:prereg.name|default:""|first|default:"?" }}
                                         </div>
                                         <div>
-                                            <div class="font-bold text-gray-900">{{ prereg.user.first_name|default:prereg.guest_name|default:"Missing Name" }}</div>
-                                            <div class="text-[10px] text-gray-500">{{ prereg.user.email|default:prereg.guest_email }}</div>
+                                            <div class="font-bold text-gray-900">{{ prereg.user.first_name|default:prereg.name|default:"Missing Name" }}</div>
+                                            <div class="text-[10px] text-gray-500">{{ prereg.user.email|default:prereg.email }}</div>
                                         </div>
                                     </div>
                                 </td>
@@ -151,5 +154,293 @@
             {% endfor %}
         </div>
     </div>
+
+    <!-- Certificate Upload Modal -->
+    <dialog id="upload_modal" class="modal">
+        <div class="modal-box w-11/12 max-w-5xl bg-white p-0 overflow-hidden flex flex-col h-[85vh] rounded-3xl">
+            <div class="p-6 md:p-8 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                <div>
+                    <h3 class="font-bold text-2xl text-gray-900" id="modal_event_title">Certificate Configuration</h3>
+                    <p class="text-sm text-gray-500 mt-1">Design your certificate template and position the student name.</p>
+                </div>
+                <form method="dialog">
+                    <button class="btn btn-sm btn-circle btn-ghost">✕</button>
+                </form>
+            </div>
+            
+            <div class="flex-1 overflow-hidden flex flex-col md:flex-row">
+                <!-- Left Side: Settings -->
+                <div class="w-full md:w-80 p-8 border-r border-gray-100 overflow-y-auto bg-white">
+                    <form id="upload_form" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <div class="flex flex-col gap-6">
+                            <div>
+                                <label class="label p-0 mb-2">
+                                    <span class="text-[10px] font-bold uppercase tracking-widest text-gray-400">Template Image</span>
+                                </label>
+                                <input type="file" name="template_image" id="id_template_image" class="file-input file-input-bordered w-full rounded-xl text-sm" accept="image/*">
+                            </div>
+                            
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="label p-0 mb-2">
+                                        <span class="text-[10px] font-bold uppercase tracking-widest text-gray-400">Name X (Center)</span>
+                                    </label>
+                                    <input type="number" name="name_center_x" id="id_name_center_x" class="input input-bordered w-full rounded-xl font-mono text-sm" value="400" required>
+                                </div>
+                                <div>
+                                     <label class="label p-0 mb-2">
+                                         <span class="text-[10px] font-bold uppercase tracking-widest text-gray-400">Name Y (Level)</span>
+                                     </label>
+                                    <input type="number" name="name_center_y" id="id_name_center_y" class="input input-bordered w-full rounded-xl font-mono text-sm" value="300" required>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="label p-0 mb-2">
+                                    <span class="text-[10px] font-bold uppercase tracking-widest text-gray-400">Font Size</span>
+                                </label>
+                                <div class="flex items-center gap-3">
+                                    <button type="button" onclick="adjustFontSize(-2)" class="btn btn-sm btn-circle btn-outline border-gray-200">－</button>
+                                    <input type="number" name="font_size" id="id_font_size" class="input input-bordered flex-1 rounded-xl font-mono text-center text-sm" value="24" required>
+                                    <button type="button" onclick="adjustFontSize(2)" class="btn btn-sm btn-circle btn-outline border-gray-200">＋</button>
+                                </div>
+                                <input type="range" id="id_font_size_slider" min="10" max="200" value="24" class="range range-xs range-primary mt-4">
+                            </div>
+
+                            <div>
+                                <label class="label p-0 mb-2">
+                                    <span class="text-[10px] font-bold uppercase tracking-widest text-gray-400">Name Color</span>
+                                </label>
+                                <div class="flex gap-3 items-center">
+                                    <input type="color" name="font_color" id="id_font_color" class="w-12 h-12 rounded-xl cursor-pointer border-none p-0 bg-transparent" value="#000000">
+                                    <input type="text" id="id_font_color_hex" class="input input-bordered flex-1 font-mono text-sm rounded-xl uppercase" value="#000000">
+                                </div>
+                            </div>
+
+
+
+                            <button type="submit" id="submit_btn" class="btn bg-gray-900 text-white hover:bg-black w-full rounded-2xl border-none mt-4 h-12">
+                                Save Configuration
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Right Side: Preview -->
+                <div class="flex-1 bg-gray-50 flex items-center justify-center p-8 relative overflow-hidden">
+                    <div id="preview_container" class="relative shadow-2xl rounded-xl overflow-hidden border border-gray-200 bg-white hidden" style="max-width: 100%; max-height: 100%;">
+                        <canvas id="preview_canvas" class="cursor-crosshair block max-w-full h-auto"></canvas>
+                    </div>
+                    <div id="no_image_placeholder" class="text-gray-300 flex flex-col items-center animate-pulse">
+                        <div class="w-20 h-20 rounded-3xl bg-gray-100 flex items-center justify-center text-3xl mb-4">🖼️</div>
+                        <p class="font-bold text-gray-400">Upload a template to see preview</p>
+                        <p class="text-xs text-gray-400 mt-1">Recommended: 1920x1080 or A4 ratio</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </dialog>
+
+    <script>
+        let currentEventId = null;
+        const modal = document.getElementById('upload_modal');
+        const canvas = document.getElementById('preview_canvas');
+        const ctx = canvas.getContext('2d');
+        const fileInput = document.getElementById('id_template_image');
+        const xInput = document.getElementById('id_name_center_x');
+        const yInput = document.getElementById('id_name_center_y');
+        const colorInput = document.getElementById('id_font_color');
+        const colorHexInput = document.getElementById('id_font_color_hex');
+        const form = document.getElementById('upload_form');
+        const placeholder = document.getElementById('no_image_placeholder');
+        const previewContainer = document.getElementById('preview_container');
+        const fontSizeInput = document.getElementById('id_font_size');
+        const fontSizeSlider = document.getElementById('id_font_size_slider');
+        const submitBtn = document.getElementById('submit_btn');
+
+        let templateImage = new Image();
+        let imageLoaded = false;
+
+        function openUploadModal(eventId, eventTitle, imageUrl, x, y, color, fontSize) {
+            currentEventId = eventId;
+            document.getElementById('modal_event_title').innerText = eventTitle;
+            form.reset();
+            imageLoaded = false;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            if (imageUrl) {
+                xInput.value = x || 400;
+                yInput.value = y || 300;
+                colorInput.value = color || '#000000';
+                colorHexInput.value = (color || '#000000').toUpperCase();
+                const fSize = fontSize || 24;
+                fontSizeInput.value = fSize;
+                fontSizeSlider.value = fSize;
+                
+                templateImage.onload = function() {
+                    imageLoaded = true;
+                    placeholder.classList.add('hidden');
+                    previewContainer.classList.remove('hidden');
+                    drawPreview();
+                };
+                templateImage.src = imageUrl;
+            } else {
+                placeholder.classList.remove('hidden');
+                previewContainer.classList.add('hidden');
+                // Set defaults for new
+                xInput.value = 400;
+                yInput.value = 300;
+                colorInput.value = '#000000';
+                colorHexInput.value = '#000000';
+                fontSizeInput.value = 24;
+                fontSizeSlider.value = 24;
+            }
+            
+            modal.showModal();
+        }
+
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    templateImage.onload = function() {
+                        imageLoaded = true;
+                        placeholder.classList.add('hidden');
+                        previewContainer.classList.remove('hidden');
+                        
+                        // Default coordinates to center if first time
+                        if (!xInput.value || xInput.value == "400") xInput.value = Math.round(templateImage.width / 2);
+                        if (!yInput.value || yInput.value == "300") yInput.value = Math.round(templateImage.height / 2);
+                        
+                        drawPreview();
+                    };
+                    templateImage.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        function drawPreview() {
+            if (!imageLoaded) return;
+
+            // Set canvas dimensions to match image
+            canvas.width = templateImage.width;
+            canvas.height = templateImage.height;
+
+            // Draw background
+            ctx.drawImage(templateImage, 0, 0);
+
+            // Draw placeholder name
+            const x = parseInt(xInput.value) || 0;
+            const y_reportlab = parseInt(yInput.value) || 0;
+            const color = colorInput.value;
+
+            // Convert ReportLab bottom-left to Canvas top-left
+            const y_canvas = templateImage.height - y_reportlab;
+
+            ctx.fillStyle = color;
+            const fontSize = fontSizeInput.value || 24;
+            ctx.font = `bold ${fontSize}px Inter, system-ui, sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.fillText('Student Full Name', x, y_canvas);
+            
+            // Draw crosshair for visual aid
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 4;
+            ctx.setLineDash([10, 10]);
+            ctx.beginPath();
+            ctx.moveTo(x - 60, y_canvas);
+            ctx.lineTo(x + 60, y_canvas);
+            ctx.moveTo(x, y_canvas - 60);
+            ctx.lineTo(x, y_canvas + 60);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+
+        // Update preview on input change
+        [xInput, yInput, colorInput, fontSizeInput, fontSizeSlider].forEach(el => {
+            el.addEventListener('input', (e) => {
+                if (e.target === fontSizeInput) fontSizeSlider.value = e.target.value;
+                if (e.target === fontSizeSlider) fontSizeInput.value = e.target.value;
+                drawPreview();
+            });
+        });
+
+        function adjustFontSize(delta) {
+            let newVal = parseInt(fontSizeInput.value) + delta;
+            if (newVal < 10) newVal = 10;
+            if (newVal > 500) newVal = 500;
+            fontSizeInput.value = newVal;
+            fontSizeSlider.value = newVal;
+            drawPreview();
+        }
+
+        colorInput.addEventListener('input', (e) => {
+            colorHexInput.value = e.target.value.toUpperCase();
+        });
+
+        colorHexInput.addEventListener('input', (e) => {
+            if (/^#[0-9A-F]{6}$/i.test(e.target.value)) {
+                colorInput.value = e.target.value;
+                drawPreview();
+            }
+        });
+
+        // Click to position
+        canvas.addEventListener('mousedown', function(e) {
+            if (!imageLoaded) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            
+            const clickX = Math.round((e.clientX - rect.left) * scaleX);
+            const clickY_canvas = Math.round((e.clientY - rect.top) * scaleY);
+            
+            // Convert Canvas top-left to ReportLab bottom-left
+            const clickY_reportlab = templateImage.height - clickY_canvas;
+
+            xInput.value = clickX;
+            yInput.value = clickY_reportlab;
+            
+            drawPreview();
+        });
+
+        // Form Submission
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            submitBtn.disabled = true;
+            submitBtn.innerText = 'Uploading...';
+            
+            const formData = new FormData(form);
+            
+            fetch(`/upload-certificate-template/${currentEventId}/`, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    modal.close();
+                    location.reload();
+                } else {
+                    alert('Error: ' + JSON.stringify(data.errors));
+                    submitBtn.disabled = false;
+                    submitBtn.innerText = 'Save Configuration';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while uploading.');
+                submitBtn.disabled = false;
+                submitBtn.innerText = 'Save Configuration';
+            });
+        });
+    </script>
 </body>
 </html>

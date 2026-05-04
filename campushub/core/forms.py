@@ -42,3 +42,10 @@ class EventCreationForm(forms.ModelForm):
             'event_date': forms.DateInput(attrs={'class': 'input input-bordered w-full', 'type': 'date'}),
             'location': forms.TextInput(attrs={'class': 'input input-bordered w-full', 'placeholder': 'e.g., Main Hall'}),
         }
+
+from .models import EventCertificate
+
+class CertificateUploadForm(forms.ModelForm):
+    class Meta:
+        model = EventCertificate
+        fields = ['template_image', 'name_center_x', 'name_center_y', 'font_color', 'font_size']

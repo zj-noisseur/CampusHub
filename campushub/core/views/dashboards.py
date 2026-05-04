@@ -26,7 +26,7 @@ def toggle_ready_status(request, event_id, prereg_id):
     prereg.is_ready = not prereg.is_ready
     prereg.save()
     
-    return redirect('core:club_admin_dashboard', club_id=prereg.event.club.id)
+    return redirect('core:event_admin_dashboard', club_id=prereg.event.club.id, event_id=event_id)
 
 @login_required
 def toggle_attended_status(request, event_id, prereg_id):
@@ -52,7 +52,7 @@ def toggle_attended_status(request, event_id, prereg_id):
                 guest_name=prereg.name
             )
             
-    return redirect('core:club_admin_dashboard', club_id=prereg.event.club.id)
+    return redirect('core:event_admin_dashboard', club_id=prereg.event.club.id, event_id=event_id)
 
 
 @login_required
@@ -93,7 +93,7 @@ def set_event_status(request, event_id, status):
         event.status = status.upper()
         event.save()
     
-    return redirect('core:club_admin_dashboard', club_id=event.club.id)
+    return redirect('core:event_admin_dashboard', club_id=event.club.id, event_id=event_id)
 
 def club_profile(request, club_id):
     club = get_object_or_404(Club, id=club_id)
@@ -176,7 +176,7 @@ def create_event(request, club_id):
             )
             event.post = dummy_post
             event.save()
-            return redirect('core:club_admin_dashboard', club_id=club.id)
+            return redirect('core:event_admin_dashboard', club_id=club.id, event_id=event.id)
     else:
         form = EventCreationForm()
         
