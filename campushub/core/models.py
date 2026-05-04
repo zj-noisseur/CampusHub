@@ -12,11 +12,6 @@ from django.dispatch import receiver
 # ==========================================
 # 1. USER & AUTHENTICATION
 # ==========================================
-
-def validate_mmu_email(value):
-    if not value.endswith('@student.mmu.edu.my'):
-        raise ValidationError("Only @student.mmu.edu.my email addresses are allowed for Phase 1.")
-
 class CustomUserManager(BaseUserManager):
     def create_user(self, email, student_name, password=None, **extra_fields):
         if not email:
@@ -34,7 +29,7 @@ class CustomUserManager(BaseUserManager):
 
 class User(AbstractBaseUser, PermissionsMixin):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    email = models.EmailField(unique=True, validators=[validate_mmu_email], help_text="Please provide your student email address. A confirmation email will be sent for the purpose of activating your account.")
+    email = models.EmailField(unique=True, help_text="Please provide your student email address. A confirmation email will be sent for the purpose of activating your account.")
     student_name = models.CharField(max_length=255)
     student_id = models.CharField(max_length=20, blank=True, null=True, unique=True, help_text="Please provide your student ID.")
     phone_number = models.CharField(max_length=20, blank=True, null=True)
@@ -346,6 +341,18 @@ class EventCertificate(models.Model):
     name_center_y = models.IntegerField()
     font_size = models.IntegerField(default=24)
     font_color = models.CharField(max_length=7, default='#000000')
+    font_name = models.CharField(
+        max_length=50, 
+        choices=[
+            ('Helvetica-Bold', 'Helvetica Bold'),
+            ('Helvetica', 'Helvetica Regular'),
+            ('Times-Bold', 'Times Bold'),
+            ('Times-Roman', 'Times Regular'),
+            ('Courier-Bold', 'Courier Bold'),
+            ('Courier', 'Courier Regular'),
+        ],
+        default='Helvetica-Bold'
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

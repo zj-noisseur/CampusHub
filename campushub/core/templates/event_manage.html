@@ -51,7 +51,7 @@
                         <a href="{% url 'core:import_csv' event.id %}" class="btn btn-sm border-none bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-full px-4 font-medium">
                             📤 Import CSV
                         </a>
-                        <button onclick="openUploadModal('{{ event.id }}', '{{ event.title|escapejs }}', '{% if event.certificates.first %}{{ event.certificates.first.template_image.url }}{% endif %}', '{{ event.certificates.first.name_center_x }}', '{{ event.certificates.first.name_center_y }}', '{{ event.certificates.first.font_color|default:'#000000' }}', '{{ event.certificates.first.font_size|default:'24' }}')" class="btn btn-sm border-none bg-purple-50 text-purple-600 hover:bg-purple-100 rounded-full px-4 font-medium">
+                        <button onclick="openUploadModal('{{ event.id|escapejs }}', '{{ event.title|escapejs }}', '{% if event.certificates.first %}{{ event.certificates.first.template_image.url|escapejs }}{% endif %}', '{{ event.certificates.first.name_center_x|escapejs }}', '{{ event.certificates.first.name_center_y|escapejs }}', '{{ event.certificates.first.font_color|default:'#000000'|escapejs }}', '{{ event.certificates.first.font_size|default:'24'|escapejs }}', '{{ event.certificates.first.font_name|default:'Helvetica-Bold'|escapejs }}')" class="btn btn-sm border-none bg-purple-50 text-purple-600 hover:bg-purple-100 rounded-full px-4 font-medium">
                             🎨 Upload Template
                         </button>
                         <a href="{% url 'core:download_certificates' event.id %}" class="btn btn-sm border-none bg-green-50 text-green-600 hover:bg-green-100 rounded-full px-4 font-medium">
@@ -210,6 +210,20 @@
 
                             <div>
                                 <label class="label p-0 mb-2">
+                                    <span class="text-[10px] font-bold uppercase tracking-widest text-gray-400">Font Style</span>
+                                </label>
+                                <select name="font_name" id="id_font_name" class="select select-bordered w-full rounded-xl text-sm font-medium">
+                                    <option value="Helvetica-Bold">Helvetica Bold</option>
+                                    <option value="Helvetica">Helvetica Regular</option>
+                                    <option value="Times-Bold">Times Bold</option>
+                                    <option value="Times-Roman">Times Regular</option>
+                                    <option value="Courier-Bold">Courier Bold</option>
+                                    <option value="Courier">Courier Regular</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="label p-0 mb-2">
                                     <span class="text-[10px] font-bold uppercase tracking-widest text-gray-400">Name Color</span>
                                 </label>
                                 <div class="flex gap-3 items-center">
@@ -257,12 +271,13 @@
         const previewContainer = document.getElementById('preview_container');
         const fontSizeInput = document.getElementById('id_font_size');
         const fontSizeSlider = document.getElementById('id_font_size_slider');
+        const fontNameInput = document.getElementById('id_font_name');
         const submitBtn = document.getElementById('submit_btn');
 
         let templateImage = new Image();
         let imageLoaded = false;
 
-        function openUploadModal(eventId, eventTitle, imageUrl, x, y, color, fontSize) {
+        function openUploadModal(eventId, eventTitle, imageUrl, x, y, color, fontSize, fontName) {
             currentEventId = eventId;
             document.getElementById('modal_event_title').innerText = eventTitle;
             form.reset();
@@ -277,6 +292,7 @@
                 const fSize = fontSize || 24;
                 fontSizeInput.value = fSize;
                 fontSizeSlider.value = fSize;
+                fontNameInput.value = fontName || 'Helvetica-Bold';
                 
                 templateImage.onload = function() {
                     imageLoaded = true;
@@ -295,6 +311,7 @@
                 colorHexInput.value = '#000000';
                 fontSizeInput.value = 24;
                 fontSizeSlider.value = 24;
+                fontNameInput.value = 'Helvetica-Bold';
             }
             
             modal.showModal();
@@ -342,7 +359,16 @@
 
             ctx.fillStyle = color;
             const fontSize = fontSizeInput.value || 24;
-            ctx.font = `bold ${fontSize}px Inter, system-ui, sans-serif`;
+            const fontName = fontNameInput.value || 'Helvetica-Bold';
+            
+            // Map ReportLab font names to generic browser fonts for preview
+            let browserFont = 'sans-serif';
+            if (fontName.includes('Helvetica')) browserFont = 'Inter, system-ui, sans-serif';
+            if (fontName.includes('Times')) browserFont = 'serif';
+            if (fontName.includes('Courier')) browserFont = 'monospace';
+            
+            const isBold = fontName.includes('Bold') ? 'bold' : 'normal';
+            ctx.font = `${isBold} ${fontSize}px ${browserFont}`;
             ctx.textAlign = 'center';
             ctx.fillText('Student Full Name', x, y_canvas);
             
@@ -360,7 +386,7 @@
         }
 
         // Update preview on input change
-        [xInput, yInput, colorInput, fontSizeInput, fontSizeSlider].forEach(el => {
+        [xInput, yInput, colorInput, fontSizeInput, fontSizeSlider, fontNameInput].forEach(el => {
             el.addEventListener('input', (e) => {
                 if (e.target === fontSizeInput) fontSizeSlider.value = e.target.value;
                 if (e.target === fontSizeSlider) fontSizeInput.value = e.target.value;
@@ -423,20 +449,34 @@
                     'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
                 }
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
+            .then(async response => {
+                const isJson = response.headers.get('content-type')?.includes('application/json');
+                const data = isJson ? await response.json() : null;
+
+                if (response.ok && data && data.status === 'success') {
                     modal.close();
                     location.reload();
                 } else {
-                    alert('Error: ' + JSON.stringify(data.errors));
+                    let errorMsg = 'Upload failed.';
+                    if (data && data.errors) {
+                        errorMsg = Object.entries(data.errors)
+                            .map(([field, msgs]) => `${field}: ${msgs.join(', ')}`)
+                            .join('\n');
+                    } else if (data && data.message) {
+                        errorMsg = data.message;
+                    } else if (response.status === 413) {
+                        errorMsg = 'File too large. Please upload a smaller image.';
+                    } else {
+                        errorMsg = `Server error (${response.status}). Please try again.`;
+                    }
+                    alert('Error:\n' + errorMsg);
                     submitBtn.disabled = false;
                     submitBtn.innerText = 'Save Configuration';
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('An error occurred while uploading.');
+                alert('A network error occurred. Please check your connection and try again.');
                 submitBtn.disabled = false;
                 submitBtn.innerText = 'Save Configuration';
             });

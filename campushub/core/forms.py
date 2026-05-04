@@ -48,4 +48,11 @@ from .models import EventCertificate
 class CertificateUploadForm(forms.ModelForm):
     class Meta:
         model = EventCertificate
-        fields = ['template_image', 'name_center_x', 'name_center_y', 'font_color', 'font_size']
+        fields = ['template_image', 'name_center_x', 'name_center_y', 'font_color', 'font_size', 'font_name']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # If we are updating an existing certificate, the image is not strictly required 
+        # (it will keep the old one if not provided).
+        if self.instance and self.instance.pk:
+            self.fields['template_image'].required = False
