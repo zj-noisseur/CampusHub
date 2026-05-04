@@ -104,7 +104,7 @@
     
             <!-- Primary Actions (The main buttons) -->
             {% if is_manager %}
-                <a href="{% url 'core:manager_dashboard' club.id %}" class="btn border-none bg-gray-900 text-white hover:bg-gray-800 rounded-full px-8 font-medium shadow-sm transition-transform hover:scale-105">
+                <a href="{% url 'core:club_settings' club.id %}" class="btn border-none bg-gray-900 text-white hover:bg-gray-800 rounded-full px-8 font-medium shadow-sm transition-transform hover:scale-105">
                     ⚙️ Manage Club
                 </a>
             {% elif is_member %}
