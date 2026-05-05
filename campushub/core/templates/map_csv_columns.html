@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Map Columns - CampusHub</title>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.10.2/dist/full.min.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-base-200 min-h-screen p-8 flex items-center justify-center">
+
+    <div class="max-w-2xl w-full">
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title text-2xl mb-2">Map CSV Columns</h2>
+                <p class="text-gray-500 mb-6">Match the columns from your CSV file to the required attendee fields.</p>
+
+                <form method="POST" enctype="multipart/form-data">
+                    {% csrf_token %}
+
+                    <label class="form-control w-full mb-4">
+                        <div class="label"><span class="label-text font-bold">Attendee Name</span></div>
+                        <select name="name_col" class="select select-bordered w-full" required>
+                            <option disabled selected>Select matching column...</option>
+                            {% for header in headers %}
+                            <option value="{{ header }}">{{ header }}</option>
+                            {% endfor %}
+                        </select>
+                    </label>
+
+                    <label class="form-control w-full mb-8">
+                        <div class="label"><span class="label-text font-bold">Attendee Email</span></div>
+                        <select name="email_col" class="select select-bordered w-full" required>
+                            <option disabled selected>Select matching column...</option>
+                            {% for header in headers %}
+                            <option value="{{ header }}">{{ header }}</option>
+                            {% endfor %}
+                        </select>
+                    </label>
+
+                    <label class="form-control w-full mb-8">
+                        <div class="label"><span class="label-text font-bold">Attendee Student ID</span></div>
+                        <select name="student_id_col" class="select select-bordered w-full" required>
+                            <option disabled selected>Select matching column...</option>
+                            {% for header in headers %}
+                            <option value="{{ header }}">{{ header }}</option>
+                            {% endfor %}
+                        </select>
+                    </label>
+
+                    <div class="flex justify-end gap-3">
+                        <a href="javascript:history.back()" class="btn btn-ghost">Cancel</a>
+                        <button type="submit" class="btn btn-success text-white">Import Attendees</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

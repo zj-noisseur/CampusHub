@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Dashboard - CampusHub</title>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.10.2/dist/full.min.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Luma inspired subtle background pattern */
+        body { background-color: #FAFAFA; }
+        .luma-card { border: 1px solid #EAEAEA; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
+    </style>
+</head>
+<body class="min-h-screen text-gray-900">
+
+    <div class="px-8 py-4 flex justify-between items-center bg-white border-b border-gray-100">
+        <a class="text-xl font-bold tracking-tight">CampusHub</a>
+
+    </div>
+
+    <div class="max-w-5xl mx-auto p-8 mt-4">
+        
+        <div class="flex flex-col md:flex-row items-center md:items-start gap-6 mb-16">
+            <div class="w-24 h-24 md:w-32 md:h-32 rounded-full overflow-hidden border-4 border-white shadow-sm bg-gray-50 flex items-center justify-center relative group">
+                <span class="text-4xl font-bold text-gray-200">{{ user.first_name|first|default:user.username|first }}</span>
+            </div>
+            
+            <div class="text-center md:text-left flex-1 mt-2">
+                <h1 class="text-3xl font-semibold tracking-tight">{{ user.first_name|default:user.username }}</h1>
+                <p class="text-gray-500 text-sm mt-1">
+                    MMU Student ID: <span class="font-mono text-gray-800">{{ user.student_id|default:"Not Set" }}</span> • Joined {{ user.date_joined|date:"M Y" }}
+                </p>
+                
+                <div class="flex justify-center md:justify-start gap-6 mt-4">
+                    <div class="flex flex-col">
+                        <span class="text-2xl font-semibold">{{ my_registrations.count }}</span>
+                        <span class="text-xs text-gray-500 uppercase tracking-wide">Joined Events</span>
+                    </div>
+                    <div class="flex flex-col">
+                        <span class="text-2xl font-semibold text-primary">{{ participated_events.count }}</span>
+                        <span class="text-xs text-gray-500 uppercase tracking-wide">Attended</span>
+                    </div>
+                    <div class="flex flex-col">
+                        <span class="text-2xl font-semibold">{{ joined_clubs.count|add:managed_clubs.count }}</span>
+                        <span class="text-xs text-gray-500 uppercase tracking-wide">Clubs Joined</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
+
+            <section>
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-lg font-semibold text-gray-900">My Clubs</h2>
+                
+                    <a href="#" class="text-sm text-gray-500 hover:text-gray-900 transition-colors">Explore &rarr;</a>
+                </div>
+                
+                <div class="flex flex-col gap-3">
+                    
+                    {% for club in managed_clubs %}
+                    <div class="luma-card bg-white rounded-2xl p-4 flex justify-between items-center group hover:border-gray-300 transition-colors">
+                        <div class="flex items-center gap-4">
+                            {% if club.logo %}
+                                <div class="w-10 h-10 rounded-lg overflow-hidden border border-gray-200 flex-shrink-0">
+                                    <img src="{{ club.logo.url }}" alt="Logo" class="w-full h-full object-cover">
+                                </div>
+                            {% else %}
+                                <div class="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center text-lg flex-shrink-0">🛡️</div>
+                            {% endif %}
+                            <div>
+                                <h3 class="font-medium text-gray-900">{{ club.name }}</h3>
+                                <p class="text-xs text-gray-500 mt-0.5">Manager</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <a href="{% url 'core:club_profile' club.id %}" class="btn btn-sm border-none bg-gray-900 text-white hover:bg-gray-700 rounded-full px-6 font-medium shadow-sm transition-transform hover:scale-105">Manage</a>
+                        </div>
+                    </div>
+                    {% endfor %}
+
+                    {% for club in joined_clubs %}
+                    <div class="luma-card bg-white rounded-2xl p-4 flex justify-between items-center group hover:border-gray-300 transition-colors">
+                        <div class="flex items-center gap-4">
+                            {% if club.logo %}
+                                <div class="w-10 h-10 rounded-lg overflow-hidden border border-gray-200 flex-shrink-0 opacity-80">
+                                    <img src="{{ club.logo.url }}" alt="Logo" class="w-full h-full object-cover">
+                                </div>
+                            {% else %}
+                                <div class="w-10 h-10 rounded-lg bg-gray-50 flex items-center justify-center text-lg opacity-70 flex-shrink-0">⛺</div>
+                            {% endif %}
+                            <div>
+                                <h3 class="font-medium text-gray-900">{{ club.name }}</h3>
+                                <p class="text-xs text-gray-500 mt-0.5">Member</p>
+                            </div>
+                        </div>
+                        <a href="{% url 'core:club_profile' club.id %}" class="btn btn-sm btn-ghost hover:bg-gray-100 rounded-full px-4 text-gray-500">View</a>
+                    </div>
+                    {% endfor %}
+
+                    {% if not managed_clubs and not joined_clubs %}
+                    <div class="text-center py-12 luma-card bg-white rounded-2xl">
+                        <p class="text-gray-500 text-sm">You haven't joined any clubs yet.</p>
+                    </div>
+                    {% endif %}
+
+                </div>
+            </section>
+
+            <section>
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-lg font-semibold text-gray-900">Event History</h2>
+                </div>
+                
+                <div class="luma-card bg-white rounded-2xl overflow-hidden">
+                    <div class="overflow-x-auto max-h-[400px] overflow-y-auto">
+                        <table class="table w-full">
+                            <tbody>
+                                {% for prereg in my_registrations %}
+                                <tr class="hover:bg-gray-50 border-b border-gray-100 last:border-0 transition-colors">
+                                    <td class="py-4 pl-6">
+                                        <div class="flex items-center gap-3">
+                                            <div class="font-medium text-gray-900">{{ prereg.event.title }}</div>
+                                            {% if prereg.is_attended %}
+                                                <span class="badge badge-sm bg-green-50 text-green-600 border-green-100 font-bold px-2">✓ Attended</span>
+                                            {% endif %}
+                                        </div>
+                                        <div class="text-xs text-gray-500 mt-1">
+                                            By {{ prereg.event.club.name }} 
+                                        </div>
+                                        <div class="text-xs text-gray-400 mt-0.5">{{ prereg.event.event_date|date:"F j, Y" }}</div>
+                                    </td>
+                                    <td class="text-right pr-6 py-4">
+                                        
+                                         {% if prereg.is_attended and prereg.event.status == 'FINISHED' %}
+                                              <a href="{% url 'core:download_my_certificate' prereg.event.id %}" class="inline-flex items-center px-4 py-1.5 rounded-full text-xs font-medium bg-gray-900 text-white hover:bg-gray-700 transition-colors shadow-sm">
+                                                  Download Cert
+                                              </a>
+                                          {% elif prereg.event.status == 'ONGOING' %}
+                                              <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-600 border border-blue-100">
+                                                  Ongoing
+                                              </span>
+                                          {% elif prereg.event.status == 'PREPARING' %}
+                                              <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-600 border border-amber-100">
+                                                  Preparing
+                                              </span>
+                                          {% elif prereg.event.status == 'FINISHED' and not prereg.is_attended %}
+                                              <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-50 text-gray-400 border border-gray-200">
+                                                  Missed (Unattended)
+                                              </span>
+                                          {% else %}
+                                              <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-50 text-gray-400 border border-gray-200">
+                                                  Status: {{ prereg.event.get_status_display }}
+                                              </span>
+                                          {% endif %}
+                                        
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="2" class="text-center text-gray-500 py-12 text-sm">
+                                        No events attended yet.
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+    </div>
+</body>
+</html>

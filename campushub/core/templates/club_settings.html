@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage {{ club.name }} - CampusHub</title>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.10.2/dist/full.min.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #FAFAFA; }
+        .luma-card { border: 1px solid #EAEAEA; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
+    </style>
+</head>
+<body class="min-h-screen text-gray-900 pb-20">
+
+    <!-- CampusHub Top Navbar -->
+    <div class="navbar bg-white border-b border-gray-100 px-4 md:px-8 h-20 w-full absolute top-0 left-0 z-50">
+        <div class="flex-1">
+            <a href="{% url 'core:home' %}" class="text-2xl font-bold text-black tracking-tight hover:opacity-80">CampusHub</a>
+        </div>
+    </div>
+
+    <div class="max-w-4xl mx-auto pt-24 pb-10">
+        
+        <div class="mb-10">
+            <h1 class="text-3xl font-bold tracking-tight text-gray-900">Manage {{ club.name }}</h1>
+            <p class="text-gray-500 mt-2">Update your club's profile, socials, and settings.</p>
+        </div>
+
+        <form method="POST" enctype="multipart/form-data" class="space-y-8">
+            {% csrf_token %}
+            
+            <!-- Details Section -->
+            <div class="luma-card bg-white rounded-2xl p-6 md:p-8">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-semibold">Club Details</h2>
+                    <a href="{% url 'core:manager_dashboard' club.id %}" class="btn btn-sm border-none bg-gray-900 text-white hover:bg-gray-800 rounded-full px-6 font-medium shadow-sm transition-transform hover:scale-105">
+                        👥 Manage Members
+                    </a>
+                </div>
+                
+                <div class="space-y-5">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Club Name</label>
+                        <input type="text" value="{{ club.name }}" class="input input-bordered w-full bg-gray-50 text-gray-500 cursor-not-allowed" disabled>
+                        <p class="text-xs text-gray-500 mt-1">Club names cannot be changed once created.</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Category / Tags</label>
+                        {{ form.category }}
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Description (Bio)</label>
+                        {{ form.description }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Branding Section -->
+            <div class="luma-card bg-white rounded-2xl p-6 md:p-8">
+                <h2 class="text-xl font-semibold mb-6">Branding</h2>
+                
+                <div class="space-y-5">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Profile Picture (Logo)</label>
+                        {% if club.logo %}
+                            <div class="mb-3 w-16 h-16 rounded-lg overflow-hidden border border-gray-200">
+                                <img src="{{ club.logo.url }}" alt="Current Logo" class="w-full h-full object-cover">
+                            </div>
+                        {% endif %}
+                        {{ form.logo }}
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Cover Banner</label>
+                        {% if club.banner %}
+                            <div class="mb-3 w-full h-32 rounded-lg overflow-hidden border border-gray-200">
+                                <img src="{{ club.banner.url }}" alt="Current Banner" class="w-full h-full object-cover">
+                            </div>
+                        {% endif %}
+                        {{ form.banner }}
+                    </div>
+                    <!-- Finances Section -->
+                    <div class="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 mb-8 mt-8">
+                        <h3 class="text-xl font-bold text-black mb-6">Finances & Payment</h3>
+    
+                        <div class="form-control w-full mb-4">
+                            <label class="label"><span class="label-text font-bold text-gray-700">Membership Fee (RM)</span></label>
+                            {{ form.membership_fee }}
+                            <label class="label"><span class="label-text-alt text-gray-500">Leave as 0.00 if joining is free.</span></label>
+                        </div>
+
+                        <div class="form-control w-full">
+                            <label class="label"><span class="label-text font-bold text-gray-700">Payment QR Code</span></label>
+                            {%if club.payment_qr_code %}
+                                <div class="mb-4 bg-gray-50 p-4 rounded-2xl border border-gray-100 inline-block">
+                                    <img src="{{ club.payment_qr_code.url }}" alt="Current Payment QR" class="w-32 h-32 object-contain rounded-xl bg-white border border-gray-200 p-2">
+                                </div>
+                            {% endif %}
+                            {{ form.payment_qr_code }}
+                            <label class="label">
+                                <span class="label-text-alt text-gray-500">Upload your DuitNow or Touch 'n Go QR code here.</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Social Links Section -->
+            <div class="luma-card bg-white rounded-2xl p-6 md:p-8">
+                <h2 class="text-xl font-semibold mb-6">Social Links</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Website</label>
+                        {{ form.social_website }}
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Instagram</label>
+                        {{ form.social_instagram }}
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">LinkedIn</label>
+                        {{ form.social_linkedin }}
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Twitter (X)</label>
+                        {{ form.social_twitter }}
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Facebook</label>
+                        {{ form.social_facebook }}
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Discord</label>
+                        {{ form.social_discord }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-4 mt-8">
+                <a href="{% url 'core:club_profile' club.id %}" class="btn btn-ghost hover:bg-gray-100 rounded-full px-8">Cancel</a>
+                <button type="submit" class="btn border-none bg-gray-900 text-white hover:bg-gray-700 rounded-full px-8 font-medium shadow-sm transition-transform hover:scale-105">
+                    Save Changes
+                </button>
+            </div>
+            
+        </form>
+    </div>
+</body>
+</html>

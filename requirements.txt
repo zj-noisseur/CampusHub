@@ -5,3 +5,4 @@ celery
 redis
 django-celery-results
 resend
+reportlab

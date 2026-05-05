@@ -119,11 +119,18 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
-AUTH_USER_MODEL = 'core.User'
-
-
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+AUTH_USER_MODEL = 'core.User'
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+LOGIN_URL = 'core:login'
+LOGIN_REDIRECT_URL = 'core:profile'
+
+AUTHENTICATION_BACKENDS = [
+    'core.backends.DualEmailBackend',
+    'django.contrib.auth.backends.ModelBackend',
+]
 
 # directory for the JSON exports
 JSON_EXPORT_DIR = BASE_DIR / 'export'

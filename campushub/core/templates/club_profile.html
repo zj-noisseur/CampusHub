@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ club.name }} - CampusHub</title>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.10.2/dist/full.min.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #FAFAFA; }
+        .luma-card { border: 1px solid #EAEAEA; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
+    </style>
+</head>
+<body class="min-h-screen text-gray-900 pb-20">
+
+    <div class="px-8 py-4 flex justify-between items-center bg-white border-b border-gray-100">
+        <a href="{% url 'core:student_dashboard' %}" class="text-xl font-bold tracking-tight hover:opacity-70">CampusHub</a>
+    </div>
+
+    <!-- Pop-up Alert Box -->
+    {% if messages %}
+        <div class="max-w-5xl mx-auto px-8 mt-4 animate-bounce">
+            {% for message in messages %}
+                <div class="alert alert-success bg-green-100 text-green-800 rounded-xl shadow-sm border-none">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    <span class="font-medium">{{ message }}</span>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <div class="max-w-5xl mx-auto mt-6 px-4 md:px-8">
+        
+        <div class="relative">
+            <div class="w-full h-48 md:h-64 rounded-3xl overflow-hidden bg-gradient-to-r from-blue-100 to-purple-100 relative shadow-sm">
+                {% if club.banner %}
+                    <img src="{{ club.banner.url }}" alt="Banner" class="w-full h-full object-cover">
+                {% endif %}
+            </div>
+
+            <div class="absolute -bottom-12 left-6 md:left-10">
+                <div class="w-24 h-24 md:w-32 md:h-32 rounded-2xl bg-white border-4 border-[#FAFAFA] shadow-md overflow-hidden flex items-center justify-center">
+                    {% if club.logo %}
+                        <img src="{{ club.logo.url }}" alt="Logo" class="w-full h-full object-cover">
+                    {% else %}
+                        <span class="text-4xl font-bold text-gray-300">{{ club.name|first }}</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-16 md:mt-20 px-2 md:px-6 flex flex-col md:flex-row justify-between items-start md:items-start gap-6">
+            <div>
+                <h1 class="text-4xl md:text-5xl font-bold tracking-tight">{{ club.name }}</h1>
+                <div class="flex flex-wrap items-center gap-4 mt-3 text-sm text-gray-500 font-medium">
+                    <span class="flex items-center gap-1">📍 Cyberjaya Campus</span>
+                    <span>•</span>
+                    <span class="flex items-center gap-1">👥 {{ club.members.count }} Members</span>
+                    {% if club.category %}
+                        <span>•</span>
+                        <span class="flex items-center gap-1">🏷️ {{ club.category }}</span>
+                    {% endif %}
+                </div>
+                <p class="mt-4 max-w-2xl text-gray-600 leading-relaxed">
+                    {{ club.description|default:"Still no description for this club yet." }}
+                </p>
+                
+                <div class="flex flex-wrap gap-3 mt-4">
+                    {% if club.social_instagram %}
+                        <a href="{{ club.social_instagram }}" target="_blank" class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 hover:bg-pink-100 hover:text-pink-600 transition-colors" title="Instagram">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
+                        </a>
+                    {% endif %}
+                    {% if club.social_linkedin %}
+                        <a href="{{ club.social_linkedin }}" target="_blank" class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 hover:bg-blue-100 hover:text-blue-600 transition-colors" title="LinkedIn">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M4.98 3.5c0 1.381-1.11 2.5-2.48 2.5s-2.48-1.119-2.48-2.5c0-1.38 1.11-2.5 2.48-2.5s2.48 1.12 2.48 2.5zm.02 4.5h-5v16h5v-16zm7.982 0h-4.968v16h4.969v-8.399c0-4.67 6.029-5.052 6.029 0v8.399h4.988v-10.131c0-7.88-8.922-7.593-11.018-3.714v-2.155z"/></svg>
+                        </a>
+                    {% endif %}
+                    {% if club.social_twitter %}
+                        <a href="{{ club.social_twitter }}" target="_blank" class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 hover:bg-sky-100 hover:text-sky-500 transition-colors" title="Twitter">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                        </a>
+                    {% endif %}
+                    {% if club.social_facebook %}
+                        <a href="{{ club.social_facebook }}" target="_blank" class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 hover:bg-blue-100 hover:text-blue-700 transition-colors" title="Facebook">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M9 8h-3v4h3v12h5v-12h3.642l.358-4h-4v-1.667c0-.955.192-1.333 1.115-1.333h2.885v-5h-3.808c-3.596 0-5.192 1.583-5.192 4.615v3.385z"/></svg>
+                        </a>
+                    {% endif %}
+                    {% if club.social_discord %}
+                        <a href="{{ club.social_discord }}" target="_blank" class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 hover:bg-indigo-100 hover:text-indigo-600 transition-colors" title="Discord">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="currentColor" viewBox="0 0 127.14 96.36"><path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.31,60,73.31,53s5-12.74,11.36-12.74S96,46,96.06,53,91.08,65.69,84.69,65.69Z"/></svg>
+                        </a>
+                    {% endif %}
+                    {% if club.social_website %}
+                        <a href="{{ club.social_website }}" target="_blank" class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 hover:bg-gray-200 hover:text-gray-900 transition-colors" title="Website">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                        </a>
+                    {% endif %}
+
+                </div>
+            </div>
+
+        <div class="flex-shrink-0 flex items-center gap-3">
+    
+            <!-- Primary Actions (The main buttons) -->
+            {% if is_manager %}
+                <a href="{% url 'core:club_settings' club.id %}" class="btn border-none bg-gray-900 text-white hover:bg-gray-800 rounded-full px-8 font-medium shadow-sm transition-transform hover:scale-105">
+                    ⚙️ Manage Club
+                </a>
+            {% elif is_member %}
+                <button class="btn border-none bg-green-100 text-green-700 rounded-full px-8 font-medium cursor-default">
+                    ✓ Club Joined
+                </button>
+            {% else %}
+                <!-- The Trigger Button -->
+                <button onclick="payment_modal.showModal()" class="btn border-none bg-gray-900 text-white hover:bg-gray-700 rounded-full px-8 font-medium shadow-sm transition-transform hover:scale-105">
+                    Join Club
+                </button>
+
+                <!-- The Payment / Join Modal -->
+                <dialog id="payment_modal" class="modal">
+                    <div class="modal-box bg-white rounded-3xl p-8 text-center text-left">
+                        <form method="dialog">
+                            <button class="btn btn-sm btn-circle btn-ghost absolute right-4 top-4">✕</button>
+                        </form>
+        
+                        <h3 class="font-bold text-2xl text-black mb-6">Join {{ club.name }}</h3>
+        
+                        <!-- THE CRITICAL PART: enctype="multipart/form-data" -->
+                        <form action="{% url 'core:join_club' club.id %}" method="POST" enctype="multipart/form-data">
+                            {% csrf_token %}
+            
+                            {% if club.membership_fee > 0 %}
+                                <!-- =============================== -->
+                                <!-- PAID CLUB LOGIC                 -->
+                                <!-- =============================== -->
+                                <p class="text-gray-600 mb-6 text-center">The membership fee is <span class="font-bold text-black text-xl">RM {{ club.membership_fee }}</span>.</p>
+                            
+                                <div class="text-center">
+                                    {% if club.payment_qr_code %}
+                                        <div class="bg-gray-50 p-4 rounded-2xl border border-gray-100 inline-block mb-6">
+                                            <img src="{{ club.payment_qr_code.url }}" alt="Payment QR" class="w-48 h-48 object-contain rounded-xl mx-auto">
+                                            <p class="text-xs text-gray-500 mt-3 font-medium">Scan with any e-Wallet or Banking App</p>
+                                        </div>
+                                    {% else %}
+                                        <div class="alert alert-warning rounded-xl mb-6">
+                                            <span>⚠️ The club hasn't uploaded a payment QR code yet. Please contact the manager.</span>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                    
+                                <!-- The File Upload Input (Updated to payment_proof) -->
+                                <div class="form-control w-full mb-8 text-left">
+                                    <label class="label">
+                                        <span class="label-text font-bold text-gray-700">Upload Proof of Payment <span class="text-red-500">*</span></span>
+                                    </label>
+                                    <input type="file" name="payment_proof" accept="image/*,.pdf" class="file-input file-input-bordered bg-gray-50 w-full" required />
+                                    <label class="label">
+                                        <span class="label-text-alt text-gray-500">Please upload a screenshot of your successful transaction.</span>
+                                    </label>
+                                </div>
+
+                                <button type="submit" class="btn bg-blue-600 hover:bg-blue-700 text-white border-none w-full rounded-full h-12 text-lg">
+                                    Submit Payment Proof
+                                </button>
+                            {% else %}
+                                <!-- =============================== -->
+                                <!-- FREE CLUB LOGIC                 -->
+                                <!-- =============================== -->
+                                <div class="bg-green-50 rounded-2xl p-6 mb-6 border border-green-100 text-center">
+                                    <div class="text-4xl mb-3">🎉</div>
+                                    <h4 class="font-bold text-green-800 text-xl mb-2">Good news!</h4>
+                                    <p class="text-green-700 font-medium">Joining this club is completely free. No payment is required.</p>
+                                </div>
+
+                                <p class="text-gray-500 mb-8 text-sm text-center">By clicking confirm below, your request will be sent to the club managers for approval.</p>
+
+                                <button type="submit" class="btn bg-gray-900 hover:bg-black text-white border-none w-full rounded-full h-12 text-lg">
+                                    Confirm Join Request
+                                </button>
+                            {% endif %}
+            
+                        </form>
+                    </div>
+            
+                    <form method="dialog" class="modal-backdrop">
+                        <button>close</button>
+                    </form>
+                </dialog>
+            {% endif %}
+
+            <!-- Secondary Actions (The 3-dot Dropdown Menu) -->
+            {% if not is_manager %}
+            <div class="dropdown dropdown-end">
+                <div tabindex="0" role="button" class="btn btn-circle bg-white border border-gray-200 hover:bg-gray-100 shadow-sm transition-all">
+                    <!-- 3 Dots SVG Icon -->
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="w-5 h-5 stroke-current text-gray-600"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path></svg>
+                </div>
+                <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow-lg bg-white rounded-2xl w-56 border border-gray-100 mt-2">
+                    <!-- Apply for Manager -->
+                    <li>
+                        <a href="{% url 'core:apply_manager' club.id %}" class="text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-xl">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                            Apply for Manager
+                        </a>
+                    </li>
+    
+                    <!-- Share Club -->
+                    <li>
+                        <button onclick="navigator.clipboard.writeText(window.location.href); alert('Club link copied to clipboard!');" class="text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-xl">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
+                            Share Club
+                        </button>
+                    </li>
+                </ul>
+            </div>
+            {% endif %}
+
+        </div>
+        </div>
+
+        <div class="divider my-10 before:bg-gray-100 after:bg-gray-100"></div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-10 px-2 md:px-6">
+            
+            <div class="lg:col-span-2">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-gray-900">Events</h2>
+                    
+                    {% if is_manager %}
+                    <a href="#" class="btn btn-sm bg-gray-900 text-white hover:bg-gray-800 rounded-lg border-none shadow-sm">
+                        + Create Event
+                    </a>
+                    {% endif %}
+                </div>
+
+                <div class="flex flex-col gap-4">
+                    {% for event in events %}
+                    <div class="luma-card bg-white rounded-2xl p-5 flex flex-col sm:flex-row gap-5 group hover:border-blue-400 hover:shadow-md transition-all cursor-pointer relative overflow-hidden">
+                        <!--for adding event post redirect in the future, emthy link for now -->
+                        <a href="#" class="absolute inset-0 z-0"></a>
+                        
+                        <div class="relative z-10 w-16 h-16 rounded-xl bg-gray-50 border border-gray-100 flex flex-col items-center justify-center flex-shrink-0 pointer-events-none">
+                            <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">{{ event.event_date|date:"M" }}</span>
+                            <span class="text-xl font-bold text-gray-900 leading-none">{{ event.event_date|date:"d" }}</span>
+                        </div>
+                        
+                        <div class="relative z-10 flex-1 pointer-events-none">
+                            <div class="flex items-center gap-2 mb-1">
+                                <div class="text-sm text-gray-500 font-medium">{{ event.event_date|time:"g:i A" }}</div>
+                                {% if event.status == 'FINISHED' %}
+                                    <span class="badge badge-xs bg-gray-100 text-gray-500 border-none px-2 py-1.5">Finished</span>
+                                {% elif event.status == 'ONGOING' %}
+                                    <span class="badge badge-xs bg-blue-50 text-blue-600 border-none px-2 py-1.5 font-bold">Ongoing</span>
+                                {% else %}
+                                    <span class="badge badge-xs bg-amber-50 text-amber-600 border-none px-2 py-1.5 font-bold">Preparing</span>
+                                {% endif %}
+                            </div>
+                            <h3 class="text-lg font-bold text-gray-900 group-hover:text-blue-600 transition-colors">{{ event.title }}</h3>
+                            <div class="text-sm text-gray-500 mt-2 flex items-center gap-3">
+                                <span>📍 {{ event.location|default:"TBA" }}</span>
+                                {% if event.id in attended_event_ids %}
+                                    <span class="badge badge-sm bg-green-50 text-green-600 border-green-100 font-bold px-2">✓ Attended</span>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="relative z-20 flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-center mt-4 sm:mt-0 border-t sm:border-t-0 pt-4 sm:pt-0 border-gray-100">
+                            <div class="text-sm font-medium text-gray-500 mb-2">
+                                {{ event.pre_registered.count }} Joined
+                            </div>
+                            {% if is_manager %}
+                                <a href="{% url 'core:event_admin_dashboard' club.id event.id %}" class="btn btn-xs bg-gray-900 text-white hover:bg-gray-700 border-none rounded-full px-4 py-1.5 h-auto">
+                                    Manage Event
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="py-12 text-center luma-card bg-white rounded-2xl border-dashed">
+                        <span class="text-4xl block mb-3">📭</span>
+                        <h3 class="font-medium text-gray-900">No upcoming events</h3>
+                        <p class="text-sm text-gray-500 mt-1">Check back later for new activities!</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="lg:col-span-1 space-y-6">
+                <div class="luma-card bg-white rounded-2xl p-5">
+                    <h3 class="font-bold text-gray-900 mb-4">Committee</h3>
+                    <div class="flex flex-col gap-3">
+                        {% for manager in club.committee.all|slice:":3" %}
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-bold text-gray-600">
+                                {{ manager.user.first_name|first|default:manager.user.username|first }}
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium text-gray-900">{{ manager.user.first_name|default:manager.user.username }}</p>
+                                <p class="text-xs text-gray-500">{{ manager.designation|default:"Manager" }}</p>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <p class="text-sm text-gray-500">No committee members listed.</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</body>
+</html>

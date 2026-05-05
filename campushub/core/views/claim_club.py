@@ -20,8 +20,8 @@ def claim_club(request):
             claim_request.save()
 
             messages.success(request, 'Your proof has been submitted! An admin will review it shortly.')
-            return redirect('claim_club')
+            return redirect('core:claim_club')
     else:
         form = ClaimClubForm()
 
-    return render(request, 'core/claim_club.html', {'form': form})
+    return render(request, 'claim_club.html', {'form': form})

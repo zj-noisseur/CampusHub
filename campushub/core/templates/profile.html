@@ -7,64 +7,225 @@
     <link href="https://cdn.jsdelivr.net/npm/daisyui@4.10.2/dist/full.min.css" rel="stylesheet" type="text/css" />
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-50 min-h-screen flex items-center justify-center p-4 font-sans">
+<body class="bg-gray-50 min-h-screen flex flex-col items-center p-4 pt-24 font-sans">
     
-    <div class="max-w-2xl w-full">
+    <!-- CampusHub Top Navbar -->
+    <div class="navbar bg-white border-b border-gray-100 px-4 md:px-8 h-20 w-full absolute top-0 left-0 z-50">
+        <div class="flex-1">
+            <a href="{% url 'core:home' %}" class="text-2xl font-bold text-black tracking-tight hover:opacity-80">CampusHub</a>
+        </div>
+    </div>
+
+    <!-- Pop-up Alert Box -->
+    {% if messages %}
+        <div class="max-w-5xl mx-auto w-full mb-4 animate-bounce">
+            {% for message in messages %}
+                <div class="alert alert-success bg-green-100 text-green-800 rounded-xl shadow-sm border-none">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    <span class="font-medium">{{ message }}</span>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <div class="max-w-5xl w-full mx-auto">
+        
+        <!-- Header -->
         <div class="mb-6 flex justify-between items-center">
-            <h1 class="text-3xl font-bold tracking-tight text-black">My Profile</h1>
-            <a href="{% url 'home' %}" class="btn btn-ghost btn-sm">← Back to Home</a>
+            <h1 class="text-3xl font-bold tracking-tight text-black">My Account</h1>
         </div>
 
-        <div class="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
-            <div class="bg-black h-24 w-full"></div>
+        <!-- DAISYUI TABS START -->
+        <div role="tablist" class="tabs tabs-bordered w-full">
             
-            <div class="p-8 relative">
-                <div class="absolute -top-12 left-8 w-24 h-24 bg-white rounded-full p-1 border-4 border-white shadow-sm flex items-center justify-center">
-                    <div class="w-full h-full bg-gray-200 rounded-full flex items-center justify-center text-3xl font-bold text-gray-500">
-                        {{ user.student_name|make_list|first }}
-                    </div>
-                </div>
-
-                <div class="mt-12">
-                    <h2 class="text-2xl font-bold text-black">{{ user.student_name }}</h2>
-                    <p class="text-gray-500 mb-6">{{ user.email }}</p>
-
-                    <div class="grid grid-cols-2 gap-6">
-                        <div class="bg-gray-50 p-4 rounded-2xl border border-gray-100">
-                            <span class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Student ID</span>
-                            <span class="text-lg font-medium text-gray-900">
-                                {% if user.student_id %}{{ user.student_id }}{% else %}<span class="text-gray-400 italic">Not set</span>{% endif %}
-                            </span>
-                        </div>
-
-                        <div class="bg-gray-50 p-4 rounded-2xl border border-gray-100">
-                            <span class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Phone Number</span>
-                            <span class="text-lg font-medium text-gray-900">
-                                {% if user.phone_number %}{{ user.phone_number }}{% else %}<span class="text-gray-400 italic">Not set</span>{% endif %}
-                            </span>
-                        </div>
-                    </div>
-
-                    <div class="mt-8 pt-6 border-t border-gray-100 flex justify-between items-center">
-                        <div>
-                            <span class="text-sm text-gray-500">Account Role</span>
-                            <div class="font-medium mt-1">
-                                {% if user.is_superuser %}
-                                    <span class="badge badge-error gap-2"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> System Admin</span>
-                                {% elif user.is_staff %}
-                                    <span class="badge badge-primary gap-2"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Club Manager</span>
+            <!-- ========================================== -->
+            <!-- TAB 1: PROFILE OVERVIEW                    -->
+            <!-- ========================================== -->
+            <input type="radio" name="profile_tabs" role="tab" class="tab text-lg font-medium h-12 whitespace-nowrap px-6" aria-label="Profile Overview" checked />
+            <div role="tabpanel" class="tab-content pt-6 pb-10">
+                
+                <div class="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div class="bg-black h-32 w-full"></div> 
+                    
+                    <div class="p-8 md:p-12 relative"> 
+                        
+                        <!-- Profile Picture Circle -->
+                        <div class="absolute -top-16 left-8 md:left-12 w-32 h-32 bg-white rounded-full p-1 shadow-sm flex items-center justify-center">
+                            <div class="w-full h-full rounded-full overflow-hidden bg-gray-100 flex items-center justify-center shadow-sm">
+                                {% if user.profile_picture %}
+                                    <img src="{{ user.profile_picture.url }}" alt="Profile Picture" class="w-full h-full object-cover" />
                                 {% else %}
-                                    <span class="badge bg-gray-200 text-gray-700 border-none">Student</span>
+                                    <span class="text-4xl font-bold text-gray-400">{{ user.student_name|make_list|first|upper }}</span>
                                 {% endif %}
                             </div>
                         </div>
-                        
-                        <a href="#" class="btn btn-outline btn-sm rounded-full">Edit Details</a>
+
+                        <div class="mt-16">
+                            <h2 class="text-3xl font-bold text-black">{{ user.student_name }}</h2>
+                            <p class="text-gray-500 mb-8">{{ user.email }} • ID: {{ user.student_id|default:"Not set" }}</p>
+
+                            <!-- The Academic Stat Block -->
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+                                <div class="bg-blue-50 p-5 rounded-2xl border border-blue-100">
+                                    <span class="text-xs font-bold text-blue-400 uppercase tracking-wider block mb-1">Faculty</span>
+                                    <span class="text-blue-900 font-medium text-lg">{{ user.get_faculty_display|default:"Not set" }}</span>
+                                </div>
+                                
+                                <div class="bg-indigo-50 p-5 rounded-2xl border border-indigo-100">
+                                    <span class="text-xs font-bold text-indigo-400 uppercase tracking-wider block mb-1">Major</span>
+                                    <span class="text-indigo-900 font-medium text-lg">{{ user.major|default:"Not set" }}</span>
+                                </div>
+
+                                <div class="bg-purple-50 p-5 rounded-2xl border border-purple-100">
+                                    <span class="text-xs font-bold text-purple-400 uppercase tracking-wider block mb-1">Year of Study</span>
+                                    <span class="text-purple-900 font-medium text-lg">{{ user.get_year_of_study_display|default:"Not set" }}</span>
+                                </div>
+                            </div> 
+                            
+                            <!-- Bio -->
+                            <div class="mt-6 bg-gray-50 p-6 rounded-2xl border border-gray-100">
+                                <span class="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-2">About Me</span>
+                                <p class="text-gray-700 leading-relaxed text-lg">
+                                    {{ user.bio|default:"This user hasn't written a bio yet." }}
+                                </p>
+                            </div>
+
+                            <!-- My Clubs & Memberships -->
+                            <div class="mt-8">
+                                <span class="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-4">My Clubs & Societies</span>
+                                
+                                {% if user.joined_clubs.all %}
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        {% for club in user.joined_clubs.all %}
+                                        <a href="#" class="group block bg-white p-4 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-indigo-100 transition-all duration-200">
+                                            <div class="flex items-center gap-4">
+                                                <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-xl group-hover:scale-105 transition-transform duration-300">
+                                                    {{ club.name|make_list|first|upper }}
+                                                </div>
+                                                <div>
+                                                    <h3 class="font-bold text-gray-900 group-hover:text-indigo-600 transition-colors">{{ club.name }}</h3>
+                                                    <p class="text-xs text-gray-500 line-clamp-1">{{ club.short_description }}</p>
+                                                </div>
+                                            </div>
+                                        </a>
+                                        {% endfor %}
+                                    </div>
+                                {% else %}
+                                    <div class="bg-gray-50 p-8 rounded-2xl border border-gray-100 text-center flex flex-col items-center justify-center">
+                                        <p class="text-gray-500 mb-4">This student hasn't joined any clubs yet.</p>
+                                        <a href="#" class="btn bg-black hover:bg-gray-800 text-white rounded-full btn-sm px-6 border-none">Explore Clubs</a>
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Footer -->
+                            <div class="mt-10 pt-8 border-t border-gray-100 flex justify-between items-center">
+                                <div>
+                                    <span class="text-sm text-gray-500">Account Role</span>
+                                    <div class="font-medium mt-1">
+                                        {% if user.is_superuser %}
+                                            <span class="badge badge-error gap-2"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> System Admin</span>
+                                        {% elif user.is_staff %}
+                                            <span class="badge badge-primary gap-2"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Club Manager</span>
+                                        {% else %}
+                                            <span class="badge bg-gray-200 text-gray-700 border-none">Student</span>
+                                        {% endif %}
+                                    </div>
+                                </div>    
+                                <a href="{% url 'core:edit_profile' %}" class="btn border-none bg-gray-900 hover:bg-gray-800 text-white rounded-full px-8 shadow-sm transition-transform hover:scale-105">Edit Details</a>
+                            </div>
+
+                        </div>
                     </div>
                 </div>
+
             </div>
+
+            <!-- ========================================== -->
+            <!-- TAB 2: ACCOUNT SETTINGS (Emails)           -->
+            <!-- ========================================== -->
+            <input type="radio" name="profile_tabs" role="tab" class="tab text-lg font-medium h-12 whitespace-nowrap px-6" aria-label="Account Settings" />
+            <div role="tabpanel" class="tab-content pt-6 pb-10">
+                
+                <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-8 md:p-12">
+            
+                    <!-- Header & Add Button -->
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
+                        <div>
+                            <h2 class="text-2xl font-bold text-black mb-1">Emails</h2>
+                            <p class="text-gray-500">Add additional emails to receive event invites and log in.</p>
+                        </div>
+                        <!-- This button opens the Add Email Modal -->
+                        <button type="button" onclick="add_email_modal.showModal()" class="btn border-none bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-xl font-medium shadow-sm">
+                            + Add Email
+                        </button>
+                    </div>
+
+                    <div class="flex flex-col gap-3">
+                        <!-- THE PRIMARY EMAIL CARD -->
+                        <div class="border border-gray-200 rounded-2xl p-5 flex justify-between items-center bg-white hover:border-gray-300 transition-colors">
+                            <div>
+                                <div class="flex items-center gap-3 mb-1">
+                                    <span class="font-bold text-black text-lg">{{ user.email }}</span>
+                                    <span class="badge bg-gray-100 text-gray-600 border-none text-xs font-bold px-2 py-3 rounded-lg">Primary</span>
+                                </div>
+                                <p class="text-sm text-gray-500">This email is your main account identifier.</p>
+                            </div>
+                        </div>
+
+                        <!-- LOOP THROUGH ADDITIONAL EMAILS -->
+                        {% for alt in user.additional_emails.all %}
+                        <div class="border border-gray-200 rounded-2xl p-5 flex justify-between items-center bg-white hover:border-gray-300 transition-colors group">
+                            <div>
+                                <div class="flex items-center gap-3 mb-1">
+                                    <span class="font-bold text-black text-lg">{{ alt.email }}</span>
+                                </div>
+                                <p class="text-sm text-gray-500">This email can be used to log in.</p>
+                            </div>
+                            
+                            <!-- Delete Button -->
+                            <form method="POST" action="{% url 'core:profile' %}" class="m-0">
+                                {% csrf_token %}
+                                <input type="hidden" name="email_id" value="{{ alt.id }}">
+                                <button type="submit" name="delete_email" class="btn btn-ghost btn-sm text-red-500 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                                    Remove
+                                </button>
+                            </form>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                </div>
+
+            </div>
+            
         </div>
+        <!-- DAISYUI TABS END -->
+
     </div>
+
+    <!-- ADD EMAIL MODAL (Must sit safely outside the layout!) -->
+    <dialog id="add_email_modal" class="modal">
+        <div class="modal-box bg-white rounded-3xl p-8">
+            <form method="dialog">
+                <button class="btn btn-sm btn-circle btn-ghost absolute right-4 top-4">✕</button>
+            </form>
+            <h3 class="font-bold text-2xl text-black mb-6">Add New Email</h3>
+            
+            <form method="POST" action="{% url 'core:profile' %}">
+                {% csrf_token %}
+                <div class="form-control w-full mb-6">
+                    <input type="email" name="new_email" placeholder="e.g., personal@gmail.com" class="input input-bordered w-full h-12 rounded-xl focus:border-blue-500" required />
+                </div>
+                <button type="submit" name="add_email" class="btn bg-black hover:bg-gray-800 text-white border-none w-full rounded-full h-12 text-lg">
+                    Add Email
+                </button>
+            </form>
+        </div>
+        <form method="dialog" class="modal-backdrop">
+            <button>close</button>
+        </form>
+    </dialog>
 
 </body>
 </html>

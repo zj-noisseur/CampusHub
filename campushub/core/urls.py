@@ -8,10 +8,14 @@ from core.views.admin_dashboard import admin_dashboard_home, admin_dashboard_act
 from core.views.feed import feed
 from core.views.sign_up import sign_up
 from core.views.claim_club import claim_club
-from core.views.profile import user_profile
+from core.views.profile import user_profile, edit_profile
 from core.views.calendar import calendar
+from core.views.club_actions import join_club, apply_manager
+from core.views.dashboards import club_profile
+
 app_name = 'core'
 urlpatterns = [
+    path('', feed, name='home'),
     path('directory/', directory, name='directory'),
     path('admin-site/dashboard/', admin_dashboard_home, name='admin_dashboard'),
     path('admin-site/dashboard/queue/', admin_dashboard_task_queue, name='admin_task_queue'),
@@ -24,6 +28,9 @@ urlpatterns = [
     path('login/', auth_views.LoginView.as_view(template_name='login.html'), name='login'),
     path('logout/', auth_views.LogoutView.as_view(next_page='core:feed'), name='logout'),
     path('profile/', user_profile, name='profile'),
-    path('calendar/', calendar, name='calendar')
-    # path('claim/', claim_club, name='claimclub'),
+    path('profile/edit/', edit_profile, name='edit_profile'),
+    path('calendar/', calendar, name='calendar'),
+    path('club/<int:club_id>/', club_profile, name='club_profile'),
+    path('club/<int:club_id>/join/', join_club, name='join_club'),
+    path('club/<int:club_id>/apply-manager/', apply_manager, name='apply_manager'),
 ]
