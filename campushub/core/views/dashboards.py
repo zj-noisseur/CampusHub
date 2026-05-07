@@ -8,11 +8,16 @@ from django.db.models import Q
 @login_required
 def club_admin_dashboard(request, club_id, event_id=None):
     club = get_object_or_404(Club, id=club_id)
-    # Get events for this club
-    if event_id:
-        events = Event.objects.filter(club=club, id=event_id)
+    
+    if not event_id:
+        latest_event = Event.objects.filter(club=club).order_by('-event_date').first()
+        if latest_event:
+            return redirect('core:event_admin_dashboard', club_id=club.id, event_id=latest_event.id)
+        else:
+            # If no events exist at all, we still render the page but events will be empty
+            events = []
     else:
-        events = Event.objects.filter(club=club).order_by('-event_date')
+        events = Event.objects.filter(club=club, id=event_id)
     
     return render(request, 'event_manage.html', {
         'club': club,
@@ -38,7 +43,7 @@ def toggle_attended_status(request, event_id, prereg_id):
     if prereg.user:
         attendance = Attendance.objects.filter(event=prereg.event, user=prereg.user)
     else:
-        attendance = Attendance.objects.filter(event=prereg.event, guest_email=prereg.email)
+        attendance = Attendance.objects.filter(event=prereg.event, guest_email=prereg.guest_email)
 
     if attendance.exists():
         attendance.delete()
@@ -48,8 +53,8 @@ def toggle_attended_status(request, event_id, prereg_id):
         else:
             Attendance.objects.create(
                 event=prereg.event, 
-                guest_email=prereg.email,
-                guest_name=prereg.name
+                guest_email=prereg.guest_email,
+                guest_name=prereg.guest_name
             )
             
     return redirect('core:event_admin_dashboard', club_id=prereg.event.club.id, event_id=prereg.event.id)
@@ -130,7 +135,7 @@ def club_settings(request, club_id):
     if not is_manager:
         return redirect('core:club_profile', club_id=club.id)
         
-    from forms import ClubSettingsForm
+    from ..forms import ClubSettingsForm
     
     if request.method == 'POST':
         form = ClubSettingsForm(request.POST, request.FILES, instance=club)
@@ -154,8 +159,8 @@ def create_event(request, club_id):
     if not club.managers.filter(user=request.user, is_active=True).exists():
         return redirect('core:club_profile', club_id=club.id)
     
-    from forms import EventCreationForm
-    from models import Post
+    from ..forms import EventCreationForm
+    from ..models import Post
     
     if request.method == 'POST':
         form = EventCreationForm(request.POST)
@@ -173,7 +178,7 @@ def create_event(request, club_id):
             )
             event.post = mock_post
             event.save()
-            return redirect('core:club_admin_dashboard', club_id=club.id)
+            return redirect('core:event_admin_dashboard', club_id=club.id, event_id=event.id)
     else:
         form = EventCreationForm()
         

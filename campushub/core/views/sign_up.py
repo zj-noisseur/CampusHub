@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect
 from django.contrib import messages
-from ..forms import StudentRegistrationForm
+from core.forms import StudentRegistrationForm
 from django.contrib.auth import login
 
 def sign_up(request):

@@ -112,23 +112,23 @@
                                 <td class="py-4 pl-8">
                                     <div class="flex items-center gap-3">
                                         <div class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center font-bold text-xs text-gray-400">
-                                            {{ prereg.user.first_name|default:""|first|default:prereg.name|default:""|first|default:"?" }}
+                                            {{ prereg.user.first_name|default:""|first|default:prereg.guest_name|default:""|first|default:"?" }}
                                         </div>
                                         <div>
-                                            <div class="font-bold text-gray-900">{{ prereg.user.first_name|default:prereg.name|default:"Missing Name" }}</div>
-                                            <div class="text-[10px] text-gray-500">{{ prereg.user.email|default:prereg.email }}</div>
+                                            <div class="font-bold text-gray-900">{{ prereg.user.first_name|default:prereg.guest_name|default:"Missing Name" }}</div>
+                                            <div class="text-[10px] text-gray-500">{{ prereg.user.email|default:prereg.guest_email }}</div>
                                         </div>
                                     </div>
                                 </td>
                                 <td class="font-mono text-gray-500">{{ prereg.user.student_id|default:"-" }}</td>
                                 <td>
-                                    <a href="{% url 'core:toggle_ready' event.id prereg.id %}" 
+                                    <a href="{% url 'core:toggle_ready_status' event.id prereg.id %}" 
                                        class="badge badge-sm border-none {% if prereg.is_ready %}bg-green-100 text-green-700{% else %}bg-gray-100 text-gray-400{% endif %} rounded-full px-3 py-2.5 font-medium hover:opacity-70 transition-all">
                                         {% if prereg.is_ready %}Ready{% else %}Unready{% endif %}
                                     </a>
                                 </td>
                                 <td class="pr-8">
-                                    <a href="{% url 'core:toggle_attended' event.id prereg.id %}" 
+                                    <a href="{% url 'core:toggle_attended_status' event.id prereg.id %}" 
                                        class="badge badge-sm border-none {% if prereg.is_attended %}bg-blue-600 text-white{% else %}bg-gray-100 text-gray-400{% endif %} rounded-full px-3 py-2.5 font-medium hover:opacity-70 transition-all">
                                         {% if prereg.is_attended %}Present{% else %}Absent{% endif %}
                                     </a>

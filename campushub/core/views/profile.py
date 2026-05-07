@@ -2,8 +2,8 @@ from django.http import request
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from ..forms import ProfileUpdateForm
-from ..models import UserEmail
+from core.forms import ProfileUpdateForm
+from core.models import UserEmail
 
 @login_required
 def user_profile(request):
