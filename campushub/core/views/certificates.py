@@ -1,13 +1,13 @@
-from django.shortcuts import get_object_or_404, redirect
+from django.shortcuts import get_object_or_404
 from django.http import FileResponse, HttpResponse, JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 import zipfile
 import io
 
-from ..models import Event, EventCertificate, Attendance, PreRegisteredAttendee
-from ..utils import generate_certificate_pdf
-from ..forms import CertificateUploadForm
+from core.models import Event, EventCertificate, Attendance, PreRegisteredAttendee
+from core.utils import generate_certificate_pdf
+from core.forms import CertificateUploadForm
 
 @login_required
 def upload_certificate_template(request, event_id):

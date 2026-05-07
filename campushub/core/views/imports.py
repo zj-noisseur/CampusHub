@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect
 from django.http import HttpResponse
 import csv
 
-from ..models import Event, PreRegisteredAttendee, User
+from core.models import Event, PreRegisteredAttendee, User
 from django.db import IntegrityError
 from django.db.models import Q
 
@@ -84,8 +84,8 @@ def import_attendees_csv(request, event_id):
                     else:
                         prereg, _ = PreRegisteredAttendee.objects.get_or_create(
                             event=event, 
-                            email=email,
-                            defaults={'name': name}
+                            guest_email=email,
+                            defaults={'guest_name': name}
                         )
                         # Missing Student ID, instantly Unready
                         prereg.is_ready = False  
@@ -94,8 +94,8 @@ def import_attendees_csv(request, event_id):
                 else:
                     prereg, _ = PreRegisteredAttendee.objects.get_or_create(
                         event=event, 
-                        email='no-email@guest.com',
-                        defaults={'name': name}
+                        guest_email='no-email@guest.com',
+                        defaults={'guest_name': name}
                     )
                     # Missing Email and ID, instantly Unready
                     prereg.is_ready = False  
