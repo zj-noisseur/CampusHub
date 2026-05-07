@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from ..models import Club, Membership
+from core.models import Club, Membership
 from django.shortcuts import get_object_or_404
 
 @login_required

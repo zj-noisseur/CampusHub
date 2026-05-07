@@ -1,7 +1,7 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 
-from ..models import Club, Event, PreRegisteredAttendee, Attendance, ClubManager
+from core.models import Club, Event, PreRegisteredAttendee, Attendance, ClubManager
 from django.utils import timezone
 from django.db.models import Q
 
@@ -26,7 +26,7 @@ def toggle_ready_status(request, event_id, prereg_id):
     prereg.is_ready = not prereg.is_ready
     prereg.save()
     
-    return redirect('core:club_admin_dashboard', club_id=prereg.event.club.id)
+    return redirect('core:event_admin_dashboard', club_id=prereg.event.club.id, event_id=prereg.event.id)
 
 @login_required
 def toggle_attended_status(request, event_id, prereg_id):
@@ -52,7 +52,7 @@ def toggle_attended_status(request, event_id, prereg_id):
                 guest_name=prereg.name
             )
             
-    return redirect('core:club_admin_dashboard', club_id=prereg.event.club.id)
+    return redirect('core:event_admin_dashboard', club_id=prereg.event.club.id, event_id=prereg.event.id)
 
 
 @login_required
@@ -67,7 +67,7 @@ def student_dashboard(request):
     
     # 2. Get all registrations (RSVPs) for this user (account or guest email)
     my_registrations = PreRegisteredAttendee.objects.filter(
-        Q(user=user) | Q(email=user.email)
+        Q(user=user) | Q(guest_email=user.email)
     ).distinct().order_by('-event__event_date')
     
     # 3. Get clubs (Looking THROUGH the ClubManager and Membership tables)
@@ -93,7 +93,7 @@ def set_event_status(request, event_id, status):
         event.status = status.upper()
         event.save()
     
-    return redirect('core:club_admin_dashboard', club_id=event.club.id)
+    return redirect('core:event_admin_dashboard', club_id=event.club.id, event_id=event.id)
 
 def club_profile(request, club_id):
     club = get_object_or_404(Club, id=club_id)
@@ -130,7 +130,7 @@ def club_settings(request, club_id):
     if not is_manager:
         return redirect('core:club_profile', club_id=club.id)
         
-    from ..forms import ClubSettingsForm
+    from forms import ClubSettingsForm
     
     if request.method == 'POST':
         form = ClubSettingsForm(request.POST, request.FILES, instance=club)
@@ -145,3 +145,39 @@ def club_settings(request, club_id):
         'form': form,
     }
     return render(request, 'club_settings.html', context)
+    
+@login_required
+def create_event(request, club_id):
+    club = get_object_or_404(Club, id=club_id)
+    
+    # Check if the user is a manager for the club
+    if not club.managers.filter(user=request.user, is_active=True).exists():
+        return redirect('core:club_profile', club_id=club.id)
+    
+    from forms import EventCreationForm
+    from models import Post
+    
+    if request.method == 'POST':
+        form = EventCreationForm(request.POST)
+        if form.is_valid():
+            event = form.save(commit=False)
+            event.club = club
+            
+            # Since Event requires a Post (OneToOne), we create a mock Post record 
+            # to bypass the Instagram scraper requirement for manual events.
+            mock_post = Post.objects.create(
+                club=club,
+                short_code=f"manual_{timezone.now().timestamp()}",
+                caption=f"Manually created event: {event.title}",
+                timestamp=timezone.now()
+            )
+            event.post = mock_post
+            event.save()
+            return redirect('core:club_admin_dashboard', club_id=club.id)
+    else:
+        form = EventCreationForm()
+        
+    return render(request, 'create_event.html', {
+        'club': club,
+        'form': form,
+    })

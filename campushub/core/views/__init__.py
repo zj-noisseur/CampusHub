@@ -1,13 +1,13 @@
-from .sign_up import sign_up
-from .claim_club import claim_club
-from .profile import user_profile
-from .manager_dashboard import manager_dashboard, process_membership
-from .profile import edit_profile
-from .dashboards import club_profile, club_admin_dashboard, club_settings, student_dashboard
-from .imports import import_attendees_csv
-from .certificates import download_certificates, download_my_certificate
-from .dashboards import toggle_ready_status, toggle_attended_status, set_event_status
-from .club_actions import join_club, apply_manager
+from core.views.sign_up import sign_up
+from core.views.claim_club import claim_club
+from core.views.profile import user_profile
+from core.views.manager_dashboard import manager_dashboard, process_membership
+from core.views.profile import edit_profile
+from core.views.dashboards import club_profile, club_admin_dashboard, club_settings, student_dashboard
+from core.views.imports import import_attendees_csv
+from core.views.certificates import download_certificates, download_my_certificate
+from core.views.dashboards import toggle_ready_status, toggle_attended_status, set_event_status
+from core.views.club_actions import join_club, apply_manager
 
 __all__ = [
     'sign_up',

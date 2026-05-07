@@ -1,12 +1,36 @@
 from django.shortcuts import get_object_or_404
-from django.http import FileResponse, HttpResponse
+from django.http import FileResponse, HttpResponse, JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 import zipfile
 import io
 
-from ..models import Event, EventCertificate, Attendance, PreRegisteredAttendee
-from ..utils import generate_certificate_pdf
+from core.models import Event, EventCertificate, Attendance, PreRegisteredAttendee
+from core.utils import generate_certificate_pdf
+from core.forms import CertificateUploadForm
+
+@login_required
+def upload_certificate_template(request, event_id):
+    event = get_object_or_404(Event, id=event_id)
+    
+    # Check if the user is a manager for the club that owns this event
+    if not event.club.managers.filter(user=request.user, is_active=True).exists():
+        return JsonResponse({'status': 'error', 'message': 'Permission denied. Only club managers can upload templates.'}, status=403)
+    
+    # Check if a certificate already exists for this event
+    certificate = EventCertificate.objects.filter(event=event).first()
+    
+    if request.method == 'POST':
+        form = CertificateUploadForm(request.POST, request.FILES, instance=certificate)
+        if form.is_valid():
+            cert = form.save(commit=False)
+            cert.event = event
+            cert.save()
+            return JsonResponse({'status': 'success', 'message': 'Certificate template uploaded successfully!'})
+        else:
+            return JsonResponse({'status': 'error', 'errors': form.errors}, status=400)
+    
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method.'}, status=405)
 
 def download_certificates(request, event_id):
     event = Event.objects.get(id=event_id)
@@ -49,7 +73,8 @@ def download_certificates(request, event_id):
                 custom_x=template.name_center_x,
                 custom_y=template.name_center_y,
                 font_size=template.font_size,
-                font_color=template.font_color
+                font_color=template.font_color,
+                font_name=template.font_name
             )
             
             filename = f"{student_name}_Certificate.pdf"
@@ -89,7 +114,8 @@ def download_my_certificate(request, event_id):
         custom_x=template.name_center_x,
         custom_y=template.name_center_y,
         font_size=template.font_size,
-        font_color=template.font_color
+        font_color=template.font_color,
+        font_name=template.font_name
     )
     
     pdf_buffer.seek(0)

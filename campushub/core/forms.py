@@ -1,6 +1,6 @@
 from django.contrib.auth.forms import UserCreationForm, get_user_model
 from django import forms
-from .models import Club, ClubManager, ClaimRequest, Membership
+from core.models import Club, ClubManager, ClaimRequest, Membership
 
 User = get_user_model()
 
@@ -114,3 +114,29 @@ class ClubSettingsForm(forms.ModelForm):
             'membership_fee': forms.NumberInput(attrs={'class': 'input input-bordered w-full max-w-xs', 'step': '0.01'}),
             'payment_qr_code': forms.FileInput(attrs={'class': 'file-input file-input-bordered w-full max-w-xs'}),
         }
+
+from core.models import Event
+
+class EventCreationForm(forms.ModelForm):
+    class Meta:
+        model = Event
+        fields = ['title', 'event_date', 'location']
+        widgets = {
+            'title': forms.TextInput(attrs={'class': 'input input-bordered w-full', 'placeholder': 'e.g., Annual Tech Symposium'}),
+            'event_date': forms.DateInput(attrs={'class': 'input input-bordered w-full', 'type': 'date'}),
+            'location': forms.TextInput(attrs={'class': 'input input-bordered w-full', 'placeholder': 'e.g., Main Hall'}),
+        }
+
+from core.models import EventCertificate
+
+class CertificateUploadForm(forms.ModelForm):
+    class Meta:
+        model = EventCertificate
+        fields = ['template_image', 'name_center_x', 'name_center_y', 'font_color', 'font_size', 'font_name']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # If we are updating an existing certificate, the image is not strictly required 
+        # (it will keep the old one if not provided).
+        if self.instance and self.instance.pk:
+            self.fields['template_image'].required = False

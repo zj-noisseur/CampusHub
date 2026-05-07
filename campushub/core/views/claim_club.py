@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from ..forms import ClaimClubForm
+from core.forms import ClaimClubForm
 
 @login_required(login_url='/admin/login/')
 def claim_club(request):

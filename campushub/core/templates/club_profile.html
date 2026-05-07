@@ -237,8 +237,8 @@
                 <div class="flex flex-col gap-4">
                     {% for event in events %}
                     <div class="luma-card bg-white rounded-2xl p-5 flex flex-col sm:flex-row gap-5 group hover:border-blue-400 hover:shadow-md transition-all cursor-pointer relative overflow-hidden">
-                        <!--for adding event post redirect in the future, emthy link for now -->
-                        <a href="#" class="absolute inset-0 z-0"></a>
+                        <!-- Redirect to feed and highlight the event's post -->
+                        <a href="{% url 'core:feed' %}?club={{ club.id }}#post-{{ event.post.id }}" class="absolute inset-0 z-0"></a>
                         
                         <div class="relative z-10 w-16 h-16 rounded-xl bg-gray-50 border border-gray-100 flex flex-col items-center justify-center flex-shrink-0 pointer-events-none">
                             <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">{{ event.event_date|date:"M" }}</span>

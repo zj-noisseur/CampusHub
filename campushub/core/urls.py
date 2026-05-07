@@ -1,6 +1,5 @@
 from django.urls import path
 from django.contrib.auth import views as auth_views
-
 from core.views.directory import directory
 from core.views.clubs import clubs
 from core.views.universities import universities
@@ -12,9 +11,9 @@ from core.views.profile import user_profile, edit_profile
 from core.views.calendar import calendar
 from core.views.club_actions import join_club, apply_manager
 from core.views.manager_dashboard import manager_dashboard, process_membership
-from core.views.dashboards import club_profile, club_admin_dashboard, club_settings, student_dashboard, toggle_ready_status, toggle_attended_status, set_event_status
 from core.views.imports import import_attendees_csv
-from core.views.certificates import download_certificates, download_my_certificate
+from core.views.certificates import upload_certificate_template, download_certificates, download_my_certificate
+from core.views.dashboards import club_profile, club_admin_dashboard, club_settings, student_dashboard, toggle_ready_status, toggle_attended_status, set_event_status, create_event
 
 app_name = 'core'
 urlpatterns = [
@@ -34,13 +33,17 @@ urlpatterns = [
     path('profile/edit/', edit_profile, name='edit_profile'),
     path('profile/manager/<int:club_id>/', manager_dashboard, name='manager_dashboard'),
     path('club/<int:club_id>/admin/', club_admin_dashboard, name='club_admin_dashboard'),
+    path('club/<int:club_id>/admin/<int:event_id>/', club_admin_dashboard, name='event_admin_dashboard'),
+    path('club/<int:club_id>/create-event/', create_event, name='create_event'),
     path('club/<int:club_id>/settings/', club_settings, name='club_settings'),
     path('student/dashboard/', student_dashboard, name='student_dashboard'),
+    path('dashboard/', student_dashboard, name='dashboard_shortcut'),
     path('membership/<int:membership_id>/<str:action>/', process_membership, name='process_membership'),
     path('event/<int:event_id>/toggle-ready/<int:prereg_id>/', toggle_ready_status, name='toggle_ready_status'),
     path('event/<int:event_id>/toggle-attended/<int:prereg_id>/', toggle_attended_status, name='toggle_attended_status'),
     path('event/<int:event_id>/set-status/<str:status>/', set_event_status, name='set_event_status'),
     path('event/<int:event_id>/import-attendees/', import_attendees_csv, name='import_attendees_csv'),
+    path('upload-certificate-template/<int:event_id>/', upload_certificate_template, name='upload_certificate_template'),
     path('event/<int:event_id>/download-certificates/', download_certificates, name='download_certificates'),
     path('event/<int:event_id>/download-certificate/', download_my_certificate, name='download_my_certificate'),
     path('calendar/', calendar, name='calendar'),

@@ -10,12 +10,6 @@ from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 from django.utils import timezone
 
-
-def validate_mmu_email(value):
-    if not value.endswith('@student.mmu.edu.my'):
-        raise ValidationError("Only @student.mmu.edu.my email addresses are allowed for Phase 1.")
-
-
 class CustomUserManager(BaseUserManager):
     def create_user(self, email, student_name, password=None, **extra_fields):
         if not email:
@@ -34,7 +28,7 @@ class CustomUserManager(BaseUserManager):
 
 class User(AbstractBaseUser, PermissionsMixin):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    email = models.EmailField(unique=True, validators=[validate_mmu_email])
+    email = models.EmailField(unique=True)
     student_name = models.CharField(max_length=255)
     student_id = models.CharField(max_length=20, blank=True, null=True, unique=True)
     phone_number = models.CharField(max_length=20, blank=True, null=True)
@@ -333,6 +327,17 @@ class Event(models.Model):
     title = models.CharField(max_length=255)
     event_date = models.DateField()
     location = models.CharField(max_length=255)
+    
+    STATUS_CHOICES = [
+        ('PREPARING', 'Preparing'),
+        ('ONGOING', 'Ongoing'),
+        ('FINISHED', 'Finished'),
+    ]
+    status = models.CharField(max_length=15, choices=STATUS_CHOICES, default='PREPARING')
+
+    @property
+    def is_finished(self):
+        return self.status == 'FINISHED'
 
     class Meta:
         indexes = [models.Index(fields=['event_date'])]
@@ -348,7 +353,7 @@ class Attendance(models.Model):
     guest_name = models.CharField(max_length=255, null=True, blank=True)
     guest_email = models.EmailField(max_length=255, null=True, blank=True)
     guest_phone = models.CharField(max_length=50, null=True, blank=True)
-    scanned_at = models.DateTimeField(auto_now_add=True)
+    check_in_time = models.DateTimeField(auto_now_add=True)
     certificate_sent = models.BooleanField(default=False)
 
     class Meta:
@@ -408,7 +413,38 @@ class EventCertificate(models.Model):
     name_center_y = models.IntegerField()
     font_size = models.IntegerField(default=24)
     font_color = models.CharField(max_length=7, default='#000000')
+    font_name = models.CharField(
+        max_length=50, 
+        choices=[
+            ('Helvetica-Bold', 'Helvetica Bold'),
+            ('Helvetica', 'Helvetica Regular'),
+            ('Times-Bold', 'Times Bold'),
+            ('Times-Roman', 'Times Regular'),
+            ('Courier-Bold', 'Courier Bold'),
+            ('Courier', 'Courier Regular'),
+        ],
+        default='Helvetica-Bold'
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"Certificate Template for {self.event.title}"
+
+# --- Signals to Sync Attendance ---
+
+@receiver(post_save, sender=Attendance)
+def sync_prereg_on_save(sender, instance, created, **kwargs):
+    """When an Attendance record is created (via admin or app), mark the PreRegistered record as Present."""
+    if created:
+        if instance.user:
+            PreRegisteredAttendee.objects.filter(event=instance.event, user=instance.user).update(is_attended=True)
+        elif instance.guest_email:
+            PreRegisteredAttendee.objects.filter(event=instance.event, guest_email=instance.guest_email).update(is_attended=True)
+
+@receiver(post_delete, sender=Attendance)
+def sync_prereg_on_delete(sender, instance, **kwargs):
+    """When an Attendance record is deleted, mark the PreRegistered record as Absent."""
+    if instance.user:
+        PreRegisteredAttendee.objects.filter(event=instance.event, user=instance.user).update(is_attended=False)
+    elif instance.guest_email:
+        PreRegisteredAttendee.objects.filter(event=instance.event, guest_email=instance.guest_email).update(is_attended=False)
