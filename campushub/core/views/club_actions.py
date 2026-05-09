@@ -41,6 +41,15 @@ def join_club(request, club_id):
 def apply_manager(request, club_id):
     target_club = get_object_or_404(Club, id=club_id)
 
+    is_active_member = Membership.objects.filter(
+        user=request.user, 
+        club=target_club, 
+        status='ACTIVE'
+    ).exists()
+    
+    if not is_active_member:
+        messages.error(request, "Nice try! You must be an active member of the club to apply for a manager position.")
+
     if request.method == 'POST':
         designation = request.POST.get('claimer_designation')
         proof = request.FILES.get('proof_document')

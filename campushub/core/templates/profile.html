@@ -97,7 +97,7 @@
                                 {% if user.joined_clubs.all %}
                                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         {% for club in user.joined_clubs.all %}
-                                        <a href="#" class="group block bg-white p-4 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-indigo-100 transition-all duration-200">
+                                        <a href="{% url 'core:club_profile' club.id %}" class="group block bg-white p-4 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-indigo-100 transition-all duration-200">
                                             <div class="flex items-center gap-4">
                                                 <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-xl group-hover:scale-105 transition-transform duration-300">
                                                     {{ club.name|make_list|first|upper }}
@@ -113,7 +113,7 @@
                                 {% else %}
                                     <div class="bg-gray-50 p-8 rounded-2xl border border-gray-100 text-center flex flex-col items-center justify-center">
                                         <p class="text-gray-500 mb-4">This student hasn't joined any clubs yet.</p>
-                                        <a href="#" class="btn bg-black hover:bg-gray-800 text-white rounded-full btn-sm px-6 border-none">Explore Clubs</a>
+                                        <a href="{% url 'core:directory' %}" class="btn bg-black hover:bg-gray-800 text-white rounded-full btn-sm px-6 border-none">Explore Clubs</a>
                                     </div>
                                 {% endif %}
                             </div>
