@@ -76,6 +76,7 @@
                         <tr class="text-gray-500 border-b-2 border-gray-100">
                             <th>Student</th>
                             <th>Student ID</th>
+                            <th>Payment Proof</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -86,7 +87,40 @@
                                 <div class="font-bold text-black">{{ member.user.student_name }}</div>
                                 <div class="text-xs text-gray-400">{{ member.user.email }}</div>
                             </td>
-                            <td class="text-gray-600 font-medium">{{ member.user.student_id|default:"-" }}</td>
+                            <td class="text-gray-600 font-medium">{{ member.user.student_id|default:"-" }}</td>                            <td class="flex gap-2">
+                            <td>
+                                {% if member.payment_proof %}
+                                    <button type="button" onclick="document.getElementById('proof_modal_{{ member.id }}').showModal()" class="btn btn-xs bg-gray-200 hover:bg-gray-300 text-gray-800 border-none rounded-md">
+                                        🖼️ View Proof
+                                    </button>
+                                    <!-- THE MODAL: Hidden until clicked -->
+                                    <dialog id="proof_modal_{{ member.id }}" class="modal">
+                                        <div class="modal-box bg-white p-2 rounded-2xl max-w-2xl relative">
+                                            
+                                            <!-- Close Button (Top Right) -->
+                                            <form method="dialog">
+                                                <button class="btn btn-sm btn-circle btn-ghost absolute right-4 top-4 bg-white/80 hover:bg-gray-200 shadow-sm z-10">✕</button>
+                                            </form>
+
+                                            <!-- The Receipt Image -->
+                                            <div class="w-full flex justify-center items-center bg-gray-50 rounded-xl overflow-hidden min-h-[300px]">
+                                                <img src="{{ member.payment_proof.url }}" alt="Payment Proof" class="max-w-full max-h-[75vh] object-contain rounded-lg shadow-sm">
+                                            </div>
+                                            
+                                        </div>
+                                        
+                                        <!-- Clicking outside the image closes the modal -->
+                                        <form method="dialog" class="modal-backdrop">
+                                            <button>close</button>
+                                        </form>
+                                    </dialog>
+
+                                {% elif member.membership_type == 'UNLIMITED' %}
+                                    <span class="text-xs text-red-500 font-medium">Missing Proof!</span>
+                                {% else %}
+                                    <span class="text-xs text-gray-400 font-medium">Not Required</span>
+                                {% endif %}
+                            </td>
                             <td class="flex gap-2">
                                 <form method="POST" action="{% url 'core:process_membership' member.id 'approve' %}">
                                     {% csrf_token %}
