@@ -139,4 +139,4 @@ class Command(BaseCommand):
                     defaults={'ig_handle': data['ig_handle']}
                 )
 
-        self.stdout.write(self.style.SUCCESS('✅ Database updated with verified handles only.'))
+        self.stdout.write(self.style.SUCCESS('Database updated with verified handles only.'))
