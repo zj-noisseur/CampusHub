@@ -74,7 +74,12 @@ def download_certificates(request, event_id):
                 custom_y=template.name_center_y,
                 font_size=template.font_size,
                 font_color=template.font_color,
-                font_name=template.font_name
+                font_name=template.font_name,
+                extra_text=template.custom_text,
+                extra_x=template.custom_x,
+                extra_y=template.custom_y,
+                extra_font_size=template.custom_font_size,
+                extra_font_color=template.custom_font_color
             )
             
             filename = f"{student_name}_Certificate.pdf"
@@ -115,7 +120,12 @@ def download_my_certificate(request, event_id):
         custom_y=template.name_center_y,
         font_size=template.font_size,
         font_color=template.font_color,
-        font_name=template.font_name
+        font_name=template.font_name,
+        extra_text=template.custom_text,
+        extra_x=template.custom_x,
+        extra_y=template.custom_y,
+        extra_font_size=template.custom_font_size,
+        extra_font_color=template.custom_font_color
     )
     
     pdf_buffer.seek(0)

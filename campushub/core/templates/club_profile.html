@@ -56,9 +56,9 @@
                     <span class="flex items-center gap-1">📍 Cyberjaya Campus</span>
                     <span>•</span>
                     <span class="flex items-center gap-1">👥 {{ club.members.count }} Members</span>
-                    {% if club.category %}
+                    {% if club.club_category %}
                         <span>•</span>
-                        <span class="flex items-center gap-1">🏷️ {{ club.category }}</span>
+                        <span class="flex items-center gap-1">🏷️ {{ club.club_category }}</span>
                     {% endif %}
                 </div>
                 <p class="mt-4 max-w-2xl text-gray-600 leading-relaxed">
@@ -228,7 +228,7 @@
                     <h2 class="text-2xl font-bold text-gray-900">Events</h2>
                     
                     {% if is_manager %}
-                    <a href="#" class="btn btn-sm bg-gray-900 text-white hover:bg-gray-800 rounded-lg border-none shadow-sm">
+                    <a href="{% url 'core:create_event' club.id %}" class="btn btn-sm bg-gray-900 text-white hover:bg-gray-800 rounded-lg border-none shadow-sm">
                         + Create Event
                     </a>
                     {% endif %}

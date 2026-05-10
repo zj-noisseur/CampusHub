@@ -51,12 +51,15 @@
                         <a href="{% url 'core:import_attendees_csv' event.id %}" class="btn btn-sm border-none bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-full px-4 font-medium">
                             📤 Import CSV
                         </a>
-                        <button onclick="openUploadModal('{{ event.id|escapejs }}', '{{ event.title|escapejs }}', '{% if event.certificates.first %}{{ event.certificates.first.template_image.url|escapejs }}{% endif %}', '{{ event.certificates.first.name_center_x|escapejs }}', '{{ event.certificates.first.name_center_y|escapejs }}', '{{ event.certificates.first.font_color|default:'#000000'|escapejs }}', '{{ event.certificates.first.font_size|default:'24'|escapejs }}', '{{ event.certificates.first.font_name|default:'Helvetica-Bold'|escapejs }}')" class="btn btn-sm border-none bg-purple-50 text-purple-600 hover:bg-purple-100 rounded-full px-4 font-medium">
+                        <button onclick="openUploadModal('{{ event.id|escapejs }}', '{{ event.title|escapejs }}', '{% if event.certificates.first %}{{ event.certificates.first.template_image.url|escapejs }}{% endif %}', '{{ event.certificates.first.name_center_x|escapejs }}', '{{ event.certificates.first.name_center_y|escapejs }}', '{{ event.certificates.first.font_color|default:'#000000'|escapejs }}', '{{ event.certificates.first.font_size|default:'24'|escapejs }}', '{{ event.certificates.first.font_name|default:'Helvetica-Bold'|escapejs }}', '{{ event.certificates.first.custom_text|escapejs }}', '{{ event.certificates.first.custom_x|escapejs }}', '{{ event.certificates.first.custom_y|escapejs }}', '{{ event.certificates.first.custom_font_size|default:'20'|escapejs }}', '{{ event.certificates.first.custom_font_color|default:'#000000'|escapejs }}')" class="btn btn-sm border-none bg-purple-50 text-purple-600 hover:bg-purple-100 rounded-full px-4 font-medium">
                             🎨 Upload Template
                         </button>
                         <a href="{% url 'core:download_certificates' event.id %}" class="btn btn-sm border-none bg-green-50 text-green-600 hover:bg-green-100 rounded-full px-4 font-medium">
                             🎓 Certificates
                         </a>
+                        <button onclick="openQRModal('{{ event.id|escapejs }}', '{{ event.title|escapejs }}')" class="btn btn-sm border-none bg-orange-50 text-orange-600 hover:bg-orange-100 rounded-full px-4 font-medium">
+                            📱 QR Check-in
+                        </button>
                         <div class="dropdown dropdown-end">
                             <label tabindex="0" class="btn btn-sm border-none 
                                 {% if event.status == 'FINISHED' %}bg-gray-900 text-white
@@ -157,7 +160,7 @@
 
     <!-- Certificate Upload Modal -->
     <dialog id="upload_modal" class="modal">
-        <div class="modal-box w-11/12 max-w-5xl bg-white p-0 overflow-hidden flex flex-col h-[85vh] rounded-3xl">
+        <div class="modal-box w-11/12 max-w-6xl bg-white p-0 overflow-hidden flex flex-col h-[85vh] rounded-3xl">
             <div class="p-6 md:p-8 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
                 <div>
                     <h3 class="font-bold text-2xl text-gray-900" id="modal_event_title">Certificate Configuration</h3>
@@ -168,49 +171,41 @@
                 </form>
             </div>
             
-            <div class="flex-1 overflow-hidden flex flex-col md:flex-row">
+            <div class="flex-1 overflow-hidden flex flex-row">
                 <!-- Left Side: Settings -->
-                <div class="w-full md:w-80 p-8 border-r border-gray-100 overflow-y-auto bg-white">
+                <div class="w-80 h-full p-8 border-r border-gray-100 overflow-y-auto bg-white shrink-0">
                     <form id="upload_form" enctype="multipart/form-data">
                         {% csrf_token %}
                         <div class="flex flex-col gap-6">
+                            <!-- Field Selection -->
+                            <div>
+                                <label class="label p-0 mb-3">
+                                    <span class="text-[10px] font-bold uppercase tracking-widest text-gray-400">Positioning Target</span>
+                                </label>
+                                <div class="grid grid-cols-2 gap-2 p-1 bg-gray-50 rounded-xl border border-gray-100">
+                                    <label class="flex items-center justify-center py-2 rounded-lg cursor-pointer transition-all has-[:checked]:bg-white has-[:checked]:shadow-sm has-[:checked]:text-gray-900 text-gray-400 font-medium text-xs">
+                                        <input type="radio" name="target_field" value="name" class="hidden" checked>
+                                        Student Name
+                                    </label>
+                                    <label class="flex items-center justify-center py-2 rounded-lg cursor-pointer transition-all has-[:checked]:bg-white has-[:checked]:shadow-sm has-[:checked]:text-gray-900 text-gray-400 font-medium text-xs">
+                                        <input type="radio" name="target_field" value="custom" class="hidden">
+                                        Custom Field
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="divider text-[10px] font-bold uppercase tracking-widest text-gray-400 my-0">Template</div>
+                            
                             <div>
                                 <label class="label p-0 mb-2">
                                     <span class="text-[10px] font-bold uppercase tracking-widest text-gray-400">Template Image</span>
                                 </label>
                                 <input type="file" name="template_image" id="id_template_image" class="file-input file-input-bordered w-full rounded-xl text-sm" accept="image/*">
                             </div>
-                            
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label class="label p-0 mb-2">
-                                        <span class="text-[10px] font-bold uppercase tracking-widest text-gray-400">Name X (Center)</span>
-                                    </label>
-                                    <input type="number" name="name_center_x" id="id_name_center_x" class="input input-bordered w-full rounded-xl font-mono text-sm" value="400" required>
-                                </div>
-                                <div>
-                                     <label class="label p-0 mb-2">
-                                         <span class="text-[10px] font-bold uppercase tracking-widest text-gray-400">Name Y (Level)</span>
-                                     </label>
-                                    <input type="number" name="name_center_y" id="id_name_center_y" class="input input-bordered w-full rounded-xl font-mono text-sm" value="300" required>
-                                </div>
-                            </div>
 
                             <div>
                                 <label class="label p-0 mb-2">
-                                    <span class="text-[10px] font-bold uppercase tracking-widest text-gray-400">Font Size</span>
-                                </label>
-                                <div class="flex items-center gap-3">
-                                    <button type="button" onclick="adjustFontSize(-2)" class="btn btn-sm btn-circle btn-outline border-gray-200">－</button>
-                                    <input type="number" name="font_size" id="id_font_size" class="input input-bordered flex-1 rounded-xl font-mono text-center text-sm" value="24" required>
-                                    <button type="button" onclick="adjustFontSize(2)" class="btn btn-sm btn-circle btn-outline border-gray-200">＋</button>
-                                </div>
-                                <input type="range" id="id_font_size_slider" min="10" max="200" value="24" class="range range-xs range-primary mt-4">
-                            </div>
-
-                            <div>
-                                <label class="label p-0 mb-2">
-                                    <span class="text-[10px] font-bold uppercase tracking-widest text-gray-400">Font Style</span>
+                                    <span class="text-[10px] font-bold uppercase tracking-widest text-gray-400">Font Style (Global)</span>
                                 </label>
                                 <select name="font_name" id="id_font_name" class="select select-bordered w-full rounded-xl text-sm font-medium">
                                     <option value="Helvetica-Bold">Helvetica Bold</option>
@@ -222,24 +217,92 @@
                                 </select>
                             </div>
 
-                            <div>
-                                <label class="label p-0 mb-2">
-                                    <span class="text-[10px] font-bold uppercase tracking-widest text-gray-400">Name Color</span>
-                                </label>
-                                <div class="flex gap-3 items-center">
-                                    <input type="color" name="font_color" id="id_font_color" class="w-12 h-12 rounded-xl cursor-pointer border-none p-0 bg-transparent" value="#000000">
-                                    <input type="text" id="id_font_color_hex" class="input input-bordered flex-1 font-mono text-sm rounded-xl uppercase" value="#000000">
+                            <div class="divider text-[10px] font-bold uppercase tracking-widest text-gray-400 my-0">Student Name</div>
+
+                            <div class="space-y-4">
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="label p-0 mb-2">
+                                            <span class="text-[10px] font-bold uppercase tracking-widest text-gray-400">Name X</span>
+                                        </label>
+                                        <input type="number" name="name_center_x" id="id_name_center_x" class="input input-bordered w-full rounded-xl font-mono text-sm" value="400" required>
+                                    </div>
+                                    <div>
+                                         <label class="label p-0 mb-2">
+                                             <span class="text-[10px] font-bold uppercase tracking-widest text-gray-400">Name Y</span>
+                                         </label>
+                                        <input type="number" name="name_center_y" id="id_name_center_y" class="input input-bordered w-full rounded-xl font-mono text-sm" value="300" required>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label class="label p-0 mb-2">
+                                        <span class="text-[10px] font-bold uppercase tracking-widest text-gray-400">Name Size & Color</span>
+                                    </label>
+                                    <div class="flex items-center gap-2">
+                                        <input type="number" name="font_size" id="id_font_size" class="input input-bordered w-16 rounded-xl font-mono text-center text-sm px-1" value="24" required>
+                                        <input type="color" name="font_color" id="id_font_color" class="w-10 h-10 rounded-xl cursor-pointer border border-gray-200 p-1 bg-transparent" value="#000000">
+                                        <input type="text" id="id_font_color_hex" class="input input-bordered flex-1 font-mono text-xs rounded-xl uppercase px-2" value="#000000">
+                                    </div>
+                                    <input type="range" id="id_font_size_slider" min="10" max="200" value="24" class="range range-xs range-primary mt-3">
                                 </div>
                             </div>
 
+                            <div id="custom_field_section" class="hidden">
+                                <div class="divider text-[10px] font-bold uppercase tracking-widest text-gray-400 my-0">Custom Field</div>
 
+                                <div class="space-y-4">
+                                    <div>
+                                        <label class="label p-0 mb-2 flex justify-between items-center">
+                                            <span class="text-[10px] font-bold uppercase tracking-widest text-gray-400">Custom Text</span>
+                                            <button type="button" onclick="removeCustomField()" class="text-[10px] font-bold uppercase text-red-500 hover:text-red-700 tracking-widest">✕ Remove</button>
+                                        </label>
+                                        <input type="text" name="custom_text" id="id_custom_text" class="input input-bordered w-full rounded-xl text-sm" placeholder="e.g., Date or President Name">
+                                    </div>
 
-                            <button type="submit" id="submit_btn" class="btn bg-gray-900 text-white hover:bg-black w-full rounded-2xl border-none mt-4 h-12">
-                                Save Configuration
-                            </button>
-                        </div>
-                    </form>
-                </div>
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="label p-0 mb-2">
+                                                <span class="text-[10px] font-bold uppercase tracking-widest text-gray-400">Custom X</span>
+                                            </label>
+                                            <input type="number" name="custom_x" id="id_custom_x" class="input input-bordered w-full rounded-xl font-mono text-sm" value="800">
+                                        </div>
+                                        <div>
+                                             <label class="label p-0 mb-2">
+                                                 <span class="text-[10px] font-bold uppercase tracking-widest text-gray-400">Custom Y</span>
+                                             </label>
+                                            <input type="number" name="custom_y" id="id_custom_y" class="input input-bordered w-full rounded-xl font-mono text-sm" value="800">
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label class="label p-0 mb-2">
+                                            <span class="text-[10px] font-bold uppercase tracking-widest text-gray-400">Custom Size & Color</span>
+                                        </label>
+                                        <div class="flex items-center gap-2 mb-3">
+                                            <button type="button" onclick="adjustCustomFontSize(-2)" class="btn btn-xs btn-circle btn-outline border-gray-200">－</button>
+                                            <input type="number" name="custom_font_size" id="id_custom_font_size" class="input input-bordered w-16 rounded-xl font-mono text-center text-sm px-1" value="48">
+                                            <button type="button" onclick="adjustCustomFontSize(2)" class="btn btn-xs btn-circle btn-outline border-gray-200">＋</button>
+                                            <input type="color" name="custom_font_color" id="id_custom_font_color" class="w-10 h-10 rounded-xl cursor-pointer border border-gray-200 p-1 bg-transparent" value="#000000">
+                                            <input type="text" id="id_custom_font_color_hex" class="input input-bordered flex-1 font-mono text-xs rounded-xl uppercase px-2" value="#000000">
+                                        </div>
+                                        <input type="range" id="id_custom_font_size_slider" min="10" max="200" value="48" class="range range-xs range-primary">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="add_field_container" class="mt-2">
+                                <button type="button" onclick="addCustomField()" class="btn btn-sm btn-ghost w-full rounded-xl border-dashed border-2 border-gray-200 text-gray-400 hover:border-gray-400 hover:text-gray-600 font-bold text-[10px] uppercase tracking-widest h-12">
+                                    + Add Custom Field
+                                </button>
+                            </div>
+
+                        <button type="submit" id="submit_btn" class="btn bg-gray-900 text-white hover:bg-black w-full rounded-2xl border-none mt-4 h-12">
+                            Save Configuration
+                        </button>
+                    </div>
+                </form>
+            </div>
 
                 <!-- Right Side: Preview -->
                 <div class="flex-1 bg-gray-50 flex items-center justify-center p-8 relative overflow-hidden">
@@ -256,6 +319,29 @@
         </div>
     </dialog>
 
+    <!-- QR Modal -->
+    <dialog id="qr_modal" class="modal">
+        <div class="modal-box max-w-sm bg-white p-8 rounded-3xl text-center">
+            <h3 class="font-bold text-2xl text-gray-900 mb-2">Event QR Code</h3>
+            <p class="text-sm text-gray-500 mb-8" id="qr_event_title"></p>
+            
+            <div class="bg-gray-50 p-6 rounded-3xl flex flex-col justify-center items-center mb-8 mx-auto w-fit border-2 border-dashed border-gray-200">
+                <div id="qrcode" class="p-2 bg-white rounded-xl shadow-sm"></div>
+            </div>
+
+            <div class="space-y-3">
+                <button onclick="qr_modal.close()" class="btn bg-gray-900 text-white hover:bg-black w-full rounded-2xl border-none h-12">
+                    Close
+                </button>
+                <p class="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Verification Mode Active</p>
+            </div>
+        </div>
+        <form method="dialog" class="modal-backdrop">
+            <button>close</button>
+        </form>
+    </dialog>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script>
         let currentEventId = null;
         const modal = document.getElementById('upload_modal');
@@ -274,10 +360,65 @@
         const fontNameInput = document.getElementById('id_font_name');
         const submitBtn = document.getElementById('submit_btn');
 
+        // Custom Field Elements
+        const customTextInput = document.getElementById('id_custom_text');
+        const customXInput = document.getElementById('id_custom_x');
+        const customYInput = document.getElementById('id_custom_y');
+        const customFontSizeInput = document.getElementById('id_custom_font_size');
+        const customFontSizeSlider = document.getElementById('id_custom_font_size_slider');
+        const customColorInput = document.getElementById('id_custom_font_color');
+        const customColorHexInput = document.getElementById('id_custom_font_color_hex');
+
         let templateImage = new Image();
         let imageLoaded = false;
+        let qrGenerator = null;
+        let qrInterval = null;
 
-        function openUploadModal(eventId, eventTitle, imageUrl, x, y, color, fontSize, fontName) {
+        function generateUniqueQR(eventId) {
+            const qrContainer = document.getElementById('qrcode');
+            qrContainer.innerHTML = '';
+            
+            // Generate a unique token using timestamp and random string
+            const timestamp = Date.now();
+            const randomStr = Math.random().toString(36).substring(2, 8).toUpperCase();
+            const uniqueToken = `CH_${eventId}_${timestamp}_${randomStr}`;
+            
+            new QRCode(qrContainer, {
+                text: uniqueToken,
+                width: 200,
+                height: 200,
+                colorDark : "#000000",
+                colorLight : "#ffffff",
+                correctLevel : QRCode.CorrectLevel.H
+            });
+            
+            console.log("Generated New QR:", uniqueToken);
+        }
+
+        function openQRModal(eventId, eventTitle) {
+            document.getElementById('qr_event_title').innerText = eventTitle;
+            
+            // Initial generation
+            generateUniqueQR(eventId);
+            
+            // Set interval to refresh every 10 seconds
+            if (qrInterval) clearInterval(qrInterval);
+            qrInterval = setInterval(() => {
+                generateUniqueQR(eventId);
+            }, 10000);
+            
+            document.getElementById('qr_modal').showModal();
+        }
+
+        // Close interval when modal is closed
+        document.getElementById('qr_modal').addEventListener('close', () => {
+            if (qrInterval) {
+                clearInterval(qrInterval);
+                qrInterval = null;
+            }
+        });
+
+        function openUploadModal(eventId, eventTitle, imageUrl, x, y, color, fontSize, fontName, customText, customX, customY, customFontSize, customColor) {
             currentEventId = eventId;
             document.getElementById('modal_event_title').innerText = eventTitle;
             form.reset();
@@ -285,14 +426,31 @@
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
             if (imageUrl) {
-                xInput.value = x || 400;
-                yInput.value = y || 300;
+                xInput.value = x || 800;
+                yInput.value = y || 600;
                 colorInput.value = color || '#000000';
                 colorHexInput.value = (color || '#000000').toUpperCase();
-                const fSize = fontSize || 24;
+                const fSize = fontSize || 64;
                 fontSizeInput.value = fSize;
                 fontSizeSlider.value = fSize;
                 fontNameInput.value = fontName || 'Helvetica-Bold';
+
+                // Custom Field Initialization
+                customTextInput.value = customText || '';
+                customXInput.value = customX || 800;
+                customYInput.value = customY || 800;
+                customFontSizeInput.value = customFontSize || 48;
+                customFontSizeSlider.value = customFontSize || 48;
+                customColorInput.value = customColor || '#000000';
+                customColorHexInput.value = (customColor || '#000000').toUpperCase();
+
+                if (customText && customText !== 'None' && customText !== '') {
+                    document.getElementById('custom_field_section').classList.remove('hidden');
+                    document.getElementById('add_field_container').classList.add('hidden');
+                } else {
+                    document.getElementById('custom_field_section').classList.add('hidden');
+                    document.getElementById('add_field_container').classList.remove('hidden');
+                }
                 
                 templateImage.onload = function() {
                     imageLoaded = true;
@@ -305,16 +463,37 @@
                 placeholder.classList.remove('hidden');
                 previewContainer.classList.add('hidden');
                 // Set defaults for new
-                xInput.value = 400;
-                yInput.value = 300;
+                xInput.value = 800;
+                yInput.value = 600;
                 colorInput.value = '#000000';
                 colorHexInput.value = '#000000';
-                fontSizeInput.value = 24;
-                fontSizeSlider.value = 24;
+                fontSizeInput.value = 64;
+                fontSizeSlider.value = 64;
                 fontNameInput.value = 'Helvetica-Bold';
+                customFontSizeInput.value = 48;
+                customFontSizeSlider.value = 48;
+                customColorInput.value = '#000000';
+                customColorHexInput.value = '#000000';
+
+                document.getElementById('custom_field_section').classList.add('hidden');
+                document.getElementById('add_field_container').classList.remove('hidden');
             }
             
             modal.showModal();
+        }
+
+        function addCustomField() {
+            document.getElementById('custom_field_section').classList.remove('hidden');
+            document.getElementById('add_field_container').classList.add('hidden');
+            customTextInput.value = 'Custom Text';
+            drawPreview();
+        }
+
+        function removeCustomField() {
+            document.getElementById('custom_field_section').classList.add('hidden');
+            document.getElementById('add_field_container').classList.remove('hidden');
+            customTextInput.value = '';
+            drawPreview();
         }
 
         fileInput.addEventListener('change', function(e) {
@@ -372,6 +551,20 @@
             ctx.textAlign = 'center';
             ctx.fillText('Student Full Name', x, y_canvas);
             
+            // Draw Custom Field if exists
+            const customText = customTextInput.value;
+            if (customText) {
+                const cx = parseInt(customXInput.value) || 0;
+                const cy_reportlab = parseInt(customYInput.value) || 0;
+                const cy_canvas = templateImage.height - cy_reportlab;
+                const cSize = customFontSizeInput.value || 20;
+                const cColor = customColorInput.value;
+                
+                ctx.fillStyle = cColor;
+                ctx.font = `normal ${cSize}px ${browserFont}`;
+                ctx.fillText(customText, cx, cy_canvas);
+            }
+
             // Draw crosshair for visual aid
             ctx.strokeStyle = color;
             ctx.lineWidth = 4;
@@ -386,10 +579,13 @@
         }
 
         // Update preview on input change
-        [xInput, yInput, colorInput, fontSizeInput, fontSizeSlider, fontNameInput].forEach(el => {
+        [xInput, yInput, colorInput, fontSizeInput, fontSizeSlider, fontNameInput, 
+         customTextInput, customXInput, customYInput, customFontSizeInput, customFontSizeSlider, customColorInput].forEach(el => {
             el.addEventListener('input', (e) => {
                 if (e.target === fontSizeInput) fontSizeSlider.value = e.target.value;
                 if (e.target === fontSizeSlider) fontSizeInput.value = e.target.value;
+                if (e.target === customFontSizeInput) customFontSizeSlider.value = e.target.value;
+                if (e.target === customFontSizeSlider) customFontSizeInput.value = e.target.value;
                 drawPreview();
             });
         });
@@ -403,6 +599,15 @@
             drawPreview();
         }
 
+        function adjustCustomFontSize(delta) {
+            let newVal = parseInt(customFontSizeInput.value) + delta;
+            if (newVal < 10) newVal = 10;
+            if (newVal > 500) newVal = 500;
+            customFontSizeInput.value = newVal;
+            customFontSizeSlider.value = newVal;
+            drawPreview();
+        }
+
         colorInput.addEventListener('input', (e) => {
             colorHexInput.value = e.target.value.toUpperCase();
         });
@@ -410,6 +615,17 @@
         colorHexInput.addEventListener('input', (e) => {
             if (/^#[0-9A-F]{6}$/i.test(e.target.value)) {
                 colorInput.value = e.target.value;
+                drawPreview();
+            }
+        });
+
+        customColorInput.addEventListener('input', (e) => {
+            customColorHexInput.value = e.target.value.toUpperCase();
+        });
+
+        customColorHexInput.addEventListener('input', (e) => {
+            if (/^#[0-9A-F]{6}$/i.test(e.target.value)) {
+                customColorInput.value = e.target.value;
                 drawPreview();
             }
         });
@@ -427,9 +643,16 @@
             
             // Convert Canvas top-left to ReportLab bottom-left
             const clickY_reportlab = templateImage.height - clickY_canvas;
-
-            xInput.value = clickX;
-            yInput.value = clickY_reportlab;
+            
+            const targetField = document.querySelector('input[name="target_field"]:checked').value;
+            
+            if (targetField === 'name') {
+                xInput.value = clickX;
+                yInput.value = clickY_reportlab;
+            } else {
+                customXInput.value = clickX;
+                customYInput.value = clickY_reportlab;
+            }
             
             drawPreview();
         });

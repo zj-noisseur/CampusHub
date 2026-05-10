@@ -3,7 +3,8 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.colors import HexColor
 from PIL import Image
 
-def generate_certificate_pdf(student_name, background_path, custom_x, custom_y, font_size=24, font_color="#000000", font_name="Helvetica-Bold"):
+def generate_certificate_pdf(student_name, background_path, custom_x, custom_y, font_size=24, font_color="#000000", font_name="Helvetica-Bold", 
+                             extra_text=None, extra_x=None, extra_y=None, extra_font_size=20, extra_font_color="#000000"):
     # 1. Create a "virtual file" in memory
     buffer = io.BytesIO()
     
@@ -27,8 +28,17 @@ def generate_certificate_pdf(student_name, background_path, custom_x, custom_y, 
     
     # 7. Draw the text
     p.drawString(start_x, custom_y, student_name)
+
+    # 8. Draw extra text if provided
+    if extra_text and extra_x is not None and extra_y is not None:
+        p.setFont(font_name, extra_font_size)
+        p.setFillColor(HexColor(extra_font_color))
+        # Center extra text
+        extra_text_width = p.stringWidth(extra_text, font_name, extra_font_size)
+        extra_start_x = extra_x - (extra_text_width / 2)
+        p.drawString(extra_start_x, extra_y, extra_text)
     
-    # 8. Save and rewind the file
+    # 9. Save and rewind the file
     p.showPage()
     p.save()
     buffer.seek(0)
