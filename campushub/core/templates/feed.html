@@ -1,0 +1,140 @@
+    {% extends 'base.html' %}
+    {% block title %}Feed{% endblock %}
+    {% block content %}
+    <!--
+    <form method="get">
+        <input type="text" class="input" placeholder="Enter the name of your club" list="club-dropdown">
+        <datalist id="club-dropdown">
+            {% for club in clubs %}
+            <option value="{{ club.id }}">{{ club.name }}</option>
+            {% endfor %}
+        </datalist>
+        <button type="submit">Apply</button>
+    </form>
+
+    <ul>
+        {% for post in page_obj %}
+        <li>
+            <h3>{{ post.club.name }}</h3>
+            <p>{{ post.timestamp }}</p>
+            {% if post.images %}
+            <img src="{{ post.images.0.image.url }}" alt="{{ post.club.name }}" width="280">
+            {% endif %}
+            <p>{{ post.caption|truncatechars:260 }}</p>
+            {% if post.short_code %}
+            <a href="https://www.instagram.com/p/{{ post.short_code }}/" target="_blank" rel="noopener noreferrer">Open post</a>
+            {% endif %}
+        </li>
+        {% empty %}
+        <li>No posts found.</li>
+        {% endfor %}
+    </ul>
+
+    <div>
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}{% if selected_club %}&club={{ selected_club }}{% endif %}">Previous</a>
+        {% endif %}
+
+        <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}{% if selected_club %}&club={{ selected_club }}{% endif %}">Next</a>
+        {% endif %}
+    </div>
+    -->
+    <div class="space-y-6">
+        <!-- <section class="card bg-base-200 shadow-md p-4">
+            <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+                <div>
+                    <h1 class="text-2xl font-bold">CampusHub Feed</h1>
+                    <p class="text-sm text-base-content/70">Browse the latest club posts in descending order by publish date.</p>
+                </div>
+                <form method="get" class="flex flex-col gap-3 sm:flex-row sm:items-end">
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Filter by club</span>
+                        </label>
+                        <input name="club" type="text" placeholder="Enter club name" list="club-dropdown" class="input input-bordered w-full sm:w-72" autocomplete="off" />
+                        <datalist id="club-dropdown">
+                            {% for club in clubs %}
+                            <option value="{{ club.id }}">{{ club.name }}</option>
+                            {% endfor %}
+                        </datalist>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Apply</button>
+                </form> 
+            </div>
+        </section> -->
+
+        <section class="space-y-4">
+            {% for post in page_obj %}
+            <article id="post-{{ post.id }}" class="card bg-base-100 shadow-sm overflow-hidden h-full grid grid-cols-1 md:grid-cols-[minmax(0,360px)_minmax(0,1fr)]">
+                {% if post.images %}
+                <figure class="w-full max-w-full md:max-w-[360px] aspect-[4/3] overflow-hidden bg-base-300">
+                    <div class="carousel w-full h-full">
+                        {% for image in post.images %}
+                        <div id="slide-{{ post.short_code }}-{{ forloop.counter }}" class="carousel-item relative w-full h-full">
+                            <img src="{{ image.image.url }}" alt="{{ post.club.name }} post image" class="w-full h-full object-contain" />
+                            {% if post.images|length > 1 %}
+                            <div class="absolute left-5 right-5 top-1/2 flex -translate-y-1/2 justify-between">
+                                <a href="#slide-{{ post.short_code }}-{% if forloop.first %}{{ post.images|length }}{% else %}{{ forloop.counter0 }}{% endif %}" class="btn btn-circle">❮</a>
+                                <a href="#slide-{{ post.short_code }}-{% if forloop.last %}1{% else %}{{ forloop.counter|add:'1' }}{% endif %}" class="btn btn-circle">❯</a>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </figure>
+                {% endif %}
+                <div class="card-body min-w-0 flex flex-col justify-between gap-4">
+                    <div>
+                        <div class="flex items-center gap-3 mb-3">
+                            {% if post.club.logo %}
+                                <div class="avatar">
+                                    <div class="w-10 h-10 rounded-full border border-base-300">
+                                        <img src="{{ post.club.logo.url }}" alt="{{ post.club.name }} logo" />
+                                    </div>
+                                </div>
+                            {% else %}
+                                <div class="avatar placeholder">
+                                    <div class="bg-base-300 text-base-content rounded-full w-10 h-10">
+                                        <span class="text-xs">🛡️</span>
+                                    </div>
+                                </div>
+                            {% endif %}
+                            <div>
+                                <div class="font-bold text-sm">{{ post.club.name }}</div>
+                                <div class="text-[10px] opacity-60">{{ post.club.institution.university_name }}</div>
+                            </div>
+                        </div>
+                        <div class="text-xs text-base-content/60 mb-2">Published: {{ post.timestamp|date:"M d, Y" }}</div>
+                        <p class="text-sm leading-relaxed">{{ post.caption|truncatechars:300 }}</p>
+                    </div>
+                    <div class="card-actions justify-end items-center gap-4">
+                        <a href="https://www.instagram.com/p/{{ post.short_code }}/" target="_blank" rel="noopener noreferrer" class="btn btn-ghost btn-sm btn-circle hover:bg-pink-50" title="View on Instagram">
+                            <i class="fa-brands fa-instagram text-pink-500 text-lg" aria-hidden="true"></i>
+                        </a>
+                        <a href="{% url 'core:club_profile' post.club.id %}" class="btn btn-primary btn-sm rounded-full">View Club</a>
+                    </div>
+                </div>
+            </article>
+            {% empty %}
+            <div class="card bg-base-100 shadow-sm p-6 text-center">
+                <p class="text-base-content/70">No posts found. Try selecting a club or refresh after new posts are added.</p>
+            </div>
+            {% endfor %}
+        </section>
+
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div class="text-sm text-base-content/70">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</div>
+            <div class="btn-group">
+                {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}{% if selected_club %}&club={{ selected_club }}{% endif %}" class="btn btn-outline">Previous</a>
+                {% endif %}
+                {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}{% if selected_club %}&club={{ selected_club }}{% endif %}" class="btn btn-outline">Next</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endblock %}
