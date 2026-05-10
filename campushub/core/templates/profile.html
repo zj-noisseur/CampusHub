@@ -228,6 +228,26 @@
                         </div>
                         {% endfor %}
                     </div>
+                        <div class="bg-white rounded-2xl p-6 md:p-8 border border-gray-100 shadow-sm mt-6">
+                        <div class="flex justify-between items-center mb-2">
+                            <h2 class="text-xl font-bold text-black">Phone Number</h2>
+                        </div>
+                        <p class="text-gray-500 text-sm mb-6">Add or update your phone number for important club updates.</p>
+
+                        <form method="POST" action="." class="flex flex-col sm:flex-row gap-4 max-w-md">
+                            {% csrf_token %}
+                            <input 
+                                type="text" 
+                                name="phone_number" 
+                                value="{{ user.phone_number|default:'' }}" 
+                                placeholder="e.g., 012-345 6789" 
+                                class="input input-bordered flex-1 bg-gray-50 text-black focus:border-blue-500 focus:ring-0"
+                            >
+                            <button type="submit" name="update_phone" class="btn bg-gray-900 hover:bg-black text-white border-none rounded-xl px-8">
+                                Save
+                            </button>
+                        </form>
+                    </div>
 
                 </div>
 

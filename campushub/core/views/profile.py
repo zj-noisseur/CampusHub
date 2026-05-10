@@ -20,12 +20,20 @@ def user_profile(request):
                 messages.error(request, "Invalid email or email already in use.")
             return redirect('core:profile')
 
-        # --- ACTION: Delete an email ---
         elif 'delete_email' in request.POST:
             email_id = request.POST.get('email_id')
             UserEmail.objects.filter(id=email_id, user=user).delete() 
             messages.success(request, "Email removed successfully.")
             return redirect('core:profile')
+        
+        elif 'update_phone' in request.POST:
+            new_phone = request.POST.get('phone_number')
+            
+            user.phone_number = new_phone
+            user.save()
+            
+            messages.success(request, "Phone number updated successfully!")
+            return redirect('core:profile') 
             
     my_memberships = Membership.objects.filter(
         user=user, 
