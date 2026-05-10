@@ -10,7 +10,7 @@ from core.views.claim_club import claim_club
 from core.views.profile import user_profile, edit_profile
 from core.views.calendar import calendar
 from core.views.club_actions import join_club, apply_manager
-from core.views.manager_dashboard import manager_dashboard, process_membership
+from core.views.manager_dashboard import manager_dashboard, process_membership, update_club_settings
 from core.views.imports import import_attendees_csv
 from core.views.certificates import upload_certificate_template, download_certificates, download_my_certificate
 from core.views.dashboards import club_profile, club_admin_dashboard, club_settings, student_dashboard, toggle_ready_status, toggle_attended_status, set_event_status, create_event
@@ -50,4 +50,5 @@ urlpatterns = [
     path('club/<int:club_id>/', club_profile, name='club_profile'),
     path('club/<int:club_id>/join/', join_club, name='join_club'),
     path('club/<int:club_id>/apply-manager/', apply_manager, name='apply_manager'),
+    path('club/<int:club_id>/settings/', update_club_settings, name='update_club_settings')
 ]

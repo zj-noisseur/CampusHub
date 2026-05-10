@@ -140,6 +140,12 @@ class Club(models.Model):
         ('MISC', 'Miscellaneous'),
     ]
 
+    RENEWAL_CHOICES = [
+        ('ROLLING', '1 Year from Join Date'),
+        ('CALENDAR', 'Ends December 31st Every Year'),
+        ('LIFETIME', 'Pay Once, Never Renew'),
+    ]
+
     institution = models.ForeignKey(Institution, on_delete=models.CASCADE, related_name='clubs')
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
@@ -160,6 +166,7 @@ class Club(models.Model):
     social_discord = models.URLField(max_length=500, blank=True, null=True)
     last_fetched_date = models.DateTimeField(null=True, blank=True)
     posts_count = models.PositiveIntegerField(default=0)
+    renewal_policy = models.CharField(max_length=20, choices=RENEWAL_CHOICES, default='ROLLING')
 
     @property
     def is_active(self):
@@ -382,6 +389,7 @@ class Membership(models.Model):
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='PENDING')
     payment_proof = models.ImageField(upload_to='payment_proofs/', blank=True, null=True)
     joined_at = models.DateTimeField(auto_now_add=True)
+    expired_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return f"{self.user.student_name} - {self.club.name} ({self.status})"

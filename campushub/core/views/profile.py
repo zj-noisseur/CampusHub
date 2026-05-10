@@ -3,17 +3,16 @@ from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from core.forms import ProfileUpdateForm
-from core.models import UserEmail
+from core.models import Club, UserEmail, Membership
 
 @login_required
 def user_profile(request):
     user = request.user
 
     if request.method == 'POST':
-        # --- ACTION: Add a new email ---
         if 'add_email' in request.POST:
             new_email = request.POST.get('new_email')
-            # Make sure it's not empty and doesn't already exist
+
             if new_email and not UserEmail.objects.filter(email=new_email).exists() and user.email != new_email:
                 UserEmail.objects.create(user=user, email=new_email)
                 messages.success(request, f"Added {new_email} to your account!")
@@ -24,13 +23,24 @@ def user_profile(request):
         # --- ACTION: Delete an email ---
         elif 'delete_email' in request.POST:
             email_id = request.POST.get('email_id')
-            UserEmail.objects.filter(id=email_id, user=user).delete() # Only delete if it belongs to this user!
+            UserEmail.objects.filter(id=email_id, user=user).delete() 
             messages.success(request, "Email removed successfully.")
             return redirect('core:profile')
             
-        # ... (keep your existing update_profile logic here) ...
+    my_memberships = Membership.objects.filter(
+        user=user, 
+        status='APPROVED'
+    ).select_related('club')
 
-    return render(request, 'profile.html', {'user': user})
+    managed_clubs = Club.objects.filter(managers__user=user)
+
+    context = {
+        'user': user,
+        'my_memberships': my_memberships,
+        'managed_clubs': managed_clubs,
+    }
+
+    return render(request, 'profile.html', context)
 
 @login_required
 def edit_profile(request):

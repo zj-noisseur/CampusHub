@@ -2,6 +2,9 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from core.models import Club, Membership
+from ..forms import ClubSettingsForm
+from datetime import date
+from django.utils import timezone
 
 @login_required
 def manager_dashboard(request, club_id):
@@ -47,6 +50,18 @@ def process_membership(request, membership_id, action):
     # 3. Process the action
     if action == 'approve':
         membership.status = 'APPROVED'
+
+        today = date.today()
+        policy = membership.club.renew_policy
+        if policy == 'ROLLING':
+            membership.expires_at = today + timezone.timedelta(days=365)
+            
+        elif policy == 'CALENDAR':
+            membership.expires_at = date(today.year, 12, 31)
+            
+        elif policy == 'LIFETIME':
+            membership.expires_at = None
+
         membership.save()
         messages.success(request, f'Approved {membership.user.student_name}!')
     elif action == 'reject':
@@ -56,3 +71,22 @@ def process_membership(request, membership_id, action):
         
     # FIX #3: Added the club_id so it safely refreshes the dashboard!
     return redirect('core:manager_dashboard', club_id=membership.club.id)
+
+@login_required
+def update_club_settings(request, club_id):
+    club = get_object_or_404(Club, id=club_id)
+    
+    if not club.managers.filter(user=request.user).exists():
+        messages.error(request, 'You do not have permission to edit settings.')
+        return redirect('core:profile')
+
+    if request.method == 'POST':
+        new_policy = request.POST.get('renewal_policy')
+        
+        valid_policies = dict(Club.RENEWAL_CHOICES).keys()
+        if new_policy in valid_policies:
+            club.renewal_policy = new_policy
+            club.save()
+            messages.success(request, f"{club.name} settings updated successfully!")
+            
+    return redirect('core:manager_dashboard', club_id=club.id)

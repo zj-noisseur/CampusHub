@@ -72,7 +72,7 @@
                         {% endif %}
                         {{ form.logo }}
                     </div>
-
+                    
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Cover Banner</label>
                         {% if club.banner %}
@@ -82,32 +82,45 @@
                         {% endif %}
                         {{ form.banner }}
                     </div>
-                    <!-- Finances Section -->
-                    <div class="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 mb-8 mt-8">
-                        <h3 class="text-xl font-bold text-black mb-6">Finances & Payment</h3>
-    
-                        <div class="form-control w-full mb-4">
-                            <label class="label"><span class="label-text font-bold text-gray-700">Membership Fee (RM)</span></label>
-                            {{ form.membership_fee }}
-                            <label class="label"><span class="label-text-alt text-gray-500">Leave as 0.00 if joining is free.</span></label>
-                        </div>
-
-                        <div class="form-control w-full">
-                            <label class="label"><span class="label-text font-bold text-gray-700">Payment QR Code</span></label>
-                            {%if club.payment_qr_code %}
-                                <div class="mb-4 bg-gray-50 p-4 rounded-2xl border border-gray-100 inline-block">
-                                    <img src="{{ club.payment_qr_code.url }}" alt="Current Payment QR" class="w-32 h-32 object-contain rounded-xl bg-white border border-gray-200 p-2">
-                                </div>
-                            {% endif %}
-                            {{ form.payment_qr_code }}
-                            <label class="label">
-                                <span class="label-text-alt text-gray-500">Upload your DuitNow or Touch 'n Go QR code here.</span>
-                            </label>
-                        </div>
-                    </div>
                 </div>
             </div>
 
+            <!-- Membership Rules Section -->
+            <div class="luma-card bg-white rounded-2xl p-6 md:p-8 mb-8">
+                <h2 class="text-xl font-semibold mb-6">Membership Rules</h2>
+                
+                <div class="form-control w-full">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Membership Renewal Policy</label>
+                    
+                    {{ form.renewal_policy }}
+                    
+                    <p class="text-xs text-gray-500 mt-2">Choose how long a student's membership lasts before they are required to renew. This rule applies to all future approved members.</p>
+                </div>
+            </div>
+
+            <!-- Finances Section -->
+            <div class="luma-card bg-white rounded-2xl p-6 md:p-8">
+                <h2 class="text-xl font-semibold mb-6">Finances & Payment</h2>
+                
+                <div class="space-y-6">
+                    <div class="form-control w-full">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Membership Fee (RM)</label>
+                        {{ form.membership_fee }}
+                        <p class="text-xs text-gray-500 mt-1">Leave as 0.00 if joining this club is completely free.</p>
+                    </div>
+
+                    <div class="form-control w-full">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Payment QR Code</label>
+                        {% if club.payment_qr_code %}
+                            <div class="mb-4 bg-gray-50 p-4 rounded-2xl border border-gray-100 inline-block">
+                                <img src="{{ club.payment_qr_code.url }}" alt="Current Payment QR" class="w-32 h-32 object-contain rounded-xl bg-white border border-gray-200 p-2">
+                            </div>
+                        {% endif %}
+                        {{ form.payment_qr_code }}
+                        <p class="text-xs text-gray-500 mt-1">Upload your official DuitNow or Touch 'n Go QR code here for students to scan.</p>
+                    </div>
+                </div>
+            </div>
             <!-- Social Links Section -->
             <div class="luma-card bg-white rounded-2xl p-6 md:p-8">
                 <h2 class="text-xl font-semibold mb-6">Social Links</h2>

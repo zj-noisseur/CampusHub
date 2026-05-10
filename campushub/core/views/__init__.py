@@ -1,7 +1,7 @@
 from core.views.sign_up import sign_up
 from core.views.claim_club import claim_club
 from core.views.profile import user_profile
-from core.views.manager_dashboard import manager_dashboard, process_membership
+from core.views.manager_dashboard import manager_dashboard, process_membership, update_club_settings
 from core.views.profile import edit_profile
 from core.views.dashboards import club_profile, club_admin_dashboard, club_settings, student_dashboard
 from core.views.imports import import_attendees_csv
@@ -15,6 +15,7 @@ __all__ = [
     'user_profile',
     'manager_dashboard',
     'process_membership',
+    'update_club_settings',
     'edit_profile',
     'club_profile',
     'club_admin_dashboard',

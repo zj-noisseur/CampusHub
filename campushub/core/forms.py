@@ -100,6 +100,7 @@ class ClubSettingsForm(forms.ModelForm):
             'social_website',
             'membership_fee',
             'payment_qr_code',
+            'renewal_policy',
         ]
         widgets = {
             'description': forms.Textarea(attrs={'class': 'textarea textarea-bordered w-full', 'rows': 4, 'placeholder': 'Describe your club...'}),
@@ -113,6 +114,7 @@ class ClubSettingsForm(forms.ModelForm):
             'social_website': forms.URLInput(attrs={'class': 'input input-bordered w-full', 'placeholder': 'https://...'}),
             'membership_fee': forms.NumberInput(attrs={'class': 'input input-bordered w-full max-w-xs', 'step': '0.01'}),
             'payment_qr_code': forms.FileInput(attrs={'class': 'file-input file-input-bordered w-full max-w-xs'}),
+            'renewal_policy': forms.Select(attrs={'class': 'select select-bordered w-full bg-gray-50'}),
         }
 
 from core.models import Event

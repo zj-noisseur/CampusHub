@@ -4,6 +4,7 @@ from django.contrib.auth.decorators import login_required
 from core.models import Club, Event, PreRegisteredAttendee, Attendance, ClubManager, Membership
 from django.utils import timezone
 from django.db.models import Q
+from ..forms import ClubSettingsForm
 
 @login_required
 def club_admin_dashboard(request, club_id, event_id=None):
@@ -138,8 +139,6 @@ def club_settings(request, club_id):
     is_manager = club.managers.filter(user=request.user, is_active=True).exists()
     if not is_manager:
         return redirect('core:club_profile', club_id=club.id)
-        
-    from ..forms import ClubSettingsForm
     
     if request.method == 'POST':
         form = ClubSettingsForm(request.POST, request.FILES, instance=club)
