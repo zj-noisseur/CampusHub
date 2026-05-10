@@ -117,12 +117,26 @@
                                             {% if membership.club not in managed_clubs %}
                                             <a href="{% url 'core:club_profile' membership.club.id %}" class="group block bg-white p-4 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-indigo-100 transition-all duration-200">
                                                 <div class="flex items-center gap-4">
+                                                    
                                                     <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-xl group-hover:scale-105 transition-transform duration-300">
                                                         {{ membership.club.name|make_list|first|upper }}
                                                     </div>
-                                                    <div>
-                                                        <h3 class="font-bold text-gray-900 group-hover:text-indigo-600 transition-colors">{{ membership.club.name }}</h3>
-                                                        <p class="text-xs text-gray-500 line-clamp-1">{{ membership.club.short_description }}</p>
+                                                    
+                                                    <div class="flex-1">
+                                                        <h3 class="font-bold text-gray-900 group-hover:text-indigo-600 transition-colors line-clamp-1">{{ membership.club.name }}</h3>
+                                                        
+                                                        <div class="mt-1.5">
+                                                            {% if not membership.expires_at or membership.club.renewal_policy == 'LIFETIME' %}
+                                                                <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-green-50 text-green-700 border border-green-100">
+                                                                    ♾️ Lifetime Member
+                                                                </span>
+                                                            {% else %}
+                                                                <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-gray-50 text-gray-600 border border-gray-200">
+                                                                    ⏳ Expires: {{ membership.expires_at|date:"M d, Y" }}
+                                                                </span>
+                                                            {% endif %}
+                                                        </div>
+
                                                     </div>
                                                 </div>
                                             </a>
