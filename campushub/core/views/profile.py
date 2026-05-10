@@ -4,6 +4,9 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from core.forms import ProfileUpdateForm
 from core.models import Club, UserEmail, Membership
+from django.contrib.auth import update_session_auth_hash
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
 
 @login_required
 def user_profile(request):
@@ -34,6 +37,36 @@ def user_profile(request):
             
             messages.success(request, "Phone number updated successfully!")
             return redirect('core:profile') 
+        
+        elif 'change_password' in request.POST:
+            old_password = request.POST.get('old_password')
+            new_password = request.POST.get('new_password')
+            confirm_password = request.POST.get('confirm_password')
+
+            # 1. Check if old password is correct
+            if not user.check_password(old_password):
+                messages.error(request, "Your current password was entered incorrectly.")
+            
+            # 2. Check if new passwords match
+            elif new_password != confirm_password:
+                messages.error(request, "Your new passwords do not match.")
+                
+            # 3. THE MAGIC VALIDATOR
+            else:
+                try:
+                    validate_password(new_password, user)
+                    # If it passes validation, save it:
+                    user.set_password(new_password)
+                    user.save()
+                    update_session_auth_hash(request, user)  
+                    messages.success(request, "Your password has been successfully updated.")
+                    
+                except ValidationError as e:
+                    # If it fails, Django will output exact reasons (e.g., "Password is too common" or "Too short")
+                    for error in e.messages:
+                        messages.error(request, error)
+            
+            return redirect('core:profile')
             
     my_memberships = Membership.objects.filter(
         user=user, 
