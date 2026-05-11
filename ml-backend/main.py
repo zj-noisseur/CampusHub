@@ -83,8 +83,8 @@ async def classify_text(request: Request, classification_data: ClassificationReq
         result = classifier(text, candidate_labels=classifier_labels)
         
         # Grab the top results (index 0)
-        top_label = result['labels']
-        top_score = result['scores']
+        top_label = result['labels'][0]
+        top_score = result['scores'][0]
         
         category_key = next(
             (k for k, v in CATEGORIES.items() if v == top_label), 

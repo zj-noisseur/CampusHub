@@ -1,8 +1,11 @@
 Django
 python-dotenv
 Pillow
-celery
+celery[sqla]
 redis
 django-celery-results
 resend
 reportlab
+psycopg[binary]
+sqlalchemy
+requests
