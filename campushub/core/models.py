@@ -131,6 +131,16 @@ class Institution(models.Model):
         return self.university_name
 
 
+class ClubCategory(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name_plural = "Club Categories"
+
+
 class Club(models.Model):
     CATEGORY_CHOICES = [
         ('RECRUITMENT', 'Recruitment'),
@@ -143,7 +153,7 @@ class Club(models.Model):
     institution = models.ForeignKey(Institution, on_delete=models.CASCADE, related_name='clubs')
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
-    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='MISC')
+    club_category = models.ForeignKey(ClubCategory, on_delete=models.SET_NULL, null=True, blank=True, related_name='clubs')
     is_claimed = models.BooleanField(default=False)
     membership_fee = models.DecimalField(max_digits=6, decimal_places=2, default=0.00, help_text="Set to 0 if the club is free to join.")
     payment_qr_code = models.ImageField(upload_to='club_qrs/', blank=True, null=True, help_text="Upload your DuitNow or TNG QR code.")
@@ -425,6 +435,14 @@ class EventCertificate(models.Model):
         ],
         default='Helvetica-Bold'
     )
+    
+    # Custom Field Support
+    custom_text = models.CharField(max_length=255, blank=True, null=True)
+    custom_x = models.IntegerField(blank=True, null=True)
+    custom_y = models.IntegerField(blank=True, null=True)
+    custom_font_size = models.IntegerField(default=20)
+    custom_font_color = models.CharField(max_length=7, default='#000000')
+    
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
