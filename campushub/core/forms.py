@@ -1,6 +1,6 @@
 from django.contrib.auth.forms import UserCreationForm, get_user_model
 from django import forms
-from core.models import Club, ClubManager, ClaimRequest, Membership
+from core.models import Club, ClubManager, ClaimRequest, Membership, Event, EventCertificate
 
 User = get_user_model()
 
@@ -81,7 +81,7 @@ class ProfileUpdateForm(forms.ModelForm):
             'year_of_study': forms.Select(attrs={'class': 'select select-bordered w-full rounded-xl'}),
         }
         help_texts = {
-            'alt_email': 'Add a personal email (like Gmail) so you can log in if you lose access to your student email.',
+            'alternative_email': 'Add a personal email (like Gmail) so you can log in if you lose access to your student email.',
         }
 
 
@@ -117,8 +117,6 @@ class ClubSettingsForm(forms.ModelForm):
             'payment_qr_code': forms.FileInput(attrs={'class': 'file-input file-input-bordered w-full max-w-xs'}),
         }
 
-from core.models import Event
-
 class EventCreationForm(forms.ModelForm):
     class Meta:
         model = Event
@@ -128,8 +126,6 @@ class EventCreationForm(forms.ModelForm):
             'event_date': forms.DateInput(attrs={'class': 'input input-bordered w-full', 'type': 'date'}),
             'location': forms.TextInput(attrs={'class': 'input input-bordered w-full', 'placeholder': 'e.g., Main Hall'}),
         }
-
-from core.models import EventCertificate
 
 class CertificateUploadForm(forms.ModelForm):
     class Meta:
