@@ -6,9 +6,10 @@
     <title>{% block title %}CampusHub{% endblock %}</title>
     <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://unpkg.com/htmx.org@2.0.4" integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+" crossorigin="anonymous"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 </head>
-<body class="bg-base-200 min-h-screen text-base-content">
+<body class="bg-base-200 min-h-screen text-base-content flex flex-col">
     <nav class="navbar w-full bg-base-100 shadow-md">
         <div class="navbar-start">
             <div class="dropdown">
@@ -89,7 +90,7 @@
         </div>
     </nav>
 
-    <main class="px-4 py-6">
+    <main class="{% block main_class %}px-4 py-6{% endblock %}">
         {% block content %}
         {% endblock %}
     </main>

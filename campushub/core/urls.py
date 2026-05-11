@@ -5,6 +5,7 @@ from core.views.directory import directory
 from core.views.clubs import clubs
 from core.views.universities import universities
 from core.views.admin_dashboard import admin_dashboard_home, admin_dashboard_action, admin_dashboard_task_queue, admin_dashboard_task_status
+from core.views.admin_classification import admin_classification_dashboard, admin_classify_post, admin_update_post_category, admin_bulk_classify
 from core.views.feed import feed
 from core.views.sign_up import sign_up
 from core.views.claim_club import claim_club
@@ -24,6 +25,10 @@ urlpatterns = [
     path('admin-site/dashboard/queue/', admin_dashboard_task_queue, name='admin_task_queue'),
     path('admin-site/dashboard/task-status/', admin_dashboard_task_status, name='admin_task_status'),
     path('admin-site/dashboard/action/', admin_dashboard_action, name='admin_action'),
+    path('admin-site/classification/', admin_classification_dashboard, name='admin_classification'),
+    path('admin-site/classification/post/<int:post_id>/', admin_classify_post, name='admin_classify_post'),
+    path('admin-site/classification/post/<int:post_id>/update/', admin_update_post_category, name='admin_update_post_category'),
+    path('admin-site/classification/bulk/', admin_bulk_classify, name='admin_bulk_classify'),
     path('state/<int:state_id>/universities/', universities, name='universities'),
     path('state/<int:state_id>/universities/<int:university_id>/clubs/', clubs, name='clubs'),
     path('feed/', feed, name='feed'),

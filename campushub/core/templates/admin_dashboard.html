@@ -1,72 +1,155 @@
-{% extends "base.html" %}
-{% block title %}Dashboard{% endblock %}
-{% block content %}
+{% extends 'admin_base.html' %}
+{% block title %}Admin Dashboard | CampusHub{% endblock %}
+{% block admin_content %}
 
 <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-    <div class="tabs">
-        <button type="button" class="tab tab-lifted tab-active" data-tab="clubs">Clubs</button>
-        <button type="button" class="tab tab-lifted" data-tab="queue">Queued Tasks</button>
+    <div class="tabs tabs-box bg-base-200 p-1 rounded-lg">
+        <button type="button" class="tab tab-active" data-tab="clubs">Clubs</button>
+        <button type="button" class="tab" data-tab="queue">Queued Tasks</button>
     </div>
     <label class="label cursor-pointer mb-0">
-        <span class="label-text mr-2">Debug mode</span>
-        <input id="debug-mode-toggle" type="checkbox" class="toggle toggle-secondary" />
+        <span class="label-text mr-2 text-xs font-bold uppercase opacity-60">Debug Mode</span>
+        <input id="debug-mode-toggle" type="checkbox" class="toggle toggle-secondary toggle-sm" />
     </label>
 </div>
+
 <style>
-.scrape-ui-row[data-state="FAILURE"] {
-    display: none;
-}
-body.debug-mode .scrape-ui-row[data-state="FAILURE"] {
-    display: table-row;
-    opacity: 0.6;
-}
+    .scrape-ui-row[data-state="FAILURE"] {
+        display: none;
+    }
+    body.debug-mode .scrape-ui-row[data-state="FAILURE"] {
+        display: table-row;
+        opacity: 0.6;
+    }
+    /* Smooth transition for search dropdown */
+    #dashboard-search-container {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    #dashboard-search-container:focus-within {
+        transform: translateY(-2px);
+    }
 </style>
 
-<!-- Flex container for the filter selection and the list of clubs to allow the user to trigger the scraping mechanism -->
-<div id="dashboard-tab-clubs">
+<!-- Clubs Tab Content -->
+<div id="dashboard-tab-clubs" class="space-y-8">
 
-    <!-- This is the first flex for filter either through date or university -->
-    <div class="mb-6 flex flex-wrap items-center gap-3">
-        <label class="label">
-            <span class="label-text">Filter</span>
-        </label>
-        <select id="filter-type" class="select select-bordered w-full max-w-xs">
-            <option value="university">University</option>
-            <option value="date_updated">Date updated</option>
-        </select>
-        <select id="institution-filter" class="select select-bordered w-full max-w-xs">
-            <option value="">All universities</option>
-            {% for university in universities %}
-            <option value="{{ university.id }}">{{ university.university_name }}</option>
-            {% endfor %}
-        </select>
-        <select id="date-sort" class="select select-bordered w-full max-w-xs hidden">
-            <option value="desc">Newest first</option>
-            <option value="asc">Oldest first</option>
-        </select>
+    <!-- Unified Control Center -->
+    <div class="space-y-6 relative z-40">
+        <!-- Primary Search Bar with Multi-Select Dropdown -->
+        <div id="dashboard-search-container" class="dropdown w-full relative z-50">
+            <div class="relative group">
+                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-base-content/40 group-focus-within:text-primary transition-colors">
+                    <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                </div>
+                <input 
+                    type="search" 
+                    id="bulk-club-search"
+                    placeholder="Search for a club to filter or manage..." 
+                    class="input input-bordered input-lg w-full pl-12 bg-base-100 shadow-sm focus:shadow-md focus:border-primary border-base-300 transition-all text-lg"
+                    onfocus="this.parentElement.parentElement.classList.add('dropdown-open')"
+                    onkeyup="filterBulkClubs(this.value)"
+                    value="{{ search_query }}">
+            </div>
+
+            <!-- Search Dropdown Content -->
+            <div class="dropdown-content z-[50] card card-compact w-full p-2 shadow-2xl bg-base-100 border border-base-200 mt-2">
+                <div class="card-body">
+                    <div class="flex items-center justify-between mb-2">
+                        <h3 class="font-bold text-sm uppercase tracking-wider opacity-60">Filter Clubs</h3>
+                        <div class="flex gap-2">
+                            <button type="button" class="btn btn-xs btn-ghost" onclick="toggleAllBulkClubs(false)">Clear Selection</button>
+                        </div>
+                    </div>
+
+                    <!-- Scrollable Grouped Club List -->
+                    <form id="dropdown-filter-form" method="get">
+                        <div class="max-h-80 overflow-y-auto space-y-4 p-1" id="bulk-club-list">
+                            {% for inst_name, clubs_list in grouped_clubs.items %}
+                                <div class="space-y-1">
+                                    <div class="text-[10px] font-black uppercase tracking-widest opacity-30 px-2">{{ inst_name }}</div>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-1">
+                                        {% for club in clubs_list %}
+                                            <label class="flex items-center gap-3 p-2 hover:bg-base-200 rounded-lg cursor-pointer bulk-club-item transition-colors" data-name="{{ club.search_key }}">
+                                                <input 
+                                                    type="checkbox" 
+                                                    name="club_ids" 
+                                                    value="{{ club.id }}" 
+                                                    class="checkbox checkbox-primary checkbox-sm bulk-club-checkbox"
+                                                    {% if club.id in selected_clubs %}checked{% endif %}
+                                                    onchange="this.form.submit()">
+                                                <span class="label-text text-xs font-medium">{{ club.name }}</span>
+                                            </label>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+
+                        <input type="hidden" name="institution" value="{{ selected_institution|default:'' }}">
+                        <input type="hidden" name="sort" value="{{ date_sort|default:'latest' }}">
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Integrated Toolbar -->
+        <div class="flex flex-wrap items-center gap-4 bg-base-200/50 p-2 px-4 rounded-xl border border-base-300/50 shadow-inner">
+            <!-- University Filter -->
+            <form method="get" class="flex items-center gap-2 group">
+                <span class="text-xs font-bold uppercase opacity-40 group-hover:opacity-60 transition-opacity">University</span>
+                <select name="institution" class="select select-sm select-ghost focus:bg-base-100 transition-colors font-medium" onchange="this.form.submit()">
+                    <option value="">All Universities</option>
+                    {% for university in universities %}
+                    <option value="{{ university.id }}" {% if selected_institution == university.id %}selected{% endif %}>{{ university.university_name }}</option>
+                    {% endfor %}
+                </select>
+                <input type="hidden" name="search" value="{{ search_query }}">
+                <input type="hidden" name="sort" value="{{ date_sort }}">
+                {% for cid in selected_clubs %}<input type="hidden" name="club_ids" value="{{ cid }}">{% endfor %}
+            </form>
+
+            <div class="divider divider-horizontal mx-0 h-6 self-center opacity-20"></div>
+
+            <!-- Sort Filter -->
+            <form method="get" class="flex items-center gap-2 group">
+                <span class="text-xs font-bold uppercase opacity-40 group-hover:opacity-60 transition-opacity">Sort</span>
+                <select name="sort" class="select select-sm select-ghost focus:bg-base-100 transition-colors font-medium" onchange="this.form.submit()">
+                    <option value="latest" {% if date_sort == 'latest' %}selected{% endif %}>Latest Scraped</option>
+                    <option value="oldest" {% if date_sort == 'oldest' %}selected{% endif %}>Oldest Scraped</option>
+                </select>
+                <input type="hidden" name="search" value="{{ search_query }}">
+                <input type="hidden" name="institution" value="{{ selected_institution|default:'' }}">
+                {% for cid in selected_clubs %}<input type="hidden" name="club_ids" value="{{ cid }}">{% endfor %}
+            </form>
+
+            <div class="ml-auto flex items-center gap-4">
+                <div class="flex items-center gap-2">
+                    <span class="text-xs font-bold uppercase opacity-40">Bulk Actions</span>
+                    <select id="selection-mode" class="select select-sm select-bordered font-medium">
+                        <option value="">Selection...</option>
+                        <option value="select_all">Select Visible</option>
+                        <option value="deselect_all">Deselect All</option>
+                    </select>
+                    <select id="bulk-action" class="select select-sm select-bordered font-medium" disabled>
+                        <option value="">Action...</option>
+                        <option value="scrape_posts">Scrape Posts</option>
+                        <option value="update_profile_picture">Update Logo</option>
+                    </select>
+                    <button id="apply-action" type="button" class="btn btn-sm btn-primary btn-disabled" disabled>Apply</button>
+                    <span id="selected-count" class="text-xs font-bold text-primary opacity-60">0 Selected</span>
+                </div>
+                
+                <div class="divider divider-horizontal mx-0 h-6 self-center opacity-20"></div>
+                
+                <a href="?" class="btn btn-ghost btn-xs text-error hover:bg-error/10">Reset</a>
+            </div>
+        </div>
     </div>
 
-    <!-- This is the second flex for bulk selection (select all and deselect all) and actions (scrape posts and update profile picture) -->
-    <div class="mb-4 flex flex-wrap items-center gap-3">
-        <label class="label">
-            <span class="label-text">Selection</span>
-        </label>
-        <select id="selection-mode" class="select select-bordered w-full max-w-xs">
-            <option value="select_all">Select all</option>
-            <option value="deselect_all">Deselect all</option>
-        </select>
-        <select id="bulk-action" class="select select-bordered w-full max-w-xs" disabled>
-            <option value="">Choose action</option>
-            <option value="scrape_posts">Scrape posts</option>
-            <option value="update_profile_picture">Update profile picture</option>
-        </select>
-        <button id="apply-action" type="button" class="btn btn-primary btn-disabled" disabled>Apply</button>
-        <span id="selected-count" class="text-sm text-base-content/70">Selected: 0</span>
-    </div>
-
+    <!-- Confirm Action Modal -->
     <dialog id="confirm-action-modal" class="modal">
         <form method="dialog" class="modal-box">
-            <h3 class="text-lg font-bold">Confirm action</h3>
+            <h3 class="text-lg font-bold">Confirm Action</h3>
             <p class="py-4" id="confirm-action-text">Are you sure you want to perform this action?</p>
             <div class="modal-action">
                 <button type="button" id="confirm-action-button" class="btn btn-primary">Confirm</button>
@@ -75,534 +158,236 @@ body.debug-mode .scrape-ui-row[data-state="FAILURE"] {
         </form>
     </dialog>
 
-    <form method="get" class="mb-4 w-full">
-        <label class="input w-full">
-        <svg class="h-[1em] opacity-50" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-            <g
-            stroke-linejoin="round"
-            stroke-linecap="round"
-            stroke-width="2.5"
-            fill="none"
-            stroke="currentColor"
-            >
-            <circle cx="11" cy="11" r="8"></circle>
-            <path d="m21 21-4.3-4.3"></path>
-            </g>
-        </svg>
-        <input type="search" name="search" required placeholder="Search" class="input input-bordered w-full" value="{{ request.GET.search|default:'' }}">
-        </label>
-    </form>
-
-    <!-- This is the full table for all the clubs, their scraping status and the actions that are available -->
-    <div class="overflow-x-auto">
-    <table class="table w-full table-zebra">
-        <thead>
-            <tr>
-                <th></th>
-                <th>Club</th>
-                <th>University</th>
-                <th>Last Published Date</th>
-                <th>Scrape info</th>
-                <th>Actions</th>
-                <th>Status</th> <!--If any task related to the club is running show an indeterminate progress indicator-->
-            </tr>
-        </thead>
-        <tbody>
-            {% for club in clubs %}
-            <tr data-club-id="{{ club.id }}" data-institution-id="{{ club.institution.id }}" data-timestamp="{{ club.latest_post_timestamp|date:'U'|default:'0' }}">
-                <th>
-                    <label>
-                        <input type="checkbox" class="checkbox">
-                    </label>
-                </th>
-                <td>
-                    <div class="flex items-center gap-3">
-                        <div class="avatar">
-                            {% if club.logo %}
-                            <div class="mask mask-squircle h-12 w-12">
-                                <img src="{{ club.logo.url }}" alt="{{ club.name }} logo" />
+    <!-- Results Table -->
+    <div class="overflow-x-auto bg-base-100 rounded-2xl shadow-xl border border-base-300">
+        <table class="table w-full table-zebra">
+            <thead class="bg-base-200/50">
+                <tr>
+                    <th></th>
+                    <th class="text-xs uppercase opacity-60">Club</th>
+                    <th class="text-xs uppercase opacity-60">University</th>
+                    <th class="text-xs uppercase opacity-60">Last Published Date</th>
+                    <th class="text-xs uppercase opacity-60 text-center">Scrape Info</th>
+                    <th class="text-xs uppercase opacity-60 text-center">Actions</th>
+                    <th class="text-xs uppercase opacity-60 text-center">Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for club in clubs %}
+                <tr data-club-id="{{ club.id }}" data-institution-id="{{ club.institution.id }}" data-timestamp="{{ club.latest_post_timestamp|date:'U'|default:'0' }}" class="scrape-ui-row">
+                    <th>
+                        <label>
+                            <input type="checkbox" class="checkbox checkbox-sm checkbox-primary club-row-checkbox">
+                        </label>
+                    </th>
+                    <td>
+                        <div class="flex items-center gap-3">
+                            <div class="avatar">
+                                {% if club.logo %}
+                                <div class="mask mask-squircle h-10 w-10 bg-base-200">
+                                    <img src="{{ club.logo.url }}" alt="{{ club.name }} logo" />
+                                </div>
+                                {% else %}
+                                <div class="mask mask-squircle h-10 w-10 bg-base-200 flex items-center justify-center text-[10px] opacity-40">NO LOGO</div>
+                                {% endif %}
                             </div>
-                            {% else %}
-                            <span>No logo</span>
-                            {% endif %}
-                        </div>
-                    </div>
-                    {{ club.name }}
-                </td>
-                <td>
-                    <div class="flex items-center gap-3">
-                        <div class="avatar">
-                            <div class="mask mask-squircle h-12 w-12">
-                                <img src="{{ club.institution.logo.url }}" alt="{{ club.institution.university_name }} logo" />
+                            <div class="flex flex-col">
+                                <span class="font-bold text-sm">{{ club.name }}</span>
+                                <span class="text-[10px] opacity-40 uppercase font-black tracking-tighter">@{{ club.ig_handle }}</span>
                             </div>
                         </div>
-                    </div>
-                    {{ club.institution.university_name }}
-                </td>
-                <td>{{ club.latest_post_timestamp|timesince }}</td>
-                <td>
-                    <div class="flex flex-col gap-1">
-                        {% if club.last_fetched_date %}
-                            <span>Scraped {{ club.last_fetched_date|timesince }} ago</span>
-                            <span>{{ club.post_count|default:0 }} posts scraped to-date</span>
+                    </td>
+                    <td class="text-xs opacity-70">{{ club.institution.university_name }}</td>
+                    <td class="text-xs font-medium">
+                        {% if club.latest_post_timestamp %}
+                        {{ club.latest_post_timestamp|date:"M d, Y" }}
                         {% else %}
-                            <span>Not scraped yet</span>
+                        <span class="opacity-30 italic">No posts</span>
                         {% endif %}
-                    </div>
-                </td>
-                
-                <td>
-                    <button class="btn btn-ghost btn-circle" popovertarget="action-popover-{{ club.id }}" style="anchor-name: --actions-anchor-{{ club.id }}">
-                        <i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i>
-                    </button>
-                    <ul class="dropdown menu w-52 rounded-box bg-base-100 shadow-sm" popover id="action-popover-{{ club.id }}" style="position-anchor: --actions-anchor-{{ club.id }}">
-                        <li><a>View information</a></li>
-                        <li>
-                            <button type="button" class="club-action-btn btn btn-ghost btn-sm w-full text-left" data-club-id="{{ club.id }}" data-action="update_profile_picture">
-                                Update profile
+                    </td>
+                    <td class="text-center">
+                        {% if club.last_fetched_date %}
+                        <div class="flex flex-col items-center gap-1">
+                            <div class="badge badge-ghost badge-sm font-mono opacity-60">Last Run</div>
+                            <span class="text-[10px] font-bold opacity-40">{{ club.last_fetched_date|date:"M d, H:i" }}</span>
+                        </div>
+                        {% else %}
+                        <span class="text-[10px] opacity-20 italic">Never scraped</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center">
+                        <div class="flex justify-center gap-1">
+                            <button type="button" class="btn btn-square btn-ghost btn-xs club-action-btn" data-club-id="{{ club.id }}" data-action="scrape_posts" title="Scrape Posts">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-download-cloud"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M12 12v9"/><path d="m8 17 4 4 4-4"/></svg>
                             </button>
-                        </li>
-                        <li>
-                            <button type="button" class="club-action-btn btn btn-ghost btn-sm w-full text-left" data-club-id="{{ club.id }}" data-action="scrape_posts">
-                                Scrape posts
+                            <button type="button" class="btn btn-square btn-ghost btn-xs club-action-btn" data-club-id="{{ club.id }}" data-action="update_profile_picture" title="Update Logo">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-image-up"><path d="M10.3 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10l-4.5-4.5L13 14.5"/><path d="m15 16 3-3 3 3"/><path d="M18 13v9"/><circle cx="9" cy="9" r="2"/></svg>
                             </button>
-                        </li>
-                    </ul>
-                </td>
-                <td class="task-status-cell" data-club-id="{{ club.id }}">
-                    <div class="flex flex-col gap-1">
-                        <span class="text-sm text-base-content/70 status-label">Idle</span>
-                        <span class="text-xs text-base-content/50 status-detail"></span>
-                    </div>
-                </td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="7" class="text-center">No clubs found.</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+                        </div>
+                    </td>
+                    <td class="text-center">
+                        <span id="club-status-{{ club.id }}" class="badge badge-sm status-label badge-ghost opacity-40">
+                            Idle
+                        </span>
+                    </td>
+
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 </div>
 
-<div id="dashboard-tab-queue" class="hidden p-4">
-    <div class="text-center py-6">Loading queued tasks…</div>
+<!-- Queued Tasks Tab Content -->
+<div id="dashboard-tab-queue" class="hidden">
+    <div class="card bg-base-100 shadow-xl border border-base-200 p-6 text-center opacity-50 italic">
+        Loading task queue...
+    </div>
 </div>
 
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-        const tabs = Array.from(document.querySelectorAll('[data-tab]'));
-        const tabPanels = {
-            clubs: document.getElementById('dashboard-tab-clubs'),
-            queue: document.getElementById('dashboard-tab-queue'),
-        };
-        const queueUrl = '{% url "core:admin_task_queue" %}';
-        const taskStatusUrl = '{% url "core:admin_task_status" %}';
-        let queueLoaded = false;
         const debugModeToggle = document.getElementById('debug-mode-toggle');
+        const selectionMode = document.getElementById('selection-mode');
+        const bulkActionSelect = document.getElementById('bulk-action');
+        const applyActionButton = document.getElementById('apply-action');
+        const selectedCountEl = document.getElementById('selected-count');
+        const checkboxes = Array.from(document.querySelectorAll('.club-row-checkbox'));
+        const actionButtons = Array.from(document.querySelectorAll('.club-action-btn'));
+        const confirmModal = document.getElementById('confirm-action-modal');
+        const confirmActionText = document.getElementById('confirm-action-text');
+        const confirmActionButton = document.getElementById('confirm-action-button');
+        const dashboardActionUrl = '{% url "core:admin_action" %}';
+        const queueUrl = '{% url "core:admin_task_queue" %}';
+        
+        let pendingClubId = null;
+        let pendingAction = null;
+        let pendingBulkClubIds = [];
+        let pendingBulkAction = null;
+
         if (debugModeToggle) {
             debugModeToggle.addEventListener('change', () => {
                 document.body.classList.toggle('debug-mode', debugModeToggle.checked);
             });
         }
 
-        const filterType = document.getElementById('filter-type');
-        const institutionFilter = document.getElementById('institution-filter');
-        const dateSort = document.getElementById('date-sort');
-        const searchInput = document.querySelector('input[name="search"]');
-        const selectionMode = document.getElementById('selection-mode');
-        const bulkActionSelect = document.getElementById('bulk-action');
-        const applyActionButton = document.getElementById('apply-action');
-        const selectedCountEl = document.getElementById('selected-count');
-        const tbody = document.querySelector('tbody');
-        const rows = Array.from(document.querySelectorAll('tbody tr[data-institution-id]'));
-        const checkboxes = Array.from(document.querySelectorAll('tbody tr[data-institution-id] input[type="checkbox"]'));
-        const actionButtons = Array.from(document.querySelectorAll('.club-action-btn'));
-        const dashboardActionUrl = '{% url "core:admin_action" %}';
-
-        const pollingTasks = new Set();
-        window.registerGlobalTask = (taskId, clubId) => {
-        // if a specific task id does not exist or already has one registered, do nothing
-        // if not, add the task to the set of polling tasks and start querying its status
-            if (!taskId || pollingTasks.has(taskId)) return;
-            pollingTasks.add(taskId);
-            queryTaskStatus(taskId, clubId);
-        };
-
-        const initializeQueueFragment = () => {
-            const rows = document.querySelectorAll('#queue-tbody .task-row');
-            console.log('initializeQueueFragment: found rows', rows.length);
-            rows.forEach(row => {
-                const taskId = row.dataset.taskId;
-                const clubId = row.dataset.clubId;
-                const state = row.dataset.state;
-                const phase = row.dataset.phase || '';
-                const currentImage = Number(row.dataset.currentImage || 0);
-                const totalImages = Number(row.dataset.totalImages || 0);
-                const statusText = row.dataset.statusText || '';
-
-                console.log('initializeQueueFragment row', { taskId, clubId, state, phase, currentImage, totalImages, statusText });
-                updateStatusLabel(clubId, state, 0, statusText, null, null, taskId, 0, 0, currentImage, totalImages, phase);
-
-                if (state === 'PROGRESS' && window.registerGlobalTask) {
-                    window.registerGlobalTask(taskId, clubId);
-                }
-            });
-        };
-
-        const getStatusElements = (clubId) => {
-            const row = document.querySelector(`tbody tr[data-club-id="${clubId}"]`);
-            if (!row) return null;
-            return {
-                label: row.querySelector('.status-label'),
-                detail: row.querySelector('.status-detail'),
-            };
-        };
-
-        const formatSeconds = (seconds) => {
-            if (seconds == null || Number.isNaN(seconds)) return '';
-            const value = Number(seconds);
-            if (!isFinite(value) || value < 0) return '';
-            return `${Math.round(value)}s`;
-        };
-
-        const updateStatusLabel = (clubId, state, progress, statusText, eta, elapsed, taskId, currentItem, totalItems, currentImage, totalImages, phase) => {
-            const elements = getStatusElements(clubId);
-            const queueRow = document.querySelector(`#queue-tbody tr[data-task-id="${taskId}"]`);
-            
-            const percent = typeof progress === 'number' ? progress : (progress || 0);
-            const detailParts = [];
-
-            if (elements && elements.label) {
-                if (state === 'PENDING') {
-                    elements.label.textContent = 'Queued';
-                } else if (state === 'PROGRESS') {
-                    elements.label.textContent = 'Running';
-                } else if (state === 'SUCCESS') {
-                    elements.label.textContent = 'Completed';
-                } else if (state === 'FAILURE') {
-                    elements.label.textContent = 'Failed';
-                } else if (state === 'RETRY') {
-                    elements.label.textContent = 'Retrying';
-                } else {
-                    elements.label.textContent = state;
-                }
-            }
-
-            if (eta != null) {
-                const formattedEta = formatSeconds(eta);
-                if (formattedEta) detailParts.push(`ETA: ${formattedEta}`);
-            }
-            if (elapsed != null) {
-                const formattedElapsed = formatSeconds(elapsed);
-                if (formattedElapsed) detailParts.push(`Elapsed: ${formattedElapsed}`);
-            }
-            if (statusText && state !== 'PROGRESS' && state !== 'PENDING') {
-                detailParts.push(statusText);
-            }
-
-            if (elements && elements.detail) {
-                elements.detail.textContent = detailParts.join(' • ');
-            }
-
-            // Update queue fragment if visible
-            if (queueRow) {
-                const qLabel = queueRow.querySelector('.status-label');
-                const qBar = queueRow.querySelector('.progress-bar');
-                const qText = queueRow.querySelector('.progress-text');
-                const qDetail = queueRow.querySelector('.status-detail');
-                const qTaskUi = queueRow.querySelector('.scrape-task-ui');
-
-                if (qLabel) qLabel.textContent = state === 'PROGRESS' ? 'Running' : statusText || state;
-                if (qBar) qBar.value = percent;
-                if (qText) qText.textContent = state === 'PROGRESS' ? '' : `${percent}%`;
-                if (qDetail) qDetail.textContent = detailParts.join(' • ');
-                if (queueRow.dataset) queueRow.dataset.state = state;
-                if (qTaskUi) {
-                    qTaskUi.dataset.state = state;
-                    if (phase) qTaskUi.dataset.phase = phase;
-                }
-
-                // Update visual steps if applicable
-                    const qStepsBlock = queueRow.querySelector('.task-steps');
-                if (qStepsBlock) {
-                    const dbStep = qStepsBlock.querySelector('.task-step-db');
-                    const apifyStep = qStepsBlock.querySelector('.task-step-apify');
-                    const downloadStep = qStepsBlock.querySelector('.task-step-download');
-
-                    const phaseName = phase || 'apify';
-
-                    if (apifyStep) {
-                        apifyStep.classList.toggle('step-primary', (phaseName !== 'apify' && state !== 'PENDING') || state === 'SUCCESS');
-                        apifyStep.dataset.content = (phaseName !== 'apify' && state !== 'PENDING') || state === 'SUCCESS' ? '✓' : '●';
-                    }
-                    if (downloadStep) {
-                        downloadStep.classList.toggle('step-primary', phaseName === 'downloading' || phaseName === 'db_write' || state === 'SUCCESS');
-                        downloadStep.dataset.content = phaseName === 'db_write' || state === 'SUCCESS' ? '✓' : '●';
-                        const currentCounter = downloadStep.querySelector('.cur');
-                        const totalCounter = downloadStep.querySelector('.tot');
-                        const countersContainer = downloadStep.querySelector('.image-counters');
-                        if (currentCounter) currentCounter.textContent = currentImage || 0;
-                        if (totalCounter) totalCounter.textContent = totalImages || 0;
-                        if (countersContainer) {
-                            if (totalImages && totalImages > 0) {
-                                countersContainer.classList.remove('hidden');
-                            }
-                        }
-                    }
-                    if (dbStep) {
-                        dbStep.classList.toggle('step-primary', phaseName === 'db_write' || state === 'SUCCESS');
-                        dbStep.dataset.content = state === 'SUCCESS' ? '✓' : '●';
-                    }
-                }
-            }
-        };
-
-        const queryTaskStatus = async (taskId, clubId) => {
-            if (!taskId) return;
-            pollingTasks.add(taskId);
-
-            const response = await fetch(`${taskStatusUrl}?task_id=${encodeURIComponent(taskId)}`);
-            if (!response.ok) {
-                console.error('Unable to fetch task status', taskId);
-                pollingTasks.delete(taskId);
-                return;
-            }
-
-            const payload = await response.json().catch(() => null);
-            console.log('queryTaskStatus payload', { taskId, clubId, payload });
-            console.log('admin_task_status response', payload);
-            if (!payload) {
-                pollingTasks.delete(taskId);
-                return;
-            }
-
-            // If clubId was missing but payload has it, use it
-            const effectiveClubId = clubId || payload.club_id;
-            const queueRow = document.querySelector(`#queue-tbody tr[data-task-id="${taskId}"]`);
-            console.log('queryTaskStatus effective', { taskId, effectiveClubId, queueRowExists: !!queueRow });
-
-            updateStatusLabel(effectiveClubId, payload.state, payload.progress, payload.status, payload.eta, payload.elapsed, taskId, payload.current_item, payload.total_items, payload.current_image, payload.total_images, payload.phase);
-            
-            if (payload.state === 'SUCCESS' && payload.db_write_task_id) {
-                const nextTaskId = payload.db_write_task_id;
-                if (queueRow) {
-                    queueRow.dataset.chainActive = 'true';
-                    queueRow.dataset.taskId = nextTaskId;
-                    const uiContainer = queueRow.querySelector('.scrape-task-ui');
-                    if (uiContainer) uiContainer.dataset.taskId = nextTaskId;
-                }
-                pollingTasks.delete(taskId);
-                if (nextTaskId && !pollingTasks.has(nextTaskId)) {
-                    queryTaskStatus(nextTaskId, effectiveClubId);
-                }
-            } else if (['PENDING', 'PROGRESS', 'RETRY'].includes(payload.state)) {
-                setTimeout(() => queryTaskStatus(taskId, effectiveClubId), 2000);
-            } else {
-                if (queueRow) {
-                    queueRow.dataset.chainActive = 'false';
-                }
-                pollingTasks.delete(taskId);
-            }
-        };
-
-        const confirmModal = document.getElementById('confirm-action-modal');
-        const confirmActionText = document.getElementById('confirm-action-text');
-        const confirmActionButton = document.getElementById('confirm-action-button');
-        let pendingClubId = null;
-        let pendingAction = null;
-        let pendingBulkClubIds = [];
-        let pendingBulkAction = null;
-
-        const postClubAction = async (clubId, action) => {
-            const response = await fetch(dashboardActionUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ club_id: clubId, action })
-            });
-
-            const payload = await response.json().catch(() => null);
-            if (!response.ok) {
-                console.error('Club action failed', action, clubId, payload);
-                return null;
-            }
-
-            console.log('Club action result', payload);
-            return payload;
-        };
-
-        const noResultsMessage = document.createElement('tr');
-        noResultsMessage.innerHTML = '<td colspan="7" class="text-center">No clubs found.</td>';
-        noResultsMessage.style.display = 'none';
-        tbody.appendChild(noResultsMessage);
-
         const updateSelectionState = () => {
-            const selectedCount = checkboxes.filter(checkbox => checkbox.checked).length;
-            selectedCountEl.textContent = `Selected: ${selectedCount}`;
+            const selectedCount = checkboxes.filter(cb => cb.checked).length;
+            selectedCountEl.textContent = `${selectedCount} Selected`;
             const isActive = selectedCount > 0;
             bulkActionSelect.disabled = !isActive;
             applyActionButton.disabled = !isActive;
-            bulkActionSelect.classList.toggle('btn-disabled', !isActive);
-            applyActionButton.classList.toggle('btn-disabled', !isActive);
-        };
-
-        const rowMatchesSearch = row => {
-            const query = searchInput.value.trim().toLowerCase();
-            if (!query) return true;
-            const clubName = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
-            const universityName = row.querySelector('td:nth-child(3)').textContent.toLowerCase();
-            return clubName.includes(query) || universityName.includes(query);
-        };
-
-        const toggleControls = () => {
-            const type = filterType.value;
-            institutionFilter.classList.toggle('hidden', type !== 'university');
-            dateSort.classList.toggle('hidden', type !== 'date_updated');
-            applyFilter();
-        };
-
-        const applyFilter = () => {
-            const type = filterType.value;
-            let visibleCount = 0;
-
-            const sortedRows = type === 'date_updated'
-                ? rows.slice().sort((a, b) => {
-                    const aTs = Number(a.dataset.timestamp || '0');
-                    const bTs = Number(b.dataset.timestamp || '0');
-                    return dateSort.value === 'asc' ? aTs - bTs : bTs - aTs;
-                })
-                : rows.slice();
-
-            if (type === 'date_updated') {
-                sortedRows.forEach(row => tbody.appendChild(row));
-            }
-
-            sortedRows.forEach(row => {
-                const matchesUniversity = type !== 'university' || !institutionFilter.value || row.dataset.institutionId === institutionFilter.value;
-                const matchesSearch = rowMatchesSearch(row);
-                const visible = matchesUniversity && matchesSearch;
-                row.style.display = visible ? '' : 'none';
-                if (visible) visibleCount += 1;
-            });
-
-            noResultsMessage.style.display = visibleCount ? 'none' : '';
         };
 
         const handleBulkSelection = () => {
             if (selectionMode.value === 'select_all') {
-                checkboxes.forEach(checkbox => {
-                    const tr = checkbox.closest('tr');
-                    if (tr && tr.style.display !== 'none') {
-                        checkbox.checked = true;
-                    }
+                checkboxes.forEach(cb => {
+                    const tr = cb.closest('tr');
+                    if (tr && tr.style.display !== 'none') cb.checked = true;
                 });
             } else if (selectionMode.value === 'deselect_all') {
-                checkboxes.forEach(checkbox => {
-                    checkbox.checked = false;
-                });
+                checkboxes.forEach(cb => cb.checked = false);
             }
-
             selectionMode.value = '';
             updateSelectionState();
         };
 
-        filterType.addEventListener('change', toggleControls);
-        institutionFilter.addEventListener('change', applyFilter);
-        dateSort.addEventListener('change', applyFilter);
-        searchInput.addEventListener('input', applyFilter);
+        checkboxes.forEach(cb => cb.addEventListener('change', updateSelectionState));
         selectionMode.addEventListener('change', handleBulkSelection);
-        checkboxes.forEach(checkbox => checkbox.addEventListener('change', updateSelectionState));
+
         actionButtons.forEach(button => {
             button.addEventListener('click', () => {
                 pendingClubId = button.dataset.clubId;
                 pendingAction = button.dataset.action;
-                confirmActionText.textContent = `Confirm ${pendingAction.replace('_', ' ')} for club ${pendingClubId}?`;
+                confirmActionText.textContent = `Confirm ${pendingAction.replace('_', ' ')}?`;
                 confirmModal.showModal();
             });
         });
 
-        confirmActionButton.addEventListener('click', async () => {
-            if (pendingClubId && pendingAction) {
-                const payload = await postClubAction(pendingClubId, pendingAction);
-                if (pendingAction === 'scrape_posts' && payload && payload.task_id) {
-                    updateStatusLabel(pendingClubId, 'PENDING', 0, 'Queued', null, null, payload.task_id, 0, 0, 0, 0, null);
-                    queryTaskStatus(payload.task_id, pendingClubId);
-                }
-            } else if (pendingBulkAction && pendingBulkClubIds.length) {
-                for (const clubId of pendingBulkClubIds) {
-                    const payload = await postClubAction(clubId, pendingBulkAction);
-                    if (pendingBulkAction === 'scrape_posts' && payload && payload.task_id) {
-                        updateStatusLabel(clubId, 'PENDING', 0, 'Queued', null, null, payload.task_id, 0, 0, 0, 0, null);
-                        queryTaskStatus(payload.task_id, clubId);
-                    }
-                }
-            }
-
-            pendingClubId = null;
-            pendingAction = null;
-            pendingBulkClubIds = [];
-            pendingBulkAction = null;
-            confirmModal.close();
-        });
-
         applyActionButton.addEventListener('click', () => {
-            if (!bulkActionSelect.value || !checkboxes.some(checkbox => checkbox.checked)) {
-                return;
-            }
-
-            const selectedClubIds = checkboxes
-                .filter(checkbox => checkbox.checked)
-                .map(checkbox => checkbox.closest('tr').dataset.clubId)
-                .filter(Boolean);
-
-            if (!selectedClubIds.length) {
-                return;
-            }
-
-            pendingClubId = null;
-            pendingAction = null;
-            pendingBulkClubIds = selectedClubIds;
+            const selectedIds = checkboxes.filter(cb => cb.checked).map(cb => cb.closest('tr').dataset.clubId);
+            if (!selectedIds.length || !bulkActionSelect.value) return;
+            pendingBulkClubIds = selectedIds;
             pendingBulkAction = bulkActionSelect.value;
-            confirmActionText.textContent = `Confirm ${pendingBulkAction.replace('_', ' ')} for ${selectedClubIds.length} selected clubs?`;
+            confirmActionText.textContent = `Confirm ${pendingBulkAction.replace('_', ' ')} for ${selectedIds.length} clubs?`;
             confirmModal.showModal();
         });
 
-        const activateTab = (tabName) => {
-            tabs.forEach(tab => {
-                tab.classList.toggle('tab-active', tab.dataset.tab === tabName);
+        confirmActionButton.addEventListener('click', async () => {
+            confirmModal.close();
+            if (pendingClubId && pendingAction) {
+                await postClubAction(pendingClubId, pendingAction);
+            } else if (pendingBulkAction && pendingBulkClubIds.length) {
+                for (const id of pendingBulkClubIds) {
+                    await postClubAction(id, pendingBulkAction);
+                }
+            }
+            pendingClubId = pendingAction = pendingBulkAction = null;
+            pendingBulkClubIds = [];
+        });
+
+        const postClubAction = async (clubId, action) => {
+            const statusLabel = document.querySelector(`#club-status-${clubId}`);
+            if (statusLabel) statusLabel.textContent = 'Queuing...';
+            
+            const response = await fetch(dashboardActionUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ club_id: clubId, action })
             });
-            Object.entries(tabPanels).forEach(([name, panel]) => {
-                panel.classList.toggle('hidden', name !== tabName);
-            });
-            if (tabName === 'queue' && !queueLoaded) {
-                loadQueueTab();
+            
+            if (response.ok) {
+                if (statusLabel) {
+                    statusLabel.textContent = 'Queued';
+                    statusLabel.className = 'badge badge-info badge-sm status-label';
+                }
             }
         };
 
-        const loadQueueTab = async () => {
-            tabPanels.queue.innerHTML = '<div class="text-center py-6">Loading queued tasks…</div>';
-            const response = await fetch(queueUrl);
-            if (!response.ok) {
-                tabPanels.queue.innerHTML = '<div class="text-error">Unable to load queued tasks.</div>';
-                return;
-            }
-            tabPanels.queue.innerHTML = await response.text();
-            queueLoaded = true;
-            initializeQueueFragment();
+        // Tab Switching Logic
+        const tabs = document.querySelectorAll('.tab');
+        const tabPanels = {
+            clubs: document.getElementById('dashboard-tab-clubs'),
+            queue: document.getElementById('dashboard-tab-queue')
         };
 
         tabs.forEach(tab => {
-            tab.addEventListener('click', (event) => {
-                event.preventDefault();
-                activateTab(tab.dataset.tab);
+            tab.addEventListener('click', async () => {
+                const target = tab.dataset.tab;
+                tabs.forEach(t => t.classList.remove('tab-active'));
+                tab.classList.add('tab-active');
+                Object.values(tabPanels).forEach(p => p.classList.add('hidden'));
+                tabPanels[target].classList.remove('hidden');
+                
+                if (target === 'queue') {
+                    const resp = await fetch(queueUrl);
+                    tabPanels.queue.innerHTML = await resp.text();
+                }
             });
         });
+    });
 
-        toggleControls();
-        updateSelectionState();
+    function filterBulkClubs(query) {
+        const items = document.querySelectorAll('.bulk-club-item');
+        const q = query.toLowerCase();
+        items.forEach(item => {
+            const name = item.getAttribute('data-name');
+            item.classList.toggle('hidden', !name.includes(q));
+        });
+    }
+
+    function toggleAllBulkClubs(checked) {
+        const checkboxes = document.querySelectorAll('.bulk-club-checkbox');
+        checkboxes.forEach(cb => cb.checked = checked);
+        document.getElementById('dropdown-filter-form').submit();
+    }
+
+    document.addEventListener('click', (e) => {
+        const container = document.getElementById('dashboard-search-container');
+        if (container && !container.contains(e.target)) {
+            container.classList.remove('dropdown-open');
+        }
     });
 </script>
+
 {% endblock %}

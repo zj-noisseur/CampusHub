@@ -1,0 +1,65 @@
+<tr id="post-row-{{ post.id }}" data-club-id="{{ post.club.id }}">
+    <td class="font-semibold">{{ post.club.name }}</td>
+    <td>
+        <div class="text-xs opacity-50 mb-1">ID: {{ post.short_code }}</div>
+        <div class="text-sm line-clamp-3" title="{{ post.caption }}">{{ post.caption|truncatechars:150|default:"No caption provided." }}</div>
+    </td>
+    <td class="whitespace-nowrap">{{ post.timestamp|date:"M d, Y" }}</td>
+    <td>
+        <!-- Integrated Classification Dropdown -->
+        <div class="dropdown dropdown-bottom dropdown-end">
+            <div tabindex="0" role="button" class="btn btn-sm gap-2 border-base-300 bg-base-100 hover:bg-base-200 
+                {% if post.category == 'RECRUITMENT' %}text-primary border-primary/20
+                {% elif post.category == 'COMPETITION' %}text-secondary border-secondary/20
+                {% elif post.category == 'WORKSHOP' or post.category == 'INDUSTRIAL_VISIT' %}text-accent border-accent/20
+                {% elif post.category == 'ANNOUNCEMENT' %}text-info border-info/20
+                {% else %}text-base-content/70{% endif %}">
+                
+                <span class="w-2 h-2 rounded-full 
+                    {% if post.category == 'RECRUITMENT' %}bg-primary
+                    {% elif post.category == 'COMPETITION' %}bg-secondary
+                    {% elif post.category == 'WORKSHOP' or post.category == 'INDUSTRIAL_VISIT' %}bg-accent
+                    {% elif post.category == 'ANNOUNCEMENT' %}bg-info
+                    {% else %}bg-base-300{% endif %}"></span>
+                
+                {{ post.get_category_display }}
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-down opacity-50"><path d="m6 9 6 6 6-6"/></svg>
+                
+                <!-- Progress Indicator for the whole row -->
+                <span class="htmx-indicator loading loading-spinner loading-xs ml-1" id="row-spinner-{{ post.id }}"></span>
+            </div>
+            <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow-lg bg-base-100 rounded-box w-56 border border-base-200 mt-1">
+                <li class="menu-title">Actions</li>
+                <li>
+                    <a hx-post="{% url 'core:admin_classify_post' post.id %}" 
+                       hx-target="#post-row-{{ post.id }}" 
+                       hx-swap="outerHTML"
+                       hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                       hx-indicator="#row-spinner-{{ post.id }}"
+                       class="text-primary font-bold">
+                        Auto-Classify
+                    </a>
+                </li>
+                <div class="divider my-1"></div>
+                <li class="menu-title">Manual Categories</li>
+                {% for key, label in post.CATEGORY_CHOICES %}
+                    <li>
+                        <a hx-post="{% url 'core:admin_update_post_category' post.id %}?category={{ key }}"
+                           hx-vals='{"category": "{{ key }}"}'
+                           hx-target="#post-row-{{ post.id }}"
+                           hx-swap="outerHTML"
+                           hx-indicator="#row-spinner-{{ post.id }}"
+                           class="{% if post.category == key %}active font-semibold{% endif %}">
+                            {{ label }}
+                        </a>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </td>
+    <td>
+        <a href="https://instagram.com/p/{{ post.short_code }}/" target="_blank" class="btn btn-sm btn-square btn-ghost" title="View on Instagram">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-external-link"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+        </a>
+    </td>
+</tr>

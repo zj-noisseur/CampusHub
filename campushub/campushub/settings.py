@@ -76,9 +76,26 @@ WSGI_APPLICATION = 'campushub.wsgi.application'
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
 DATABASES = {
-    'default': {
+    # 'default': {
+    #     'ENGINE': 'django.db.backends.sqlite3',
+    #     'NAME': BASE_DIR / 'campushubdb.sqlite3',
+    # },
+    'default':{
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'campushubdb',
+        'USER': 'campushubuser',
+        'PASSWORD': 'admin123',
+        'HOST': 'localhost',
+        'PORT': '5432',
+    },
+
+    'test':{
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'campushubdb.sqlite3',
+        'NAME': 'celeryTest.sqlite3',
+        'USER': 'campushubuser',
+        'PASSWORD': 'demanding-moments-demanding-measures',
+        'HOST': 'localhost',
+        'PORT': '5432',
     }
 }
 
@@ -137,8 +154,9 @@ JSON_EXPORT_DIR = BASE_DIR / 'export'
 
 # Celery configuration
 CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'redis://localhost:6379/0')
-CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND', 'django-db')
-CELERY_IMPORTS = ('core.tasks',)
+# CELERY_RESULT_BACKEND = 'django-db'
+CELERY_RESULT_BACKEND = 'db+postgresql+psycopg2://campushubuser:admin123@localhost:5432/campushubdb'
+CELERY_IMPORTS = ('core.tasks','core.services.tasks', )
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
@@ -148,3 +166,7 @@ CELERY_TRACK_STARTED = True
 CELERY_IGNORE_RESULT = False
 
 CELERY_RESULT_EXTENDED = True
+
+# ML Backend (AI Classification)
+ML_BACKEND_URL = os.environ.get('ML_BACKEND_URL', 'http://localhost:8001')
+

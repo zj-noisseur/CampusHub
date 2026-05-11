@@ -2,21 +2,19 @@ import json
 import logging
 import os
 
-from celery.result import AsyncResult
 from django.conf import settings
-from django.db.models import Max
+from django.db.models import Count, Max
 from django.http import JsonResponse
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import user_passes_test
-from django.db.models import Count
-
-from django_celery_results.models import TaskResult
 
 logger = logging.getLogger(__name__)
-from core.models import Institution, Club
-from core.tasks import run_club_scrape_task
+from core.models import Institution, Club, ClubScrapeStatus
+from core.services.tasks import orchestrator, orchestrator_retry_post
+from django.utils import timezone
+from datetime import timedelta
 
 def is_superuser(user):
     return user.is_authenticated and user.is_superuser
@@ -24,188 +22,154 @@ def is_superuser(user):
 @user_passes_test(is_superuser)
 def admin_dashboard_home(request):
     selected_institution = request.GET.get("institution")
-    universities = Institution.objects.order_by("university_name")
-    clubs = Club.objects.select_related(
-        "institution"
-    ).annotate( # this is a derived field that does not write to the database nor is it part of the model
+    search_query = request.GET.get("search", "")
+    selected_clubs = request.GET.getlist("club_ids") or request.GET.getlist("club")
+    date_sort = request.GET.get("sort", "latest")
+    
+    universities = Institution.objects.all().order_by("university_name")
+    
+    clubs = Club.objects.select_related("institution").annotate(
         latest_post_timestamp=Max("posts__timestamp"),
-        # to avoid collision with the related name, ie "posts", use the singular noun instead
-        post_count  = Count("posts")
     )
-     
-
-    # latest_post = Prefetch(
-    #         "posts", 
-    #         queryset=Post.objects.order_by("-timestamp")[:1],
-    #         to_attr="latest_post"
-    #     )
-
-    # clubs = clubs.prefetch_related(latest_post)
-
-    if selected_institution:
+    
+    # Apply Filters
+    clean_club_ids = [cid for cid in selected_clubs if str(cid).isdigit()]
+    if clean_club_ids:
+        clubs = clubs.filter(id__in=clean_club_ids)
+    elif selected_institution:
         clubs = clubs.filter(institution_id=selected_institution)
+    
+    if search_query:
+        from django.db.models import Q
+        clubs = clubs.filter(
+            Q(name__icontains=search_query) | 
+            Q(ig_handle__icontains=search_query)
+        )
+        
+    # Apply Sorting — sort by last_fetched_date (when scrape last ran)
+    from django.db.models import F
+    if date_sort == 'oldest':
+        clubs = clubs.order_by(F('last_fetched_date').asc(nulls_last=True))
+    else:
+        clubs = clubs.order_by(F('last_fetched_date').desc(nulls_last=True))
 
-    return render(request, 'admin_dashboard.html', {'clubs': clubs, "universities": universities, "selected_institution": selected_institution})
+
+    # For the search dropdown - smart grouping and naming
+    all_clubs_qs = Club.objects.select_related('institution').all().order_by('institution__university_name', 'name')
+    
+    # Identify duplicate names to append institution name
+    name_counts = {}
+    for c in all_clubs_qs:
+        name_counts[c.name] = name_counts.get(c.name, 0) + 1
+    
+    grouped_clubs = {}
+    for c in all_clubs_qs:
+        inst_name = c.institution.university_name
+        if inst_name not in grouped_clubs:
+            grouped_clubs[inst_name] = []
+        
+        display_name = f"{c.name} ({inst_name})" if name_counts[c.name] > 1 else c.name
+        grouped_clubs[inst_name].append({
+            'id': c.id,
+            'name': display_name,
+            'search_key': f"{c.name} {inst_name}".lower()
+        })
+    
+    context = {
+        'clubs': clubs,
+        'grouped_clubs': grouped_clubs,
+        'universities': universities,
+        'selected_institution': int(selected_institution) if selected_institution else None,
+        'selected_clubs': [int(c) for c in selected_clubs if str(c).isdigit()],
+        'search_query': search_query,
+        'date_sort': date_sort,
+    }
+
+
+    return render(request, 'admin_dashboard.html', context)
+
+
 
 @user_passes_test(is_superuser)
 def admin_dashboard_task_queue(request):
-    # Fetch tasks that are queued, running, successful, or failed.
-    # We order by creation/done time so the newest tasks appear first.
-    task_results = TaskResult.objects.filter(
-        status__in=['PENDING', 'PROGRESS', 'SUCCESS', 'FAILURE']
-    ).order_by('-date_done', '-date_created')
+    statuses = ClubScrapeStatus.objects.all().select_related('club').order_by('-last_updated_at')
 
     tasks_data = []
-    active_task_count = task_results.filter(status='PROGRESS').count()
-    
-    # once received task results, set the club_id and name to None first
-    for task in task_results:
-        club_id = None
-        club_name = None
 
-        try:
-            meta = json.loads(task.meta) if task.meta else {}
-        except (json.JSONDecodeError, TypeError):
-            meta = {}
-
-
-        result_data = task.result
-        if isinstance(result_data, str):
-            try:
-                result_data = json.loads(result_data)
-            except json.JSONDecodeError:
-                result_data = None
-
-        if isinstance(result_data, dict):
-            meta.update(result_data)
-
-        club_id = meta.get('club_id')
-        if club_id:
-            from core.models import Club
-            club = Club.objects.filter(id=club_id).only('name').first()
-            if club:
-                club_name = club.name
-
-        if not club_id and task.task_args:
-            try:
-                import ast
-                task_args = ast.literal_eval(task.task_args)
-                if isinstance(task_args, (list, tuple)) and task_args:
-                    club_id = task_args[0]
-            except Exception:
-                pass
-
-        if not club_id and task.task_kwargs:
-            try:
-                import ast
-                task_kwargs = ast.literal_eval(task.task_kwargs)
-                if isinstance(task_kwargs, dict):
-                    club_id = task_kwargs.get('club_id')
-            except Exception:
-                pass
-        
-        if club_id and not club_name:
-            from core.models import Club
-            club = Club.objects.filter(id=club_id).only('name').first()
-            if club:
-                club_name = club.name
-
-        if not club_name:
-            club_name = 'Unknown Club'
-
-        label = task.status
-        if task.status == 'PENDING':
-            label = 'Queued'
-        elif task.status == 'PROGRESS':
-            label = meta.get('status', 'Running...')
-        elif task.status == 'SUCCESS':
-            label = meta.get('status', 'Completed')
-        elif task.status == 'FAILURE':
-            label = meta.get('status', 'Failed')
-            club_name = 'N/A'
-
-        phase = meta.get('phase')
-
-        is_scrape_task = False
-        if isinstance(task.task_name, str):
-            task_name = task.task_name
-            is_scrape_task = any(name in task_name for name in ('run_club_scrape_task', 'persist_club_dataset'))
-
+    for status in statuses:
         tasks_data.append({
-            'task_id': task.task_id,
-            'task_name': task.task_name,
-            'club_id': club_id,
-            'club_name': club_name,
-            'is_scrape_task': is_scrape_task,
-            'phase': meta.get('phase'),
-            'progress': meta.get('progress', 100 if task.status == 'SUCCESS' else 0),
-            'current_item': meta.get('current_item', 0),
-            'total_items': meta.get('total_items', 0),
-            'current_image': meta.get('current_image', 0),
-            'total_images': meta.get('total_images', 0),
-            'status': label,
-            'status_text': meta.get('status', ''),
-            'db_write_task_id': meta.get('db_write_task_id'),
-            'eta': meta.get('eta'),
-            'elapsed': meta.get('elapsed'),
-            'state': task.status,
-            'date_done': task.date_done,
-            'date_created': task.date_created,
-            'date_group': (task.date_done or task.date_created).date() if (task.date_done or task.date_created) else None,
+            'task_id': status.task_id,
+            'task_name': status.latest_task_name,
+            'display_name': status.latest_task_name.split('.')[-1] if status.latest_task_name else 'Task',
+            'club_id': str(status.club.id) if status.club else None,
+            'club_name': status.club.name if status.club else 'Unknown Club',
+            'club_group': status.club.name if status.club else 'Unknown Club',
+            'is_scrape_task': True,
+            'phase': status.phase,
+            'progress': 100 if status.state == 'SUCCESS' else 0,
+            'current_item': status.current_item,
+            'total_items': status.total_items,
+            'current_image': status.current_image,
+            'total_images': status.total_images,
+            'status': status.state or 'PENDING',
+            'status_text': status.status,
+            'eta': None,
+            'elapsed': (status.finished_at - status.started_at).total_seconds() if status.finished_at and status.started_at else ((status.last_updated_at - status.started_at).total_seconds() if status.last_updated_at and status.started_at else None),
+            'state': status.state or 'PENDING',
+            'date_done': status.finished_at,
+            'date_created': status.started_at,
+            'date_group': (status.finished_at or status.started_at).date() if (status.finished_at or status.started_at) else None,
+            'summary': status.extra,
+            'failed_items': status.failed_items,
         })
+
+    tasks_data.sort(
+        key=lambda task: -((task.get('date_done') or task.get('date_created')).timestamp()) if (task.get('date_done') or task.get('date_created')) else 0
+    )
+    
+    has_recent_activity = False
+    if statuses:
+        latest_update = statuses[0].last_updated_at
+        if latest_update and timezone.now() - latest_update < timedelta(seconds=30):
+            has_recent_activity = True
 
     return render(request, 'admin_dashboard_tasks_fragment.html', {
         'tasks': tasks_data,
-        'active_task_count': active_task_count,
+        'has_recent_activity': has_recent_activity,
         'history_task_count': len(tasks_data),
     })
 
 @user_passes_test(is_superuser)
 def admin_dashboard_task_status(request):
     task_id = request.GET.get('task_id')
-    if not task_id:
-        return JsonResponse({'error': 'task_id is required'}, status=400)
-
-    result = AsyncResult(task_id)
-    info = result.info
-    if isinstance(info, Exception):
-        info = {'status': str(info)}
-    elif info is None:
-        info = {}
-
-    task_meta = {}
-    task_result = TaskResult.objects.filter(task_id=task_id).only('meta', 'result').first()
-    if task_result is not None:
-        if task_result.meta:
-            try:
-                task_meta = json.loads(task_result.meta) if isinstance(task_result.meta, str) else task_result.meta
-            except (json.JSONDecodeError, TypeError):
-                pass
-        if task_result.result:
-            try:
-                res_data = json.loads(task_result.result) if isinstance(task_result.result, str) else task_result.result
-                if isinstance(res_data, dict):
-                    task_meta.update(res_data)
-            except (json.JSONDecodeError, TypeError):
-                pass
-
-    merged_info = {**task_meta, **info}
-    logger.debug('admin_dashboard_task_status raw info=%s task_meta=%s merged_info=%s', info, task_meta, merged_info)
+    club_id = request.GET.get('club_id')
+    
+    scrape_status = None
+    if task_id:
+        scrape_status = ClubScrapeStatus.objects.filter(task_id=task_id).select_related('club').first()
+    if not scrape_status and club_id:
+        scrape_status = ClubScrapeStatus.objects.filter(club_id=club_id).select_related('club').first()
+        
+    if not scrape_status:
+        # If task just queued, status might not be created or updated yet
+        return JsonResponse({'error': 'Status not found'}, status=404)
 
     return JsonResponse({
-        'task_id': task_id,
-        'state': result.state,
-        'status': merged_info.get('status'),
-        'progress': merged_info.get('progress'),
-        'eta': merged_info.get('eta'),
-        'elapsed': merged_info.get('elapsed'),
-        'current_item': merged_info.get('current_item'),
-        'total_items': merged_info.get('total_items'),
-        'current_image': merged_info.get('current_image'),
-        'total_images': merged_info.get('total_images'),
-        'phase': merged_info.get('phase'),
-        'db_write_task_id': merged_info.get('db_write_task_id'),
-        'club_id': merged_info.get('club_id'),
+        'task_id': scrape_status.task_id,
+        'state': scrape_status.state,
+        'status': scrape_status.status,
+        'progress': 100 if scrape_status.state == 'SUCCESS' else 0,
+        'eta': None,
+        'elapsed': (scrape_status.finished_at - scrape_status.started_at).total_seconds() if scrape_status.finished_at and scrape_status.started_at else ((scrape_status.last_updated_at - scrape_status.started_at).total_seconds() if scrape_status.last_updated_at and scrape_status.started_at else None),
+        'current_item': scrape_status.current_item,
+        'total_items': scrape_status.total_items,
+        'current_image': scrape_status.current_image,
+        'total_images': scrape_status.total_images,
+        'phase': scrape_status.phase,
+        'club_id': str(scrape_status.club_id),
+        'failed_items': scrape_status.failed_items,
+        'date_created': scrape_status.started_at.isoformat() if scrape_status.started_at else None,
+        'date_done': scrape_status.finished_at.isoformat() if scrape_status.finished_at else None,
     })
 
 @csrf_exempt
@@ -231,17 +195,32 @@ def admin_dashboard_action(request):
 
     if action == 'scrape_posts':
         export_dir = str(settings.JSON_EXPORT_DIR)
-        result = run_club_scrape_task.delay(str(club.id), export_dir=export_dir)
+        task_id = orchestrator(str(club.id), export_dir=export_dir)
         return JsonResponse({
             'ok': True,
             'action': action,
             'club_id': str(club.id),
             'ig_handle': club.ig_handle,
-            'task_id': result.id,
+            'task_id': task_id,
             'status': 'queued',
             'items_returned': None,
             'created_count': None,
             'export_dir': export_dir,
+        })
+
+    if action == 'retry_failed_post':
+        post_url = payload.get('post_url')
+        if not post_url:
+            return JsonResponse({'error': 'post_url is required for retrying'}, status=400)
+            
+        task_id = orchestrator_retry_post(str(club.id), post_url)
+        return JsonResponse({
+            'ok': True,
+            'action': action,
+            'club_id': str(club.id),
+            'post_url': post_url,
+            'task_id': task_id,
+            'status': 'queued',
         })
 
     if action == 'update_profile_picture':

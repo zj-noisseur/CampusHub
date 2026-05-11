@@ -148,6 +148,25 @@ def fetch_instagram_posts_via_apify(ig_handle, search_limit=20, max_items=50, ac
     return dataset
 
 
+def fetch_single_instagram_post_via_apify(post_url, actor_id=IG_ACTOR_ID):
+    if not post_url:
+        raise ValueError('Instagram Post URL is required')
+
+    payload = {
+        'directUrls': [post_url],
+        'resultsType': 'details',
+    }
+
+    dataset = run_actor_sync_get_dataset_items(
+        actor_id,
+        payload,
+        max_items=1,
+        limit=1,
+    )
+
+    return dataset
+
+
 def export_dataset(dataset, ig_handle, export_dir=None):
     directory = export_dir or os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'export'))
     os.makedirs(directory, exist_ok=True)

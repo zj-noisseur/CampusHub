@@ -259,6 +259,38 @@ class ClubManager(models.Model):
         return f"{self.user.student_name} - {self.get_role_display()} of {self.club.name}"
 
 
+class ClubScrapeStatus(models.Model):
+    club = models.OneToOneField('Club', on_delete=models.CASCADE, related_name='scrape_status')
+    task_id = models.CharField(max_length=255, blank=True, null=True)
+    latest_task_name = models.CharField(max_length=255, blank=True, null=True)
+    state = models.CharField(max_length=30, blank=True, null=True)
+    phase = models.CharField(max_length=50, blank=True, null=True)
+    status = models.CharField(max_length=255, blank=True, null=True)
+    current_item = models.PositiveIntegerField(default=0)
+    total_items = models.PositiveIntegerField(default=0)
+    current_image = models.PositiveIntegerField(default=0)
+    total_images = models.PositiveIntegerField(default=0)
+    success_count = models.PositiveIntegerField(default=0)
+    failure_count = models.PositiveIntegerField(default=0)
+    started_at = models.DateTimeField(blank=True, null=True)
+    finished_at = models.DateTimeField(blank=True, null=True)
+    last_updated_at = models.DateTimeField(auto_now=True)
+    extra = models.JSONField(blank=True, null=True)
+    failed_items = models.JSONField(default=list, blank=True, null=True, help_text="List of items that failed to process (e.g. image downloads)")
+
+    def mark_completed(self, summary=None):
+        self.state = 'SUCCESS'
+        self.phase = 'completed'
+        self.status = 'Club scrape completed'
+        self.finished_at = timezone.now()
+        if summary is not None:
+            self.extra = summary
+        self.save(update_fields=['state', 'phase', 'status', 'finished_at', 'extra'])
+
+    def __str__(self):
+        return f"Scrape status for {self.club.name} ({self.state})"
+
+
 class ClaimRequest(models.Model):
     STATUS_CHOICES = [
         ('PENDING', 'Pending'),
@@ -283,18 +315,22 @@ class ClaimRequest(models.Model):
 
 
 class Post(models.Model):
+    CATEGORY_CHOICES = [
+        ('RECRUITMENT', 'Recruitment'),
+        ('COMPETITION', 'Competition'),
+        ('WORKSHOP', 'Workshop'),
+        ('INDUSTRIAL_VISIT', 'Industrial Visit'),
+        ('ANNOUNCEMENT', 'Announcement'),
+        ('PAST_EVENT', 'Past Event'),
+        ('MISC', 'Miscellaneous'),
+    ]
+
     club = models.ForeignKey(Club, on_delete=models.CASCADE, related_name='posts')
     short_code = models.CharField(max_length=100)
     caption = models.TextField(blank=True)
     category = models.CharField(
         max_length=20,
-        choices=[
-            ('RECRUITMENT', 'Recruitment'),
-            ('COMPETITION', 'Competition'),
-            ('WORKSHOP', 'Workshop'),
-            ('PAST_EVENT', 'Past Event'),
-            ('MISC', 'Miscellaneous'),
-        ],
+        choices=CATEGORY_CHOICES,
         default='MISC',
     )
     timestamp = models.DateTimeField()
