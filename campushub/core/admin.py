@@ -12,6 +12,7 @@ from core.models import (
     Institution,
     Membership,
     Post,
+    PreRegisteredAttendee,
     State,
     User,
 )
@@ -38,6 +39,13 @@ admin.site.register(Membership)
 admin.site.register(Post)
 admin.site.register(Event)
 admin.site.register(Attendance)
+
+class PreRegisteredAttendeeAdmin(admin.ModelAdmin):
+    list_display = ('event', 'user', 'guest_name', 'guest_email', 'is_attended', 'created_at')
+    list_filter = ('event', 'is_attended')
+    search_fields = ('guest_name', 'guest_email', 'user__student_name')
+
+admin.site.register(PreRegisteredAttendee, PreRegisteredAttendeeAdmin)
 admin.site.register(EventCertificate)
 admin.site.register(ClubScrapeStatus)
 

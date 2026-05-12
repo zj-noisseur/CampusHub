@@ -150,7 +150,7 @@ from core.models import EventCertificate
 class CertificateUploadForm(forms.ModelForm):
     class Meta:
         model = EventCertificate
-        fields = ['template_image', 'name_center_x', 'name_center_y', 'font_color', 'font_size', 'font_name']
+        fields = ['template_image', 'name_center_x', 'name_center_y', 'font_color', 'font_size', 'font_name', 'custom_text', 'custom_x', 'custom_y', 'custom_font_color', 'custom_font_size']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
