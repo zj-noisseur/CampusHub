@@ -1,27 +1,12 @@
-<!DOCTYPE html>
-<html lang="en" data-theme="light">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manage {{ club.name }} Events - CampusHub</title>
-    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.10.2/dist/full.min.css" rel="stylesheet" type="text/css" />
-    <script src="https://cdn.tailwindcss.com"></script>
+{% extends 'base.html' %}
+{% block title %}Manage {{ club.name }} Events - CampusHub{% endblock %}
+
+{% block content %}
     <style>
-        body { background-color: #FAFAFA; }
         .luma-card { border: 1px solid #EAEAEA; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
     </style>
-</head>
-<body class="min-h-screen text-gray-900 pb-20">
 
-    <div class="px-8 py-4 flex justify-between items-center bg-white border-b border-gray-100">
-        <div class="flex items-center gap-4">
-            <a href="{% url 'core:student_dashboard' %}" class="text-xl font-bold tracking-tight hover:opacity-70">CampusHub</a>
-            <span class="text-gray-300">/</span>
-            <span class="text-sm font-medium text-gray-500">Event Management</span>
-        </div>
-    </div>
-
-    <div class="max-w-5xl mx-auto mt-8 px-4 md:px-8">
+    <div class="max-w-5xl mx-auto py-8 px-4 md:px-0">
         <div class="mb-10">
             <h1 class="text-4xl font-bold tracking-tight text-gray-900">Manage {{ club.name }} Events</h1>
             <p class="text-gray-500 mt-2">Manage your attendees, track student attendance, and issue certificates for all your events.</p>
@@ -232,8 +217,6 @@
                                 </div>
                             </div>
 
-
-
                             <button type="submit" id="submit_btn" class="btn bg-gray-900 text-white hover:bg-black w-full rounded-2xl border-none mt-4 h-12">
                                 Save Configuration
                             </button>
@@ -304,7 +287,6 @@
             } else {
                 placeholder.classList.remove('hidden');
                 previewContainer.classList.add('hidden');
-                // Set defaults for new
                 xInput.value = 400;
                 yInput.value = 300;
                 colorInput.value = '#000000';
@@ -326,11 +308,8 @@
                         imageLoaded = true;
                         placeholder.classList.add('hidden');
                         previewContainer.classList.remove('hidden');
-                        
-                        // Default coordinates to center if first time
                         if (!xInput.value || xInput.value == "400") xInput.value = Math.round(templateImage.width / 2);
                         if (!yInput.value || yInput.value == "300") yInput.value = Math.round(templateImage.height / 2);
-                        
                         drawPreview();
                     };
                     templateImage.src = event.target.result;
@@ -341,38 +320,24 @@
 
         function drawPreview() {
             if (!imageLoaded) return;
-
-            // Set canvas dimensions to match image
             canvas.width = templateImage.width;
             canvas.height = templateImage.height;
-
-            // Draw background
             ctx.drawImage(templateImage, 0, 0);
-
-            // Draw placeholder name
             const x = parseInt(xInput.value) || 0;
             const y_reportlab = parseInt(yInput.value) || 0;
             const color = colorInput.value;
-
-            // Convert ReportLab bottom-left to Canvas top-left
             const y_canvas = templateImage.height - y_reportlab;
-
             ctx.fillStyle = color;
             const fontSize = fontSizeInput.value || 24;
             const fontName = fontNameInput.value || 'Helvetica-Bold';
-            
-            // Map ReportLab font names to generic browser fonts for preview
             let browserFont = 'sans-serif';
             if (fontName.includes('Helvetica')) browserFont = 'Inter, system-ui, sans-serif';
             if (fontName.includes('Times')) browserFont = 'serif';
             if (fontName.includes('Courier')) browserFont = 'monospace';
-            
             const isBold = fontName.includes('Bold') ? 'bold' : 'normal';
             ctx.font = `${isBold} ${fontSize}px ${browserFont}`;
             ctx.textAlign = 'center';
             ctx.fillText('Student Full Name', x, y_canvas);
-            
-            // Draw crosshair for visual aid
             ctx.strokeStyle = color;
             ctx.lineWidth = 4;
             ctx.setLineDash([10, 10]);
@@ -385,7 +350,6 @@
             ctx.setLineDash([]);
         }
 
-        // Update preview on input change
         [xInput, yInput, colorInput, fontSizeInput, fontSizeSlider, fontNameInput].forEach(el => {
             el.addEventListener('input', (e) => {
                 if (e.target === fontSizeInput) fontSizeSlider.value = e.target.value;
@@ -414,73 +378,44 @@
             }
         });
 
-        // Click to position
         canvas.addEventListener('mousedown', function(e) {
             if (!imageLoaded) return;
-
             const rect = canvas.getBoundingClientRect();
             const scaleX = canvas.width / rect.width;
             const scaleY = canvas.height / rect.height;
-            
             const clickX = Math.round((e.clientX - rect.left) * scaleX);
             const clickY_canvas = Math.round((e.clientY - rect.top) * scaleY);
-            
-            // Convert Canvas top-left to ReportLab bottom-left
             const clickY_reportlab = templateImage.height - clickY_canvas;
-
             xInput.value = clickX;
             yInput.value = clickY_reportlab;
-            
             drawPreview();
         });
 
-        // Form Submission
         form.addEventListener('submit', function(e) {
             e.preventDefault();
             submitBtn.disabled = true;
             submitBtn.innerText = 'Uploading...';
-            
             const formData = new FormData(form);
-            
             fetch(`/upload-certificate-template/${currentEventId}/`, {
                 method: 'POST',
                 body: formData,
-                headers: {
-                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-                }
+                headers: { 'X-CSRFToken': '{{ csrf_token }}' }
             })
             .then(async response => {
-                const isJson = response.headers.get('content-type')?.includes('application/json');
-                const data = isJson ? await response.json() : null;
-
-                if (response.ok && data && data.status === 'success') {
+                const data = await response.json();
+                if (response.ok && data.status === 'success') {
                     modal.close();
                     location.reload();
                 } else {
-                    let errorMsg = 'Upload failed.';
-                    if (data && data.errors) {
-                        errorMsg = Object.entries(data.errors)
-                            .map(([field, msgs]) => `${field}: ${msgs.join(', ')}`)
-                            .join('\n');
-                    } else if (data && data.message) {
-                        errorMsg = data.message;
-                    } else if (response.status === 413) {
-                        errorMsg = 'File too large. Please upload a smaller image.';
-                    } else {
-                        errorMsg = `Server error (${response.status}). Please try again.`;
-                    }
-                    alert('Error:\n' + errorMsg);
+                    alert('Error: ' + (data.message || 'Upload failed'));
                     submitBtn.disabled = false;
                     submitBtn.innerText = 'Save Configuration';
                 }
             })
             .catch(error => {
-                console.error('Error:', error);
-                alert('A network error occurred. Please check your connection and try again.');
+                alert('Network error.');
                 submitBtn.disabled = false;
-                submitBtn.innerText = 'Save Configuration';
             });
         });
     </script>
-</body>
-</html>
+{% endblock %}

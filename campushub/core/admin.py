@@ -4,7 +4,9 @@ from core.models import (
     Attendance,
     ClaimRequest,
     Club,
+    ClubCategory,
     ClubManager,
+    ClubScrapeStatus,
     Event,
     EventCertificate,
     Institution,
@@ -14,40 +16,56 @@ from core.models import (
     User,
 )
 
-
-class ClubAdmin(admin.ModelAdmin):
-    list_display = ('name', 'institution', 'ig_handle')
-    list_filter = ('institution', 'ig_handle')
-
-
+# --- Location & Institutional Admins ---
 class InstitutionAdmin(admin.ModelAdmin):
     list_display = ('university_name', 'state')
     list_filter = ('state',)
 
-
-admin.site.register(Institution, InstitutionAdmin)
 admin.site.register(State)
+admin.site.register(Institution, InstitutionAdmin)
+
+# --- Club & Membership Admins ---
+class ClubAdmin(admin.ModelAdmin):
+    list_display = ('name', 'institution', 'club_category', 'ig_handle')
+    list_filter = ('institution', 'club_category')
+
 admin.site.register(Club, ClubAdmin)
-admin.site.register(User)
+admin.site.register(ClubCategory)
 admin.site.register(ClubManager)
+admin.site.register(Membership)
+
+# --- Post & Event Admins ---
 admin.site.register(Post)
 admin.site.register(Event)
 admin.site.register(Attendance)
-admin.site.register(Membership)
 admin.site.register(EventCertificate)
+admin.site.register(ClubScrapeStatus)
 
+# --- User & Claiming Admins ---
+admin.site.register(User)
 
 @admin.register(ClaimRequest)
 class ClaimRequestAdmin(admin.ModelAdmin):
-    list_display = ('user', 'club', 'status')
+    list_display = ('user', 'club', 'status', 'claimer_designation', 'submitted_at')
+    list_filter = ('status',)
 
     def save_model(self, request, obj, form, change):
         if change and obj.status == 'APPROVED':
+            # Mark the club as claimed
             obj.club.is_claimed = True
             obj.club.save()
 
-            ClubManager.objects.get_or_create(user=obj.user, club=obj.club)
+            # Create the manager entry with ROOT role and the chosen designation
+            ClubManager.objects.get_or_create(
+                user=obj.user, 
+                club=obj.club,
+                defaults={
+                    'role': 'ROOT',
+                    'designation': obj.claimer_designation
+                }
+            )
 
+            # Ensure the user has staff access to the admin panel
             if not obj.user.is_staff:
                 obj.user.is_staff = True
                 obj.user.save()

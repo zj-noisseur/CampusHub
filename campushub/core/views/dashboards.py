@@ -106,9 +106,12 @@ def club_profile(request, club_id):
     
     # Check if the logged-in user is in the managers
     is_manager = False
+    user_membership = None
+    
     if request.user.is_authenticated:
         # Looking through the managers table to see if they are an active admin/manager
         is_manager = club.managers.filter(user=request.user, is_active=True).exists()
+        user_membership = club.members.filter(user=request.user).first()
         
     attended_event_ids = []
     if request.user.is_authenticated:
@@ -123,6 +126,7 @@ def club_profile(request, club_id):
         'is_manager': is_manager,
         'is_member': club.members.filter(user=request.user, status='ACTIVE').exists() if request.user.is_authenticated else False,
         'attended_event_ids': attended_event_ids,
+        'user_membership': user_membership,
     }
     return render(request, 'club_profile.html', context)
 

@@ -89,6 +89,7 @@ class ClubSettingsForm(forms.ModelForm):
     class Meta:
         model = Club
         fields = [
+            'club_category',
             'description',
             'logo',
             'banner',
@@ -100,8 +101,10 @@ class ClubSettingsForm(forms.ModelForm):
             'social_website',
             'membership_fee',
             'payment_qr_code',
+            'renewal_policy',
         ]
         widgets = {
+            'club_category': forms.Select(attrs={'class': 'select select-bordered w-full'}),
             'description': forms.Textarea(attrs={'class': 'textarea textarea-bordered w-full', 'rows': 4, 'placeholder': 'Describe your club...'}),
             'logo': forms.FileInput(attrs={'class': 'file-input file-input-bordered w-full max-w-xs'}),
             'banner': forms.FileInput(attrs={'class': 'file-input file-input-bordered w-full max-w-xs'}),
@@ -113,7 +116,22 @@ class ClubSettingsForm(forms.ModelForm):
             'social_website': forms.URLInput(attrs={'class': 'input input-bordered w-full', 'placeholder': 'https://...'}),
             'membership_fee': forms.NumberInput(attrs={'class': 'input input-bordered w-full max-w-xs', 'step': '0.01'}),
             'payment_qr_code': forms.FileInput(attrs={'class': 'file-input file-input-bordered w-full max-w-xs'}),
+            'renewal_policy': forms.Select(attrs={'class': 'select select-bordered w-full max-w-xs'}),
         }
+
+    def clean(self):
+        cleaned_data = super().clean()
+        social_fields = [
+            'social_instagram', 'social_linkedin', 'social_twitter', 
+            'social_facebook', 'social_discord', 'social_website'
+        ]
+        
+        for field in social_fields:
+            value = cleaned_data.get(field)
+            if value and not value.startswith(('http://', 'https://')):
+                cleaned_data[field] = 'https://' + value
+        
+        return cleaned_data
 
 from core.models import Event
 

@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+
+{% block main_class %}flex flex-1 min-h-0{% endblock %}
+
+{% block content %}
+<style>
+/* Prevent FOUC for the sidebar by immediately applying the DaisyUI lg:drawer-open rules */
+@media (min-width: 1024px) {
+  .drawer.lg\:drawer-open {
+    grid-auto-columns: max-content auto;
+  }
+  .drawer.lg\:drawer-open > .drawer-toggle {
+    display: none;
+  }
+  .drawer.lg\:drawer-open > .drawer-side {
+    pointer-events: auto;
+    visibility: visible;
+    position: sticky;
+    display: block;
+    grid-column-start: 1;
+    grid-row-start: 1;
+    grid-row-end: span 2;
+    width: auto;
+    overscroll-behavior: auto;
+  }
+  .drawer.lg\:drawer-open > .drawer-side > *:not(.drawer-overlay) {
+    transform: translateX(0%);
+  }
+}
+</style>
+<div class="drawer lg:drawer-open w-full h-full">
+  <input id="admin-drawer" type="checkbox" class="drawer-toggle" />
+  
+  <div id="admin-drawer-content" class="drawer-content flex flex-col items-center justify-start overflow-y-auto bg-base-100 p-4 lg:p-8"
+       style="opacity:0; transition: opacity 0.18s ease;">
+    <!-- Mobile Hamburger Menu for Drawer -->
+    <div class="w-full lg:hidden flex items-center mb-4 border-b border-base-200 pb-2">
+       <label for="admin-drawer" class="btn btn-square btn-ghost mr-2">
+         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="inline-block w-6 h-6 stroke-current"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+       </label>
+       <span class="font-bold text-lg">Admin Menu</span>
+    </div>
+
+    <!-- Page Content -->
+    <div class="w-full max-w-full">
+        {% block admin_content %}
+        {% endblock %}
+    </div>
+  </div> 
+  
+
+  <div class="drawer-side z-20">
+    <label for="admin-drawer" aria-label="close sidebar" class="drawer-overlay"></label> 
+    <ul class="menu p-4 w-64 min-h-full bg-base-200 text-base-content border-r border-base-300">
+      
+      <li class="menu-title text-base-content/50 uppercase text-xs font-bold tracking-wider mt-2">Approval</li>
+      <li><a href="#" class="opacity-50 cursor-not-allowed" onclick="event.preventDefault();" title="Coming soon">New Club</a></li>
+      <li><a href="#" class="opacity-50 cursor-not-allowed" onclick="event.preventDefault();" title="Coming soon">Manager</a></li>
+      <li><a href="#" class="opacity-50 cursor-not-allowed" onclick="event.preventDefault();" title="Coming soon">Renewal</a></li>
+      
+      <li class="menu-title text-base-content/50 uppercase text-xs font-bold tracking-wider mt-6">Club Management</li>
+      <li><a href="#" class="opacity-50 cursor-not-allowed" onclick="event.preventDefault();" title="Coming soon">Directory</a></li>
+
+      <li class="menu-title text-base-content/50 uppercase text-xs font-bold tracking-wider mt-6">Task</li>
+      <li>
+        <a href="{% url 'core:admin_classification' %}" class="{% if request.resolver_match.url_name == 'admin_classification' %}active bg-primary text-primary-content{% endif %}">
+          Event Classification
+        </a>
+      </li>
+      <li>
+        <a href="{% url 'core:admin_dashboard' %}" class="{% if request.resolver_match.url_name == 'admin_dashboard' %}active bg-primary text-primary-content{% endif %}">
+          Scraper Dashboard
+        </a>
+      </li>
+      
+      <div class="divider my-4"></div>
+      
+      <li>
+        <a href="/admin/" target="_blank" class="hover:bg-base-300">
+          Django Admin
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-external-link ml-1 opacity-70"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+        </a>
+      </li>
+    </ul>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    var content = document.getElementById('admin-drawer-content');
+    if (content) content.style.opacity = '1';
+  });
+</script>
+{% endblock %}
+

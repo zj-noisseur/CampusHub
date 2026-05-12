@@ -30,10 +30,16 @@
             {% for institution in institutions %}
                 <li class="list-row p-4">   
                     <div class="list-col">
+                        {% if institution.logo %}
                         <img 
                         src="{{ institution.logo.url }}" 
                         alt="{{ institution.university_name }} flag" 
                         class="w-25 h-25 object-contain rounded-box" />
+                        {% else %}
+                        <div class="w-25 h-25 bg-gray-100 rounded-box flex items-center justify-center text-gray-400">
+                            <i class="fa-solid fa-university text-2xl"></i>
+                        </div>
+                        {% endif %}
                     </div>
                     <div class="list-col-grow px-4">
                         <h2 class="text-lg font-bold">{{ institution.university_name }}</h2>

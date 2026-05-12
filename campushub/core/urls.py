@@ -4,6 +4,7 @@ from core.views.directory import directory
 from core.views.clubs import clubs
 from core.views.universities import universities
 from core.views.admin_dashboard import admin_dashboard_home, admin_dashboard_action, admin_dashboard_task_queue, admin_dashboard_task_status
+from core.views.admin_classification import admin_classification_dashboard, admin_classify_post, admin_update_post_category, admin_bulk_classify
 from core.views.feed import feed
 from core.views.sign_up import sign_up
 from core.views.claim_club import claim_club
@@ -16,38 +17,60 @@ from core.views.certificates import upload_certificate_template, download_certif
 from core.views.dashboards import club_profile, club_admin_dashboard, club_settings, student_dashboard, toggle_ready_status, toggle_attended_status, set_event_status, create_event
 
 app_name = 'core'
+
 urlpatterns = [
+    # --- General & Discovery ---
     path('', feed, name='home'),
+    path('feed/', feed, name='feed'),
     path('directory/', directory, name='directory'),
+    path('calendar/', calendar, name='calendar'),
+    
+    # --- Location & Institutional Discovery ---
+    path('state/<int:state_id>/universities/', universities, name='universities'),
+    path('state/<int:state_id>/universities/<int:university_id>/clubs/', clubs, name='clubs'),
+
+    # --- Authentication ---
+    path('signup/', sign_up, name='signup'),
+    path('login/', auth_views.LoginView.as_view(template_name='login.html'), name='login'),
+    path('logout/', auth_views.LogoutView.as_view(next_page='core:feed'), name='logout'),
+
+    # --- User Profile & Dashboards ---
+    path('profile/', user_profile, name='profile'),
+    path('profile/edit/', edit_profile, name='edit_profile'),
+    path('student/dashboard/', student_dashboard, name='student_dashboard'),
+    path('dashboard/', student_dashboard, name='dashboard_shortcut'),
+    path('profile/manager/<int:club_id>/', manager_dashboard, name='manager_dashboard'),
+
+    # --- Platform Admin Site ---
     path('admin-site/dashboard/', admin_dashboard_home, name='admin_dashboard'),
     path('admin-site/dashboard/queue/', admin_dashboard_task_queue, name='admin_task_queue'),
     path('admin-site/dashboard/task-status/', admin_dashboard_task_status, name='admin_task_status'),
     path('admin-site/dashboard/action/', admin_dashboard_action, name='admin_action'),
-    path('state/<int:state_id>/universities/', universities, name='universities'),
-    path('state/<int:state_id>/universities/<int:university_id>/clubs/', clubs, name='clubs'),
-    path('feed/', feed, name='feed'),
-    path('signup/', sign_up, name='signup'),
-    path('login/', auth_views.LoginView.as_view(template_name='login.html'), name='login'),
-    path('logout/', auth_views.LogoutView.as_view(next_page='core:feed'), name='logout'),
-    path('profile/', user_profile, name='profile'),
-    path('profile/edit/', edit_profile, name='edit_profile'),
-    path('profile/manager/<int:club_id>/', manager_dashboard, name='manager_dashboard'),
+    
+    # --- Administrative Classification ---
+    path('admin-site/classification/', admin_classification_dashboard, name='admin_classification'),
+    path('admin-site/classification/post/<int:post_id>/', admin_classify_post, name='admin_classify_post'),
+    path('admin-site/classification/post/<int:post_id>/update/', admin_update_post_category, name='admin_update_post_category'),
+    path('admin-site/classification/bulk/', admin_bulk_classify, name='admin_bulk_classify'),
+
+    # --- Club Management & Profile ---
+    path('club/<int:club_id>/', club_profile, name='club_profile'),
+    path('club/<int:club_id>/join/', join_club, name='join_club'),
+    path('club/<int:club_id>/apply-manager/', apply_manager, name='apply_manager'),
     path('club/<int:club_id>/admin/', club_admin_dashboard, name='club_admin_dashboard'),
     path('club/<int:club_id>/admin/<int:event_id>/', club_admin_dashboard, name='event_admin_dashboard'),
     path('club/<int:club_id>/create-event/', create_event, name='create_event'),
     path('club/<int:club_id>/settings/', club_settings, name='club_settings'),
-    path('student/dashboard/', student_dashboard, name='student_dashboard'),
-    path('dashboard/', student_dashboard, name='dashboard_shortcut'),
     path('membership/<int:membership_id>/<str:action>/', process_membership, name='process_membership'),
+
+    # --- Event Operations & Attendance ---
     path('event/<int:event_id>/toggle-ready/<uuid:prereg_id>/', toggle_ready_status, name='toggle_ready_status'),
     path('event/<int:event_id>/toggle-attended/<uuid:prereg_id>/', toggle_attended_status, name='toggle_attended_status'),
     path('event/<int:event_id>/set-status/<str:status>/', set_event_status, name='set_event_status'),
     path('event/<int:event_id>/import-attendees/', import_attendees_csv, name='import_attendees_csv'),
+
+    # --- Certificate Engine ---
     path('upload-certificate-template/<int:event_id>/', upload_certificate_template, name='upload_certificate_template'),
     path('event/<int:event_id>/download-certificates/', download_certificates, name='download_certificates'),
     path('event/<int:event_id>/download-certificate/', download_my_certificate, name='download_my_certificate'),
-    path('calendar/', calendar, name='calendar'),
-    path('club/<int:club_id>/', club_profile, name='club_profile'),
-    path('club/<int:club_id>/join/', join_club, name='join_club'),
-    path('club/<int:club_id>/apply-manager/', apply_manager, name='apply_manager'),
 ]

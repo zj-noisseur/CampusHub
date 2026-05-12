@@ -1,27 +1,14 @@
-<!DOCTYPE html>
-<html lang="en" data-theme="light">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Dashboard - CampusHub</title>
-    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.10.2/dist/full.min.css" rel="stylesheet" type="text/css" />
-    <script src="https://cdn.tailwindcss.com"></script>
+{% extends 'base.html' %}
+{% block title %}My Dashboard - CampusHub{% endblock %}
+
+{% block content %}
     <style>
-        /* Luma inspired subtle background pattern */
-        body { background-color: #FAFAFA; }
         .luma-card { border: 1px solid #EAEAEA; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
     </style>
-</head>
-<body class="min-h-screen text-gray-900">
 
-    <div class="px-8 py-4 flex justify-between items-center bg-white border-b border-gray-100">
-        <a class="text-xl font-bold tracking-tight">CampusHub</a>
-
-    </div>
-
-    <div class="max-w-5xl mx-auto p-8 mt-4">
+    <div class="max-w-5xl mx-auto py-8">
         
-        <div class="flex flex-col md:flex-row items-center md:items-start gap-6 mb-16">
+        <div class="flex flex-col md:flex-row items-center md:items-start gap-6 mb-16 px-4 md:px-0">
             <div class="w-24 h-24 md:w-32 md:h-32 rounded-full overflow-hidden border-4 border-white shadow-sm bg-gray-50 flex items-center justify-center relative group">
                 <span class="text-4xl font-bold text-gray-200">{{ user.first_name|first|default:user.username|first }}</span>
             </div>
@@ -49,13 +36,13 @@
             </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 px-4 md:px-0">
 
             <section>
                 <div class="flex justify-between items-center mb-6">
                     <h2 class="text-lg font-semibold text-gray-900">My Clubs</h2>
                 
-                    <a href="#" class="text-sm text-gray-500 hover:text-gray-900 transition-colors">Explore &rarr;</a>
+                    <a href="{% url 'core:directory' %}" class="text-sm text-gray-500 hover:text-gray-900 transition-colors">Explore &rarr;</a>
                 </div>
                 
                 <div class="flex flex-col gap-3">
@@ -122,7 +109,7 @@
                                 <tr class="hover:bg-gray-50 border-b border-gray-100 last:border-0 transition-colors">
                                     <td class="py-4 pl-6">
                                         <div class="flex items-center gap-3">
-                                            <a href="{% url 'core:feed' %}?club={{ prereg.event.club.id }}#post-{{ prereg.event.post.id }}" class="font-medium text-gray-900 hover:text-blue-600 transition-colors">{{ prereg.event.title }}</a>
+                                            <div class="font-medium text-gray-900">{{ prereg.event.title }}</div>
                                             {% if prereg.is_attended %}
                                                 <span class="badge badge-sm bg-green-50 text-green-600 border-green-100 font-bold px-2">✓ Attended</span>
                                             {% endif %}
@@ -173,5 +160,4 @@
 
         </div>
     </div>
-</body>
-</html>
+{% endblock %}

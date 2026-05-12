@@ -1,15 +1,10 @@
-<!DOCTYPE html>
-<html lang="en" data-theme="light">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Upload CSV - CampusHub</title>
-    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.10.2/dist/full.min.css" rel="stylesheet" type="text/css" />
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-base-200 min-h-screen p-8 flex items-center justify-center">
+{% extends 'base.html' %}
+{% block title %}Upload CSV - CampusHub{% endblock %}
 
-    <div class="max-w-xl w-full">
+{% block main_class %}min-h-[80vh] flex items-center justify-center p-8{% endblock %}
+
+{% block content %}
+    <div class="max-w-xl w-full mx-auto">
         <div class="card bg-base-100 shadow-xl">
             <div class="card-body">
                 <h2 class="card-title text-2xl mb-2">Upload Attendee CSV</h2>
@@ -31,6 +26,4 @@
             </div>
         </div>
     </div>
-
-</body>
-</html>
+{% endblock %}

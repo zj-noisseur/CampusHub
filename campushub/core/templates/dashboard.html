@@ -1,20 +1,14 @@
-<!DOCTYPE html>
-<html lang="en" data-theme="light">
-<head>
-    <meta charset="UTF-8">
-    <title>{{ club.name }} - Manager Dashboard</title>
-    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.10.2/dist/full.min.css" rel="stylesheet" type="text/css" />
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gray-50 min-h-screen p-4 md:p-10 font-sans">
-    
-    <div class="max-w-6xl mx-auto">
+{% extends 'base.html' %}
+{% block title %}{{ club.name }} - Manager Dashboard - CampusHub{% endblock %}
+
+{% block content %}
+    <div class="max-w-6xl mx-auto py-8">
         <div class="flex justify-between items-end mb-8">
             <div>
                 <span class="text-sm font-bold text-gray-400 uppercase tracking-wider">Manager Dashboard</span>
                 <h1 class="text-4xl font-bold text-black tracking-tight">{{ club.name }}</h1>
             </div>
-            <a href="{% url 'profile' %}" class="btn btn-ghost">Back to Profile</a>
+            <a href="{% url 'core:profile' %}" class="btn btn-ghost">Back to Profile</a>
         </div>
 
         {% if messages %}
@@ -70,11 +64,11 @@
                             </td>
                             <td class="text-gray-600 font-medium">{{ member.user.student_id|default:"-" }}</td>
                             <td class="flex gap-2">
-                                <form method="POST" action="{% url 'process_membership' member.id 'approve' %}">
+                                <form method="POST" action="{% url 'core:process_membership' member.id 'approve' %}">
                                     {% csrf_token %}
                                     <button type="submit" class="btn btn-sm bg-black hover:bg-gray-800 text-white rounded-full border-none">Approve</button>
                                 </form>
-                                <form method="POST" action="{% url 'process_membership' member.id 'reject' %}">
+                                <form method="POST" action="{% url 'core:process_membership' member.id 'reject' %}">
                                     {% csrf_token %}
                                     <button type="submit" class="btn btn-sm btn-ghost text-red-500 hover:bg-red-50 rounded-full">Reject</button>
                                 </form>
@@ -120,8 +114,5 @@
                 </table>
             </div>
         </div>
-        
     </div>
-
-</body>
-</html>
+{% endblock %}
