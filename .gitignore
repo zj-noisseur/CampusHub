@@ -10,3 +10,4 @@ env/
 *.sqlite3
 
 campushub/core/.env
+campushub/.env
