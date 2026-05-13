@@ -9,4 +9,4 @@ env/
 # Databases
 *.sqlite3
 
-campushub/core/.env
+campushub/.env
