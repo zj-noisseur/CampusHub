@@ -1,95 +1,108 @@
 {% extends 'base.html' %}
 
-{% block main_class %}flex flex-1 min-h-0{% endblock %}
+{% block main_class %}flex flex-grow w-full p-0{% endblock %}
+{% block container_class %}w-full max-w-full flex flex-grow{% endblock %}
 
 {% block content %}
-<style>
-/* Prevent FOUC for the sidebar by immediately applying the DaisyUI lg:drawer-open rules */
-@media (min-width: 1024px) {
-  .drawer.lg\:drawer-open {
-    grid-auto-columns: max-content auto;
-  }
-  .drawer.lg\:drawer-open > .drawer-toggle {
-    display: none;
-  }
-  .drawer.lg\:drawer-open > .drawer-side {
-    pointer-events: auto;
-    visibility: visible;
-    position: sticky;
-    display: block;
-    grid-column-start: 1;
-    grid-row-start: 1;
-    grid-row-end: span 2;
-    width: auto;
-    overscroll-behavior: auto;
-  }
-  .drawer.lg\:drawer-open > .drawer-side > *:not(.drawer-overlay) {
-    transform: translateX(0%);
-  }
-}
-</style>
-<div class="drawer lg:drawer-open w-full h-full">
-  <input id="admin-drawer" type="checkbox" class="drawer-toggle" />
+<div class="flex flex-col lg:flex-row w-full flex-grow min-h-[calc(100vh-5rem)] bg-base-100">
   
-  <div id="admin-drawer-content" class="drawer-content flex flex-col items-center justify-start overflow-y-auto bg-base-100 p-4 lg:p-8"
-       style="opacity:0; transition: opacity 0.18s ease;">
-    <!-- Mobile Hamburger Menu for Drawer -->
-    <div class="w-full lg:hidden flex items-center mb-4 border-b border-base-200 pb-2">
-       <label for="admin-drawer" class="btn btn-square btn-ghost mr-2">
-         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="inline-block w-6 h-6 stroke-current"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
-       </label>
-       <span class="font-bold text-lg">Admin Menu</span>
+  <!-- Mobile Admin Navigation Bar -->
+  <div class="lg:hidden w-full bg-base-200 border-b border-base-300 p-4 flex flex-col gap-2">
+    <button type="button" onclick="document.getElementById('mobile-admin-menu').classList.toggle('hidden')" class="btn btn-outline btn-sm w-full flex items-center justify-between font-bold rounded-xl">
+      <span class="flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+        Admin Menu Navigation
+      </span>
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+    </button>
+    
+    <div id="mobile-admin-menu" class="hidden pt-2 transition-all">
+      <ul class="menu menu-sm bg-base-100 rounded-xl border border-base-200 p-2 gap-1 shadow-sm">
+        <li class="menu-title text-base-content/50 uppercase text-[10px] font-bold tracking-wider">Approval</li>
+        <li><a href="#" class="opacity-50 cursor-not-allowed rounded-lg" onclick="event.preventDefault();">New Club</a></li>
+        <li><a href="#" class="opacity-50 cursor-not-allowed rounded-lg" onclick="event.preventDefault();">Manager</a></li>
+        <li><a href="#" class="opacity-50 cursor-not-allowed rounded-lg" onclick="event.preventDefault();">Renewal</a></li>
+        
+        <li class="menu-title text-base-content/50 uppercase text-[10px] font-bold tracking-wider mt-2">Club Management</li>
+        <li><a href="#" class="opacity-50 cursor-not-allowed rounded-lg" onclick="event.preventDefault();">Directory</a></li>
+
+        <li class="menu-title text-base-content/50 uppercase text-[10px] font-bold tracking-wider mt-2">Task</li>
+        <li>
+          <a href="{% url 'core:admin_classification' %}" class="rounded-lg {% if request.resolver_match.url_name == 'admin_classification' %}active bg-primary text-primary-content font-bold{% endif %}">
+            Event Classification
+          </a>
+        </li>
+        <li>
+          <a href="{% url 'core:admin_dashboard' %}" class="rounded-lg {% if request.resolver_match.url_name == 'admin_dashboard' %}active bg-primary text-primary-content font-bold{% endif %}">
+            Scraper Dashboard
+          </a>
+        </li>
+        
+        <div class="divider my-1"></div>
+        <li>
+          <a href="/admin/" target="_blank" class="font-medium text-base-content/80 rounded-lg">
+            Django Admin
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="inline ml-1 opacity-70"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+          </a>
+        </li>
+      </ul>
     </div>
+  </div>
 
-    <!-- Page Content -->
-    <div class="w-full max-w-full">
-        {% block admin_content %}
-        {% endblock %}
-    </div>
-  </div> 
-  
-
-  <div class="drawer-side z-20">
-    <label for="admin-drawer" aria-label="close sidebar" class="drawer-overlay"></label> 
-    <ul class="menu p-4 w-64 min-h-full bg-base-200 text-base-content border-r border-base-300">
+  <!-- Desktop Sidebar Navigation -->
+  <aside class="hidden lg:flex flex-col w-64 bg-base-200/60 border-r border-base-300 flex-shrink-0 p-4 select-none">
+    <ul class="menu p-0 w-full gap-1.5 text-base-content">
       
-      <li class="menu-title text-base-content/50 uppercase text-xs font-bold tracking-wider mt-2">Approval</li>
-      <li><a href="#" class="opacity-50 cursor-not-allowed" onclick="event.preventDefault();" title="Coming soon">New Club</a></li>
-      <li><a href="#" class="opacity-50 cursor-not-allowed" onclick="event.preventDefault();" title="Coming soon">Manager</a></li>
-      <li><a href="#" class="opacity-50 cursor-not-allowed" onclick="event.preventDefault();" title="Coming soon">Renewal</a></li>
+      <li class="menu-title text-base-content/50 uppercase text-xs font-bold tracking-wider px-3 pt-2 pb-1">Approval</li>
+      <li><a href="#" class="opacity-50 cursor-not-allowed py-2.5 px-4 rounded-xl font-medium" onclick="event.preventDefault();" title="Coming soon">New Club</a></li>
+      <li><a href="#" class="opacity-50 cursor-not-allowed py-2.5 px-4 rounded-xl font-medium" onclick="event.preventDefault();" title="Coming soon">Manager</a></li>
+      <li><a href="#" class="opacity-50 cursor-not-allowed py-2.5 px-4 rounded-xl font-medium" onclick="event.preventDefault();" title="Coming soon">Renewal</a></li>
       
-      <li class="menu-title text-base-content/50 uppercase text-xs font-bold tracking-wider mt-6">Club Management</li>
-      <li><a href="#" class="opacity-50 cursor-not-allowed" onclick="event.preventDefault();" title="Coming soon">Directory</a></li>
+      <li class="menu-title text-base-content/50 uppercase text-xs font-bold tracking-wider px-3 pt-6 pb-1">Club Management</li>
+      <li><a href="#" class="opacity-50 cursor-not-allowed py-2.5 px-4 rounded-xl font-medium" onclick="event.preventDefault();" title="Coming soon">Directory</a></li>
 
-      <li class="menu-title text-base-content/50 uppercase text-xs font-bold tracking-wider mt-6">Task</li>
+      <li class="menu-title text-base-content/50 uppercase text-xs font-bold tracking-wider px-3 pt-6 pb-1">Task</li>
       <li>
-        <a href="{% url 'core:admin_classification' %}" class="{% if request.resolver_match.url_name == 'admin_classification' %}active bg-primary text-primary-content{% endif %}">
-          Event Classification
+        <a href="{% url 'core:admin_classification' %}" class="py-2.5 px-4 rounded-xl font-medium transition-all {% if request.resolver_match.url_name == 'admin_classification' %}active bg-primary text-primary-content font-bold shadow-md hover:bg-primary/90{% else %}hover:bg-base-300/60{% endif %}">
+          <div class="flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="opacity-80"><path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z"/><path d="M7 7h.01"/></svg>
+            <span>Event Classification</span>
+          </div>
         </a>
       </li>
       <li>
-        <a href="{% url 'core:admin_dashboard' %}" class="{% if request.resolver_match.url_name == 'admin_dashboard' %}active bg-primary text-primary-content{% endif %}">
-          Scraper Dashboard
+        <a href="{% url 'core:admin_dashboard' %}" class="py-2.5 px-4 rounded-xl font-medium transition-all {% if request.resolver_match.url_name == 'admin_dashboard' %}active bg-primary text-primary-content font-bold shadow-md hover:bg-primary/90{% else %}hover:bg-base-300/60{% endif %}">
+          <div class="flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="opacity-80"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+            <span>Scraper Dashboard</span>
+          </div>
         </a>
       </li>
       
-      <div class="divider my-4"></div>
+      <div class="divider my-4 opacity-60"></div>
       
       <li>
-        <a href="/admin/" target="_blank" class="hover:bg-base-300">
-          Django Admin
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-external-link ml-1 opacity-70"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+        <a href="/admin/" target="_blank" class="py-2.5 px-4 rounded-xl font-medium hover:bg-base-300/60 text-base-content/80 transition-all">
+          <div class="flex items-center justify-between w-full">
+            <div class="flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="opacity-70"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+              <span>Django Admin</span>
+            </div>
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="opacity-50"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+          </div>
         </a>
       </li>
     </ul>
-  </div>
-</div>
+  </aside>
 
-<script>
-  document.addEventListener('DOMContentLoaded', function () {
-    var content = document.getElementById('admin-drawer-content');
-    if (content) content.style.opacity = '1';
-  });
-</script>
+  <!-- Main Content Container -->
+  <main class="flex-1 p-4 lg:p-8 w-full max-w-full overflow-x-hidden">
+    <div class="max-w-7xl mx-auto w-full space-y-8">
+      {% block admin_content %}
+      {% endblock %}
+    </div>
+  </main>
+
+</div>
 {% endblock %}
 

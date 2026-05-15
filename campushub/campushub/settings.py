@@ -12,6 +12,9 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 
 import os
 from pathlib import Path
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -21,7 +24,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-v-bhx16y_rxp8k#@#kp-a3axznh%a&_!1-p835*0pmt=(!a#p='
+SECRET_KEY = f'{os.environ.get("DJANGO_KEY")}'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -76,9 +79,22 @@ WSGI_APPLICATION = 'campushub.wsgi.application'
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+    # 'default':{
+    #     'ENGINE': 'django.db.backends.postgresql',
+    #     'NAME': 'campushub',
+    #     'USER': 'campushubdb',
+    #     'PASSWORD': f'{os.environ.get("LOCAL_POSTGRES_PASSWORD")}',
+    #     'HOST': 'localhost',
+    #     'PORT': '5432', 
+    # } 
+
+    'default':{
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'postgres',
+        'USER': 'postgres',
+        'PASSWORD': f'{os.environ.get("POSTGRES_PASSWORD")}',
+        'HOST': f'{os.environ.get("POSTGRES_HOST")}',
+        'PORT': '5432', 
     }
 }
 
@@ -148,3 +164,4 @@ CELERY_TRACK_STARTED = True
 CELERY_IGNORE_RESULT = False
 
 CELERY_RESULT_EXTENDED = True
+ML_BACKEND_URL = os.environ.get('ML_BACKEND_URL', 'http://localhost:8001')

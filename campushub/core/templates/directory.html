@@ -26,31 +26,44 @@
           </label>
         </form>
 
-        <ul class="list bg-base-300 rounded-box shadow-md">
+        <ul class="list bg-base-100 rounded-2xl shadow-xl border border-base-200 divide-y divide-base-200 overflow-hidden mt-6">
             {% for institution in institutions %}
-                <li class="list-row p-4">   
-                    <div class="list-col">
-                        {% if institution.logo %}
-                        <img 
-                        src="{{ institution.logo.url }}" 
-                        alt="{{ institution.university_name }} flag" 
-                        class="w-25 h-25 object-contain rounded-box" />
-                        {% else %}
-                        <div class="w-25 h-25 bg-gray-100 rounded-box flex items-center justify-center text-gray-400">
-                            <i class="fa-solid fa-university text-2xl"></i>
+                <li class="flex items-center justify-between p-4 sm:p-6 gap-4 hover:bg-base-200/40 transition-all duration-200">   
+                    <!-- Side-by-side Image Container and Text -->
+                    <div class="flex items-center gap-4 sm:gap-6 min-w-0 flex-grow">
+                        <!-- Image Container with fixed dimensions to prevent overflow -->
+                        <div class="w-16 h-16 sm:w-20 sm:h-20 flex-shrink-0 bg-base-200/80 rounded-xl overflow-hidden shadow-sm flex items-center justify-center border border-base-300/40 p-1.5">
+                            {% if institution.logo %}
+                            <img 
+                                src="{{ institution.logo.url }}" 
+                                alt="{{ institution.university_name }} logo" 
+                                class="w-full h-full object-contain" />
+                            {% else %}
+                            <div class="w-full h-full flex items-center justify-center text-base-content/30">
+                                <i class="fa-solid fa-university text-2xl sm:text-3xl"></i>
+                            </div>
+                            {% endif %}
                         </div>
-                        {% endif %}
+                        
+                        <!-- Text Container -->
+                        <div class="flex flex-col gap-1 min-w-0 flex-grow">
+                            <h2 class="text-base sm:text-xl font-bold tracking-tight text-base-content truncate">{{ institution.university_name }}</h2>
+                            <p class="text-xs sm:text-sm font-medium text-base-content/60 flex items-center gap-1.5 truncate">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                                <span class="truncate">{{ institution.state.name }}</span>
+                            </p>
+                        </div>
                     </div>
-                    <div class="list-col-grow px-4">
-                        <h2 class="text-lg font-bold">{{ institution.university_name }}</h2>
-                        <p class="text-sm text-gray-600">{{ institution.state.name }} </p>
-                    </div>
-                    <div class="flex items-center">
-                        <a href="{% url 'core:clubs' state_id=institution.state.id university_id=institution.id %}" class="btn btn-primary">View Clubs</a>
+
+                    <!-- Action Button -->
+                    <div class="flex-shrink-0 pl-2">
+                        <a href="{% url 'core:clubs' state_id=institution.state.id university_id=institution.id %}" class="btn btn-primary btn-sm sm:btn-md rounded-xl shadow-md hover:shadow-lg transition-all font-bold tracking-wide">
+                            View Clubs
+                        </a>
                     </div>
                 </li>
             {% empty %}
-                <li class="p-4 text-center text-gray-500">No university found for "{{request.GET.search|default:''}}".</li>
+                <li class="p-12 text-center text-base-content/50 font-medium">No university found for "{{ request.GET.search|default:'' }}".</li>
             {% endfor %}
         </ul>
 
