@@ -93,7 +93,7 @@ DATABASES = {
         'NAME': 'postgres',
         'USER': 'postgres',
         'PASSWORD': f'{os.environ.get("POSTGRES_PASSWORD")}',
-        'HOST': f'{os.environ.get("POSTGRES_HOST")}',
+        'HOST': os.environ.get('POSTGRES_HOST', os.environ.get('REMOTE_HOST', 'localhost')),
         'PORT': '5432', 
     }
 }
@@ -152,8 +152,10 @@ AUTHENTICATION_BACKENDS = [
 JSON_EXPORT_DIR = BASE_DIR / 'export'
 
 # Celery configuration
-CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'redis://localhost:6379/0')
-CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND', 'django-db')
+# CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'redis://localhost:6379/0')
+CELERY_BROKER_URL = f'redis://default:{os.environ["REDIS_PASSWORD"]}@{os.environ["REMOTE_HOST"]}:6379/0'
+
+CELERY_RESULT_BACKEND = f'db+postgresql+psycopg2://postgres:{os.environ["POSTGRES_PASSWORD"]}@{os.environ["REMOTE_HOST"]}:5432/postgres'
 CELERY_IMPORTS = ('core.tasks',)
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
@@ -164,4 +166,4 @@ CELERY_TRACK_STARTED = True
 CELERY_IGNORE_RESULT = False
 
 CELERY_RESULT_EXTENDED = True
-ML_BACKEND_URL = os.environ.get('ML_BACKEND_URL', 'http://localhost:8001')
+ML_BACKEND_URL = os.environ['ML_BACKEND_URL']

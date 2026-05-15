@@ -4,7 +4,7 @@ from core.views.directory import directory
 from core.views.clubs import clubs
 from core.views.universities import universities
 from core.views.admin_dashboard import admin_dashboard_home, admin_dashboard_action, admin_dashboard_task_queue, admin_dashboard_task_status
-from core.views.admin_classification import admin_classification_dashboard, admin_classify_post, admin_update_post_category, admin_bulk_classify
+from core.views.admin_classification import admin_classification_dashboard, admin_classify_post, admin_update_post_category, admin_bulk_classify, admin_bulk_revert_classification
 from core.views.feed import feed
 from core.views.sign_up import sign_up
 from core.views.claim_club import claim_club
@@ -52,6 +52,7 @@ urlpatterns = [
     path('admin-site/classification/post/<int:post_id>/', admin_classify_post, name='admin_classify_post'),
     path('admin-site/classification/post/<int:post_id>/update/', admin_update_post_category, name='admin_update_post_category'),
     path('admin-site/classification/bulk/', admin_bulk_classify, name='admin_bulk_classify'),
+    path('admin-site/classification/bulk/revert/', admin_bulk_revert_classification, name='admin_bulk_revert_classification'),
 
     # --- Club Management & Profile ---
     path('club/<int:club_id>/', club_profile, name='club_profile'),

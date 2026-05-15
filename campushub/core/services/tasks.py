@@ -382,10 +382,10 @@ def process(self, dataset, club_id, full_sync=False):
         # Trigger AI classification for new posts or those that are still uncategorized
         if created or post.category == 'MISC':
             try:
-                post.classify_category()
+                classify_post.delay(post.id)
             except Exception as e:
                 # Log error but don't fail the whole scrape task
-                logger.error(f"Auto-classification failed for post {short_code}: {e}")
+                logger.error(f"Auto-classification enqueue failed for post {short_code}: {e}")
 
 
         image_urls = item.get('images') or ([item.get('displayUrl')] if item.get('displayUrl') else [])
@@ -424,6 +424,39 @@ def process(self, dataset, club_id, full_sync=False):
         'db_write_task_id': finalize_result.id if finalize_result else None,
         'club_id': str(club.id),
     }
+
+
+@shared_task(bind=True)
+def classify_post(self, post_id):
+    from core.models import Post
+    from core.services.post_categorization import predict_post_category
+
+    post = Post.objects.filter(id=post_id).first()
+    if not post:
+        logger.warning(f"Classification task skipped because post {post_id} was not found")
+        return {'status': 'missing', 'post_id': post_id}
+
+    try:
+        category_key = predict_post_category(post.caption)
+        if category_key and category_key != post.category:
+            post.category = category_key
+            post.save(update_fields=['category'])
+
+        label = dict(post._meta.get_field('category').choices).get(category_key, category_key)
+        logger.info(f"Queued classification completed for post {post.short_code}: {label} ({category_key})")
+
+        return {
+            'status': 'success',
+            'post_id': post_id,
+            'category': category_key,
+        }
+    except Exception as e:
+        logger.error(f"Classification task failed for post {post_id}: {e}")
+        return {
+            'status': 'error',
+            'post_id': post_id,
+            'error': str(e),
+        }
 
 
 @shared_task(bind=True)

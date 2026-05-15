@@ -125,6 +125,30 @@ def admin_bulk_classify(request):
     return HttpResponse('Invalid request', status=400)
 
 
+@user_passes_test(is_superuser)
+def admin_bulk_revert_classification(request):
+    """Reverts classified posts back to MISC for selected clubs or across all clubs."""
+    if request.method == 'POST':
+        scope = request.POST.get('scope', 'selected')
+        club_ids = request.POST.getlist('club_ids[]') or request.POST.getlist('club_ids')
+
+        posts = Post.objects.exclude(category='MISC')
+
+        if scope == 'all':
+            reverted_count = posts.update(category='MISC')
+        else:
+            if not club_ids:
+                return HttpResponse('No clubs selected for revert.', status=400)
+
+            posts = posts.filter(club_id__in=club_ids)
+            reverted_count = posts.update(category='MISC')
+
+        logger.info(f"Bulk revert completed. Scope={scope}, reverted={reverted_count}")
+        return HttpResponse(f'<script>window.location.reload();</script>')
+
+    return HttpResponse('Invalid request', status=400)
+
+
 
 @user_passes_test(is_superuser)
 def admin_classify_post(request, post_id):

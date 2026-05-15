@@ -99,6 +99,35 @@
                             <span id="bulk-spinner" class="htmx-indicator loading loading-spinner loading-xs"></span>
                         </button>
                     </div>
+
+                    <div class="divider my-1"></div>
+
+                    <div class="flex flex-col gap-2 sm:flex-row sm:justify-end">
+                        <button
+                            type="button"
+                            class="btn btn-sm btn-warning px-6"
+                            hx-post="{% url 'core:admin_bulk_revert_classification' %}"
+                            hx-include=".bulk-club-checkbox:checked"
+                            hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                            hx-vals='{"scope": "selected"}'
+                            hx-confirm="Revert classified posts back to Uncategorized for the selected clubs?"
+                            hx-indicator="#revert-selected-spinner">
+                            Revert Selected Clubs
+                            <span id="revert-selected-spinner" class="htmx-indicator loading loading-spinner loading-xs"></span>
+                        </button>
+
+                        <button
+                            type="button"
+                            class="btn btn-sm btn-error px-6"
+                            hx-post="{% url 'core:admin_bulk_revert_classification' %}"
+                            hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                            hx-vals='{"scope": "all"}'
+                            hx-confirm="Revert every classified post back to Uncategorized across all clubs?"
+                            hx-indicator="#revert-all-spinner">
+                            Revert All
+                            <span id="revert-all-spinner" class="htmx-indicator loading loading-spinner loading-xs"></span>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
