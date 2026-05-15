@@ -126,13 +126,13 @@
                     </button>
 
                 {% elif user_membership.status == 'APPROVED' %}
-                    {% if not user_membership.expires_at or club.renewal_policy == 'LIFETIME' %}
+                    {% if not user_membership.expired_at or club.renewal_policy == 'LIFETIME' %}
                         <button class="btn bg-green-50 text-green-700 hover:bg-green-100 rounded-full border-none cursor-default">
                             ♾️ Lifetime Member
                         </button>
                     {% else %}
                         <button class="btn bg-green-50 text-green-700 hover:bg-green-100 rounded-full border-none cursor-default">
-                            ✅ Member (Expires: {{ user_membership.expires_at|date:"M d, Y" }})
+                            ✅ Member (Expires: {{ user_membership.expired_at|date:"M d, Y" }})
                         </button>
                     {% endif %}
 

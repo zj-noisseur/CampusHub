@@ -52,15 +52,15 @@ def process_membership(request, membership_id, action):
         membership.status = 'APPROVED'
 
         today = date.today()
-        policy = membership.club.renew_policy
+        policy = membership.club.renewal_policy
         if policy == 'ROLLING':
-            membership.expires_at = today + timezone.timedelta(days=365)
+            membership.expired_at = today + timezone.timedelta(days=365)
             
         elif policy == 'CALENDAR':
-            membership.expires_at = date(today.year, 12, 31)
+            membership.expired_at = date(today.year, 12, 31)
             
         elif policy == 'LIFETIME':
-            membership.expires_at = None
+            membership.expired_at = None
 
         membership.save()
         messages.success(request, f'Approved {membership.user.student_name}!')

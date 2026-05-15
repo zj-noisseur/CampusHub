@@ -87,7 +87,7 @@
                                 <div class="font-bold text-black">{{ member.user.student_name }}</div>
                                 <div class="text-xs text-gray-400">{{ member.user.email }}</div>
                             </td>
-                            <td class="text-gray-600 font-medium">{{ member.user.student_id|default:"-" }}</td>                            <td class="flex gap-2">
+                            <td class="text-gray-600 font-medium">{{ member.user.student_id|default:"-" }}</td>       
                             <td>
                                 {% if member.payment_proof %}
                                     <button type="button" onclick="document.getElementById('proof_modal_{{ member.id }}').showModal()" class="btn btn-xs bg-gray-200 hover:bg-gray-300 text-gray-800 border-none rounded-md">
