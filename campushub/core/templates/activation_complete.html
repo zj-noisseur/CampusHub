@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block title %}Account Activated - CampusHub{% endblock %}
+
+{% block main_class %}min-h-[80vh] flex items-center justify-center p-4{% endblock %}
+
+{% block content %}
+    <div class="max-w-lg w-full mx-auto bg-white p-8 md:p-10 rounded-3xl border border-gray-100 shadow-sm text-center">
+        <div class="text-4xl mb-4 text-green-500">🎉</div>
+        <h1 class="text-2xl font-bold text-gray-900 mb-2">Email verified!</h1>
+        
+        <p class="text-gray-500 mb-8 text-sm">
+            Your account has been successfully activated. You can now sign in and start joining clubs.
+        </p>
+
+        <a href="{% url 'core:login' %}" class="btn bg-black hover:bg-gray-800 text-white w-full rounded-full border-none">
+            Sign In Now
+        </a>
+    </div>
+{% endblock %}

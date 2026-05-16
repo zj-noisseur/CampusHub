@@ -11,11 +11,6 @@ from django.dispatch import receiver
 from django.utils import timezone
 
 
-def validate_mmu_email(value):
-    if not value.endswith('@student.mmu.edu.my'):
-        raise ValidationError("Only @student.mmu.edu.my email addresses are allowed for Phase 1.")
-
-
 class CustomUserManager(BaseUserManager):
     def create_user(self, email, student_name, password=None, **extra_fields):
         if not email:
@@ -34,7 +29,7 @@ class CustomUserManager(BaseUserManager):
 
 class User(AbstractBaseUser, PermissionsMixin):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    email = models.EmailField(unique=True, validators=[validate_mmu_email])
+    email = models.EmailField(unique=True)
     student_name = models.CharField(max_length=255)
     student_id = models.CharField(max_length=20, blank=True, null=True, unique=True)
     phone_number = models.CharField(max_length=20, blank=True, null=True)

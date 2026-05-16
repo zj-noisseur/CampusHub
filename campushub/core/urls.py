@@ -6,7 +6,7 @@ from core.views.universities import universities
 from core.views.admin_dashboard import admin_dashboard_home, admin_dashboard_action, admin_dashboard_task_queue, admin_dashboard_task_status
 from core.views import admin_classification as ac
 from core.views.feed import feed
-from core.views.sign_up import sign_up
+from core.views.sign_up import sign_up, activate_account
 from core.views.claim_club import claim_club
 from core.views.profile import user_profile, edit_profile
 from core.views.calendar import calendar
@@ -111,5 +111,9 @@ urlpatterns = [
     path('password-reset-complete/', 
          auth_views.PasswordResetCompleteView.as_view(template_name='password_reset_complete.html'), 
          name='password_reset_complete'),
+
+    # --- Account Activation Flow ---
+    path('activate/<uidb64>/<token>/',activate_account, name='activate'),
 ]
+
 
