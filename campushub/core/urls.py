@@ -4,7 +4,7 @@ from core.views.directory import directory
 from core.views.clubs import clubs
 from core.views.universities import universities
 from core.views.admin_dashboard import admin_dashboard_home, admin_dashboard_action, admin_dashboard_task_queue, admin_dashboard_task_status
-from core.views.admin_classification import admin_classification_dashboard, admin_classify_post, admin_update_post_category, admin_bulk_classify, admin_bulk_revert_classification
+from core.views import admin_classification as ac
 from core.views.feed import feed
 from core.views.sign_up import sign_up
 from core.views.claim_club import claim_club
@@ -47,12 +47,24 @@ urlpatterns = [
     path('admin-site/dashboard/task-status/', admin_dashboard_task_status, name='admin_task_status'),
     path('admin-site/dashboard/action/', admin_dashboard_action, name='admin_action'),
     
-    # --- Administrative Classification ---
-    path('admin-site/classification/', admin_classification_dashboard, name='admin_classification'),
-    path('admin-site/classification/post/<int:post_id>/', admin_classify_post, name='admin_classify_post'),
-    path('admin-site/classification/post/<int:post_id>/update/', admin_update_post_category, name='admin_update_post_category'),
-    path('admin-site/classification/bulk/', admin_bulk_classify, name='admin_bulk_classify'),
-    path('admin-site/classification/bulk/revert/', admin_bulk_revert_classification, name='admin_bulk_revert_classification'),
+    # --- Caption Processing Workflow ---
+    # Step 1: Temporal Classification
+    path('admin-site/classification/temporal/', ac.admin_temporal_classification_dashboard, name='admin_temporal_classification_step1'),
+    path('admin-site/classification/temporal/post/<int:post_id>/', ac.admin_classify_post_temporal, name='admin_classify_post_temporal_step1'),
+    path('admin-site/classification/temporal/post/<int:post_id>/update/', ac.admin_update_post_event_status, name='admin_update_post_event_status_step1'),
+    path('admin-site/classification/temporal/bulk/', ac.admin_bulk_temporal_classify, name='admin_bulk_temporal_classify_step1'),
+
+    # Step 2: Event Classification
+    path('admin-site/classification/event/', ac.admin_event_classification_dashboard, name='admin_event_classification_step2'),
+    path('admin-site/classification/event/post/<int:post_id>/', ac.admin_classify_post_event, name='admin_classify_post_event_step2'),
+    path('admin-site/classification/event/post/<int:post_id>/update/', ac.admin_update_post_event_category, name='admin_update_post_event_category_step2'),
+    path('admin-site/classification/event/bulk/', ac.admin_bulk_event_classify, name='admin_bulk_event_classify_step2'),
+
+    # Step 3: Date Extraction
+    path('admin-site/classification/dates/', ac.admin_date_extraction_dashboard, name='admin_date_extraction_step3'),
+
+    # Shared Bulk
+    path('admin-site/classification/bulk/revert/', ac.admin_bulk_revert_classification, name='admin_bulk_revert_classification'),
 
     # --- Club Management & Profile ---
     path('club/<int:club_id>/', club_profile, name='club_profile'),

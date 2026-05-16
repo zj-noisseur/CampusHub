@@ -9,4 +9,6 @@ env/
 # Databases
 *.sqlite3
 
+ml-backend/
+
 campushub/.env

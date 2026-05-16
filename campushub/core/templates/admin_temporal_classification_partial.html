@@ -1,0 +1,53 @@
+<!-- This partial is returned for HTMX requests to update the table results -->
+<tbody id="posts-table-body" hx-swap-oob="true">
+    {% for post in page_obj %}
+        {% include 'admin_temporal_classification_step1_row.html' with post=post %}
+    {% empty %}
+        <tr>
+            <td colspan="5" class="text-center py-12 opacity-50">
+                <div class="flex flex-col items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-inbox"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
+                    <span>No posts found matching your criteria.</span>
+                </div>
+            </td>
+        </tr>
+    {% endfor %}
+</tbody>
+
+<div id="pagination-container" class="flex justify-center pb-12" hx-swap-oob="true">
+    {% if page_obj.has_other_pages %}
+    <div class="join shadow-lg border border-base-300 bg-base-100 p-1 rounded-xl">
+        {% if page_obj.has_previous %}
+            <button class="join-item btn btn-ghost btn-sm" 
+                    hx-get="?page={{ page_obj.previous_page_number }}" 
+                    hx-target="#posts-table-body"
+                    hx-include="#filter-form, .bulk-club-checkbox:checked, [name='per_page']"
+                    hx-push-url="true">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-left"><path d="m15 18-6-6 6-6"/></svg>
+            </button>
+        {% else %}
+            <button class="join-item btn btn-ghost btn-sm btn-disabled opacity-30">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-left"><path d="m15 18-6-6 6-6"/></svg>
+            </button>
+        {% endif %}
+        
+        <button class="join-item btn btn-ghost btn-sm no-animation pointer-events-none px-6">
+            Page <span class="font-bold mx-1 text-primary">{{ page_obj.number }}</span> of {{ page_obj.paginator.num_pages }}
+        </button>
+        
+        {% if page_obj.has_next %}
+            <button class="join-item btn btn-ghost btn-sm" 
+                    hx-get="?page={{ page_obj.next_page_number }}" 
+                    hx-target="#posts-table-body"
+                    hx-include="#filter-form, .bulk-club-checkbox:checked, [name='per_page']"
+                    hx-push-url="true">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-right"><path d="m9 18 6-6-6-6"/></svg>
+            </button>
+        {% else %}
+            <button class="join-item btn btn-ghost btn-sm btn-disabled opacity-30">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-right"><path d="m9 18 6-6-6-6"/></svg>
+            </button>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>

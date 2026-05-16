@@ -5,23 +5,23 @@ from django.contrib.auth.decorators import user_passes_test
 from django.core.paginator import Paginator
 
 from core.models import Post, Club, Institution
-from core.services.post_categorization import assign_category_to_post
+from core.services.post_categorization import assign_category_to_post, assign_event_status_to_post
 
 logger = logging.getLogger(__name__)
 
 def is_superuser(user):
     return user.is_authenticated and user.is_superuser
 
-@user_passes_test(is_superuser)
-def admin_classification_dashboard(request):
-    # Handle multiple club IDs from the filter
+# --- SHARED HELPERS ---
+
+def get_dashboard_context(request, posts_qs):
+    """Helper to handle common filtering and pagination logic."""
     selected_university = request.GET.get('university')
     selected_clubs = request.GET.getlist('club_ids') or request.GET.getlist('club')
     date_sort = request.GET.get('sort', 'latest')
-    status_filter = request.GET.get('status', '')
     per_page = request.GET.get('per_page', '20')
     
-    posts = Post.objects.select_related('club', 'club__institution')
+    posts = posts_qs.select_related('club', 'club__institution')
 
     # Apply Filters
     clean_club_ids = [cid for cid in selected_clubs if str(cid).isdigit()]
@@ -29,9 +29,6 @@ def admin_classification_dashboard(request):
         posts = posts.filter(club_id__in=clean_club_ids)
     elif selected_university:
         posts = posts.filter(club__institution_id=selected_university)
-
-    if status_filter:
-        posts = posts.filter(category=status_filter)
 
     # Apply Sorting
     if date_sort == 'oldest':
@@ -42,7 +39,7 @@ def admin_classification_dashboard(request):
     # Dynamic Pagination Size
     try:
         if per_page == 'all':
-            page_size = posts.count() or 20 # Fallback to 20 if no posts
+            page_size = posts.count() or 20
         else:
             page_size = int(per_page)
     except (ValueError, TypeError):
@@ -52,10 +49,9 @@ def admin_classification_dashboard(request):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
-
     universities = Institution.objects.all().order_by('university_name')
 
-    # Smart grouped naming — same as Scraper Dashboard
+    # Grouped Club List
     clubs_qs = Club.objects.select_related('institution').all().order_by('institution__university_name', 'name')
     name_counts = {}
     for c in clubs_qs:
@@ -73,113 +69,157 @@ def admin_classification_dashboard(request):
             'search_key': f"{c.name} {inst_name}".lower()
         })
 
-    context = {
+    return {
         'page_obj': page_obj,
         'universities': universities,
         'grouped_clubs': grouped_clubs,
         'selected_university': int(selected_university) if selected_university else None,
         'selected_clubs': [int(c) for c in selected_clubs if str(c).isdigit()],
-        'status_filter': status_filter,
         'date_sort': date_sort,
         'per_page': per_page,
     }
 
-
-
-
-    # If it's an HTMX request, return only the table body and pagination
-    if request.headers.get('HX-Request'):
-        return render(request, 'admin_classification_partial.html', context)
-
-    return render(request, 'admin_classification.html', context)
-
+# --- STEP 1: TEMPORAL CLASSIFICATION ---
 
 @user_passes_test(is_superuser)
-def admin_bulk_classify(request):
-    """Classifies all posts matching the current filters or selected clubs."""
+def admin_temporal_classification_dashboard(request):
+    """Step 1: Filter between upcoming events and non-events."""
+    status_filter = request.GET.get('status', '') # '', 'True', 'False'
+    posts = Post.objects.all()
+    
+    if status_filter == 'True':
+        posts = posts.filter(is_event=True)
+    elif status_filter == 'False':
+        posts = posts.filter(is_event=False)
+    elif status_filter == 'PENDING':
+        posts = posts.filter(is_event__isnull=True)
+
+    context = get_dashboard_context(request, posts)
+    context['status_filter'] = status_filter
+
+    if request.headers.get('HX-Request'):
+        return render(request, 'admin_temporal_classification_partial.html', context)
+    return render(request, 'admin_temporal_classification.html', context)
+
+@user_passes_test(is_superuser)
+def admin_classify_post_temporal(request, post_id):
     if request.method == 'POST':
-        university_id = request.POST.get('university')
-        # Handle multiple club IDs
+        post = get_object_or_404(Post, id=post_id)
+        assign_event_status_to_post(post)
+        return render(request, 'admin_temporal_classification_step1_row.html', {'post': post})
+    return HttpResponse('Invalid request', status=400)
+
+@user_passes_test(is_superuser)
+def admin_update_post_event_status(request, post_id):
+    if request.method == 'POST':
+        post = get_object_or_404(Post, id=post_id)
+        val = request.POST.get('is_event') or request.GET.get('is_event')
+        if val == 'True':
+            post.is_event = True
+        elif val == 'False':
+            post.is_event = False
+        elif val == 'None':
+            post.is_event = None
+        post.save(update_fields=['is_event'])
+        return render(request, 'admin_temporal_classification_step1_row.html', {'post': post})
+    return HttpResponse('Invalid request', status=400)
+
+@user_passes_test(is_superuser)
+def admin_bulk_temporal_classify(request):
+    if request.method == 'POST':
         club_ids = request.POST.getlist('club_ids[]') or request.POST.getlist('club_ids')
-        status_filter = request.POST.get('status')
-        
-        posts = Post.objects.filter(category='MISC')
-        
+        posts = Post.objects.filter(is_event__isnull=True)
         if club_ids:
             posts = posts.filter(club_id__in=club_ids)
-        elif university_id:
-            posts = posts.filter(club__institution_id=university_id)
             
-        if status_filter:
-            posts = posts.filter(category=status_filter)
+        for post in posts:
+            try:
+                assign_event_status_to_post(post)
+            except: continue
+        return HttpResponse('<script>window.location.reload();</script>')
+    return HttpResponse('Invalid request', status=400)
+
+# --- STEP 2: EVENT CLASSIFICATION ---
+
+@user_passes_test(is_superuser)
+def admin_event_classification_dashboard(request):
+    """Step 2: Categorize posts identified as events in Step 1."""
+    status_filter = request.GET.get('status', '')
+    posts = Post.objects.filter(is_event=True)
+    
+    if status_filter:
+        posts = posts.filter(category=status_filter)
+
+    context = get_dashboard_context(request, posts)
+    context['status_filter'] = status_filter
+
+    if request.headers.get('HX-Request'):
+        return render(request, 'admin_event_classification_partial.html', context)
+    return render(request, 'admin_event_classification.html', context)
+
+@user_passes_test(is_superuser)
+def admin_classify_post_event(request, post_id):
+    if request.method == 'POST':
+        post = get_object_or_404(Post, id=post_id)
+        assign_category_to_post(post)
+        return render(request, 'admin_event_classification_step2_row.html', {'post': post})
+    return HttpResponse('Invalid request', status=400)
+
+@user_passes_test(is_superuser)
+def admin_update_post_event_category(request, post_id):
+    if request.method == 'POST':
+        post = get_object_or_404(Post, id=post_id)
+        new_category = request.POST.get('category') or request.GET.get('category')
+        if new_category:
+            post.category = new_category
+            post.save(update_fields=['category'])
+        return render(request, 'admin_event_classification_step2_row.html', {'post': post})
+    return HttpResponse('Invalid request', status=400)
+
+@user_passes_test(is_superuser)
+def admin_bulk_event_classify(request):
+    if request.method == 'POST':
+        club_ids = request.POST.getlist('club_ids[]') or request.POST.getlist('club_ids')
+        posts = Post.objects.filter(is_event=True, category='MISC')
+        if club_ids:
+            posts = posts.filter(club_id__in=club_ids)
             
         for post in posts:
             try:
                 assign_category_to_post(post)
-            except Exception as e:
-                # Log but continue with others
-                continue
-            
-        return HttpResponse(f'<script>window.location.reload();</script>')
-        
+            except: continue
+        return HttpResponse('<script>window.location.reload();</script>')
     return HttpResponse('Invalid request', status=400)
 
+# --- STEP 3: DATE EXTRACTION (PLACEHOLDER) ---
+
+@user_passes_test(is_superuser)
+def admin_date_extraction_dashboard(request):
+    """Step 3: Placeholder for GLiNER-based date extraction."""
+    return render(request, 'admin_date_extraction.html', {'placeholder': True})
+
+# --- SHARED BULK ACTIONS ---
 
 @user_passes_test(is_superuser)
 def admin_bulk_revert_classification(request):
-    """Reverts classified posts back to MISC for selected clubs or across all clubs."""
+    """Universal revert based on step."""
     if request.method == 'POST':
         scope = request.POST.get('scope', 'selected')
+        step = request.POST.get('step', 'event') # 'temporal' or 'event'
         club_ids = request.POST.getlist('club_ids[]') or request.POST.getlist('club_ids')
 
-        posts = Post.objects.exclude(category='MISC')
-
-        if scope == 'all':
-            reverted_count = posts.update(category='MISC')
+        if step == 'temporal':
+            posts = Post.objects.all()
+            if scope == 'all':
+                posts.update(is_event=None)
+            else:
+                posts.filter(club_id__in=club_ids).update(is_event=None)
         else:
-            if not club_ids:
-                return HttpResponse('No clubs selected for revert.', status=400)
+            posts = Post.objects.filter(is_event=True)
+            if scope == 'all':
+                posts.update(category='MISC')
+            else:
+                posts.filter(club_id__in=club_ids).update(category='MISC')
 
-            posts = posts.filter(club_id__in=club_ids)
-            reverted_count = posts.update(category='MISC')
-
-        logger.info(f"Bulk revert completed. Scope={scope}, reverted={reverted_count}")
-        return HttpResponse(f'<script>window.location.reload();</script>')
-
+        return HttpResponse('<script>window.location.reload();</script>')
     return HttpResponse('Invalid request', status=400)
-
-
-
-@user_passes_test(is_superuser)
-def admin_classify_post(request, post_id):
-    if request.method == 'POST':
-        post = get_object_or_404(Post, id=post_id)
-        assign_category_to_post(post)
-        
-        # Return the full row fragment to update both the select and the button
-        return render(request, 'admin_classification_row.html', {'post': post})
-        
-    return HttpResponse('Invalid request', status=400)
-
-@user_passes_test(is_superuser)
-def admin_update_post_category(request, post_id):
-    if request.method == 'POST':
-        post = get_object_or_404(Post, id=post_id)
-        
-        # Log for debugging
-        new_category = request.POST.get('category') or request.GET.get('category')
-        logger.info(f"Manual update request for post {post_id}. New category: {new_category}")
-        
-        if new_category:
-            post.category = new_category
-            post.save(update_fields=['category'])
-            logger.info(f"Successfully updated post {post_id} to {new_category}")
-        else:
-            logger.warning(f"No category provided for post {post_id} update.")
-            
-        return render(request, 'admin_classification_row.html', {'post': post})
-
-        
-    return HttpResponse('Invalid request', status=400)
-
-
