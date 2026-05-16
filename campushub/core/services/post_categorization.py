@@ -50,6 +50,42 @@ def predict_post_category(caption: Optional[str]) -> str:
         return 'MISC'
 
 
+def predict_is_event(caption: str) -> Optional[bool]:
+    """Predict if a post is an upcoming event using Step 1 (Temporal Classification)."""
+    caption_text = (caption or '').strip()
+    if not caption_text:
+        return False
+
+    service_url = getattr(settings, 'ML_BACKEND_URL', 'http://localhost:8001')
+    endpoint = f"{service_url.rstrip('/')}/classify"
+    
+    # Candidate labels for Step 1
+    # We use a premise-hypothesis approach by phrasing them as clear choices
+    candidate_labels = [
+        "upcoming event or recruitment with a deadline", 
+        "past event recap or general announcement without a deadline"
+    ]
+    
+    try:
+        payload = {
+            "text": caption_text,
+            "candidate_labels": candidate_labels
+        }
+        
+        response = requests.post(endpoint, json=payload, timeout=10)
+        response.raise_for_status()
+        
+        data = response.json()
+        top_label = data.get('label')
+        
+        # If the top label is the one describing an upcoming event, return True
+        return top_label == candidate_labels[0]
+        
+    except Exception as e:
+        logger.error(f"Error during Step 1 Temporal Classification: {e}")
+        return None
+
+
 def assign_category_to_post(post) -> str:
     """Predict category from caption and persist it on the Post record."""
     category_key = predict_post_category(post.caption)
@@ -61,6 +97,14 @@ def assign_category_to_post(post) -> str:
     print(f"Predicted Category for Post {post.short_code}: {label} ({category_key})")
     
     return label
+
+
+def assign_event_status_to_post(post) -> Optional[bool]:
+    """Predict event status and persist it on the Post record."""
+    is_event = predict_is_event(post.caption)
+    post.is_event = is_event
+    post.save(update_fields=['is_event'])
+    return is_event
 
 
 if __name__ == "__main__":

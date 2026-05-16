@@ -6,54 +6,66 @@
     </td>
     <td class="whitespace-nowrap">{{ post.timestamp|date:"M d, Y" }}</td>
     <td>
-        <!-- Integrated Classification Dropdown -->
         <div class="dropdown dropdown-bottom dropdown-end">
             <div tabindex="0" role="button" class="btn btn-sm gap-2 border-base-300 bg-base-100 hover:bg-base-200 
-                {% if post.category == 'RECRUITMENT' %}text-primary border-primary/20
-                {% elif post.category == 'COMPETITION' %}text-secondary border-secondary/20
-                {% elif post.category == 'WORKSHOP' or post.category == 'INDUSTRIAL_VISIT' %}text-accent border-accent/20
-                {% elif post.category == 'ANNOUNCEMENT' %}text-info border-info/20
+                {% if post.is_event == True %}text-success border-success/20
+                {% elif post.is_event == False %}text-error border-error/20
                 {% else %}text-base-content/70{% endif %}">
                 
                 <span class="w-2 h-2 rounded-full 
-                    {% if post.category == 'RECRUITMENT' %}bg-primary
-                    {% elif post.category == 'COMPETITION' %}bg-secondary
-                    {% elif post.category == 'WORKSHOP' or post.category == 'INDUSTRIAL_VISIT' %}bg-accent
-                    {% elif post.category == 'ANNOUNCEMENT' %}bg-info
+                    {% if post.is_event == True %}bg-success
+                    {% elif post.is_event == False %}bg-error
                     {% else %}bg-base-300{% endif %}"></span>
                 
-                {{ post.get_category_display }}
+                {% if post.is_event == True %}Upcoming Event
+                {% elif post.is_event == False %}Non-Event/Recap
+                {% else %}Pending{% endif %}
+                
                 <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-down opacity-50"><path d="m6 9 6 6 6-6"/></svg>
                 
-                <!-- Progress Indicator for the whole row -->
                 <span class="htmx-indicator loading loading-spinner loading-xs ml-1" id="row-spinner-{{ post.id }}"></span>
             </div>
             <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow-lg bg-base-100 rounded-box w-56 border border-base-200 mt-1">
                 <li class="menu-title">Actions</li>
                 <li>
-                    <a hx-post="{% url 'core:admin_classify_post' post.id %}" 
+                    <a hx-post="{% url 'core:admin_classify_post_temporal_step1' post.id %}" 
                        hx-target="#post-row-{{ post.id }}" 
                        hx-swap="outerHTML"
                        hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                        hx-indicator="#row-spinner-{{ post.id }}"
                        class="text-primary font-bold">
-                        Auto-Classify
+                        Auto-Temporal Classify
                     </a>
                 </li>
                 <div class="divider my-1"></div>
-                <li class="menu-title">Manual Categories</li>
-                {% for key, label in post.CATEGORY_CHOICES %}
-                    <li>
-                        <a hx-post="{% url 'core:admin_update_post_category' post.id %}?category={{ key }}"
-                           hx-vals='{"category": "{{ key }}"}'
-                           hx-target="#post-row-{{ post.id }}"
-                           hx-swap="outerHTML"
-                           hx-indicator="#row-spinner-{{ post.id }}"
-                           class="{% if post.category == key %}active font-semibold{% endif %}">
-                            {{ label }}
-                        </a>
-                    </li>
-                {% endfor %}
+                <li class="menu-title">Manual Toggle</li>
+                <li>
+                    <a hx-post="{% url 'core:admin_update_post_event_status_step1' post.id %}?is_event=True"
+                       hx-target="#post-row-{{ post.id }}"
+                       hx-swap="outerHTML"
+                       hx-indicator="#row-spinner-{{ post.id }}"
+                       class="{% if post.is_event == True %}active font-semibold{% endif %}">
+                        Mark as Event
+                    </a>
+                </li>
+                <li>
+                    <a hx-post="{% url 'core:admin_update_post_event_status_step1' post.id %}?is_event=False"
+                       hx-target="#post-row-{{ post.id }}"
+                       hx-swap="outerHTML"
+                       hx-indicator="#row-spinner-{{ post.id }}"
+                       class="{% if post.is_event == False %}active font-semibold{% endif %}">
+                        Mark as Non-Event
+                    </a>
+                </li>
+                <li>
+                    <a hx-post="{% url 'core:admin_update_post_event_status_step1' post.id %}?is_event=None"
+                       hx-target="#post-row-{{ post.id }}"
+                       hx-swap="outerHTML"
+                       hx-indicator="#row-spinner-{{ post.id }}"
+                       class="{% if post.is_event == None %}active font-semibold{% endif %}">
+                        Reset to Pending
+                    </a>
+                </li>
             </ul>
         </div>
     </td>
