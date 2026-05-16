@@ -106,7 +106,7 @@ def admin_classify_post_temporal(request, post_id):
     if request.method == 'POST':
         post = get_object_or_404(Post, id=post_id)
         assign_event_status_to_post(post)
-        return render(request, 'admin_temporal_classification_row.html', {'post': post})
+        return render(request, 'admin_temporal_classification_step1_row.html', {'post': post})
     return HttpResponse('Invalid request', status=400)
 
 @user_passes_test(is_superuser)
@@ -121,7 +121,7 @@ def admin_update_post_event_status(request, post_id):
         elif val == 'None':
             post.is_event = None
         post.save(update_fields=['is_event'])
-        return render(request, 'admin_temporal_classification_row.html', {'post': post})
+        return render(request, 'admin_temporal_classification_step1_row.html', {'post': post})
     return HttpResponse('Invalid request', status=400)
 
 @user_passes_test(is_superuser)
@@ -162,7 +162,7 @@ def admin_classify_post_event(request, post_id):
     if request.method == 'POST':
         post = get_object_or_404(Post, id=post_id)
         assign_category_to_post(post)
-        return render(request, 'admin_event_classification_row.html', {'post': post})
+        return render(request, 'admin_event_classification_step2_row.html', {'post': post})
     return HttpResponse('Invalid request', status=400)
 
 @user_passes_test(is_superuser)
@@ -173,7 +173,7 @@ def admin_update_post_event_category(request, post_id):
         if new_category:
             post.category = new_category
             post.save(update_fields=['category'])
-        return render(request, 'admin_event_classification_row.html', {'post': post})
+        return render(request, 'admin_event_classification_step2_row.html', {'post': post})
     return HttpResponse('Invalid request', status=400)
 
 @user_passes_test(is_superuser)
