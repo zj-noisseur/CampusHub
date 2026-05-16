@@ -237,7 +237,15 @@
                     <form method="POST" action="." class="flex flex-col gap-4 max-w-md">
                         {% csrf_token %}
                         
-                        <input type="password" name="old_password" placeholder="Current Password" class="input input-bordered w-full bg-gray-50 text-black focus:border-blue-500 focus:ring-0" required>
+                        <div>
+                            <input type="password" name="old_password" placeholder="Current Password" class="input input-bordered w-full bg-gray-50 text-black focus:border-blue-500 focus:ring-0" required>
+                            
+                            <div class="flex justify-end mt-2">
+                                <a href="{% url 'core:password_reset' %}" class="text-xs font-medium text-gray-400 hover:text-gray-900 transition-colors">
+                                    Forgot current password?
+                                </a>
+                            </div>
+                        </div>
                         
                         <input 
                             type="password" 

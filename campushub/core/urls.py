@@ -74,4 +74,30 @@ urlpatterns = [
     path('upload-certificate-template/<int:event_id>/', upload_certificate_template, name='upload_certificate_template'),
     path('event/<int:event_id>/download-certificates/', download_certificates, name='download_certificates'),
     path('event/<int:event_id>/download-certificate/', download_my_certificate, name='download_my_certificate'),
+
+    # --- Password Reset Flow ---
+    path('password-reset/', 
+         auth_views.PasswordResetView.as_view(
+             template_name='password_reset.html',
+             success_url='/password-reset/done/',
+             email_template_name='password_reset_email.html'
+         ), 
+         name='password_reset'),
+    # "Success" page 
+    path('password-reset/done/', 
+         auth_views.PasswordResetDoneView.as_view(template_name='password_reset_done.html'), 
+         name='password_reset_done'),
+
+    # The link users click in their email
+    path('password-reset-confirm/<uidb64>/<token>/', 
+         auth_views.PasswordResetConfirmView.as_view(
+             template_name='password_reset_confirm.html',
+             success_url='/password-reset-complete/'
+         ), 
+         name='password_reset_confirm'),
+    # Complete page after they successfully reset
+    path('password-reset-complete/', 
+         auth_views.PasswordResetCompleteView.as_view(template_name='password_reset_complete.html'), 
+         name='password_reset_complete'),
 ]
+
