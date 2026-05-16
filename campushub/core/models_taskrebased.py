@@ -329,9 +329,7 @@ class Post(models.Model):
         ('COMPETITION', 'Competition'),
         ('WORKSHOP', 'Workshop'),
         ('INDUSTRIAL_VISIT', 'Industrial Visit'),
-        ('ANNOUNCEMENT', 'Announcement'),
-        ('PAST_EVENT', 'Past Event'),
-        ('MISC', 'Miscellaneous'),
+        ('ANNOUNCEMENT', 'Announcement')
     ]
 
     club = models.ForeignKey(Club, on_delete=models.CASCADE, related_name='posts')
@@ -342,6 +340,7 @@ class Post(models.Model):
         choices=CATEGORY_CHOICES,
         default='MISC',
     )
+    is_event = models.BooleanField(null=True, blank=True)
     timestamp = models.DateTimeField()
 
     class Meta:
