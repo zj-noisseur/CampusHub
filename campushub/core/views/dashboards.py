@@ -149,6 +149,9 @@ def club_profile(request, club_id):
     club = get_object_or_404(Club, id=club_id)
     events = Event.objects.filter(club=club).order_by('event_date')
     
+    from ..models import Post
+    club_posts = Post.objects.filter(club=club).order_by('-timestamp')
+    
     # Check if the logged-in user is in the managers
     is_manager = False
     user_membership = None
@@ -168,6 +171,7 @@ def club_profile(request, club_id):
     context = {
         'club': club,
         'events': events,
+        'club_posts': club_posts,
         'is_manager': is_manager,
         'is_member': club.members.filter(user=request.user, status='ACTIVE').exists() if request.user.is_authenticated else False,
         'attended_event_ids': attended_event_ids,
