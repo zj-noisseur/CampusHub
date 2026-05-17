@@ -228,8 +228,8 @@
                     <div class="grid grid-cols-1 md:grid-cols-[280px_1fr]">
                         <!-- Banner Image Left -->
                         <a href="{% url 'core:feed' %}?club={{ club.id }}#post-{{ event.post.id }}" class="bg-gray-100 aspect-[16/10] md:aspect-auto overflow-hidden relative block">
-                            {% if event.post.images.all.0 %}
-                                <img src="{{ event.post.images.all.0.image.url }}" alt="{{ event.title }}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                            {% if event.post.postimage_set.first %}
+                                <img src="{{ event.post.postimage_set.first.image.url }}" alt="{{ event.title }}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
                             {% else %}
                                 <!-- Fallback to club banner or gradient -->
                                 {% if club.banner %}
@@ -310,8 +310,8 @@
                         <div class="grid grid-cols-1 md:grid-cols-[280px_1fr]">
                             <!-- Post Image Left -->
                             <a href="{% url 'core:feed' %}?club={{ club.id }}#post-{{ post.id }}" class="bg-gray-100 aspect-[16/10] md:aspect-auto overflow-hidden relative block">
-                                {% if post.images.all.0 %}
-                                    <img src="{{ post.images.all.0.image.url }}" alt="{{ post.caption|truncatewords:5 }}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                                {% if post.postimage_set.first %}
+                                    <img src="{{ post.postimage_set.first.image.url }}" alt="{{ post.caption|truncatewords:5 }}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
                                 {% else %}
                                     {% if club.banner %}
                                         <img src="{{ club.banner.url }}" alt="Banner" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
@@ -383,9 +383,9 @@
                 {% for post in club_posts %}
                 <div class="card bg-white border border-gray-100 shadow-sm hover:shadow-md transition-all overflow-hidden rounded-2xl group flex flex-col justify-between">
                     <div>
-                        {% if post.images.all.0 %}
+                        {% if post.postimage_set.first %}
                         <a href="{% url 'core:feed' %}?club={{ club.id }}#post-{{ post.id }}" class="block overflow-hidden aspect-[4/3] bg-gray-50 relative">
-                            <img src="{{ post.images.all.0.image.url }}" alt="Post image" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                            <img src="{{ post.postimage_set.first.image.url }}" alt="Post image" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
                             {% if post.category != 'MISC' %}
                             <div class="absolute top-3 left-3">
                                 <span class="badge badge-sm bg-blue-500 text-white font-bold border-none py-2 px-3 rounded-lg shadow-sm">{{ post.get_category_display }}</span>
