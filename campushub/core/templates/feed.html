@@ -131,8 +131,8 @@
                     <div class="space-y-4">
                         <div class="flex items-start justify-between gap-4">
                             <div class="space-y-1">
-                                <a href="{% url 'core:club_profile' club_id=post.club.id %}" class="group/link block">
-                                    <h2 class="text-xl font-bold tracking-tight text-base-content group-hover/link:text-primary transition-colors">{{ post.club.name }}</h2>
+                                <a href="{% url 'core:club_profile' club_id=post.club.id %}" class="hover:text-primary transition-colors duration-200 inline-block">
+                                    <h2 class="text-xl font-bold tracking-tight">{{ post.club.name }}</h2>
                                 </a>
                                 <p class="text-xs font-bold uppercase tracking-widest text-base-content/40">{{ post.club.institution.university_name }}</p>
                             </div>
