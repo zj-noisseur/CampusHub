@@ -245,10 +245,12 @@ def create_event(request, club_id):
             # Since Event requires a Post (OneToOne), we create a mock Post record 
             # to bypass the Instagram scraper requirement for manual events.
             desc = form.cleaned_data.get('description') or f"Manually created event: {event.title}"
+            category = form.cleaned_data.get('category') or 'WORKSHOP'
             mock_post = Post.objects.create(
                 club=club,
                 short_code=f"manual_{timezone.now().timestamp()}",
                 caption=desc,
+                category=category,
                 timestamp=timezone.now()
             )
             event.post = mock_post
@@ -289,11 +291,14 @@ def edit_event(request, club_id, event_id):
         if form.is_valid():
             event = form.save()
             
-            # Update the linked post's caption
+            # Update the linked post's caption and category
             desc = form.cleaned_data.get('description')
+            category = form.cleaned_data.get('category')
             if desc:
                 event.post.caption = desc
-                event.post.save()
+            if category:
+                event.post.category = category
+            event.post.save()
                 
             # Update or create the banner image
             banner_image = form.cleaned_data.get('banner_image')
@@ -306,8 +311,11 @@ def edit_event(request, club_id, event_id):
                 )
             return redirect('core:event_admin_dashboard', club_id=club.id, event_id=event.id)
     else:
-        # Load the post's caption as the description initial value
-        initial_data = {'description': event.post.caption}
+        # Load the post's caption as the description initial value and category
+        initial_data = {
+            'description': event.post.caption,
+            'category': event.post.category
+        }
         form = EventCreationForm(instance=event, initial=initial_data)
         
     return render(request, 'create_event.html', {

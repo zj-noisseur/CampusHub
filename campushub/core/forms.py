@@ -156,6 +156,19 @@ class EventCreationForm(forms.ModelForm):
         help_text="Provide a detailed description of the event to display to students."
     )
     
+    category = forms.ChoiceField(
+        choices=[
+            ('WORKSHOP', 'Workshop'),
+            ('COMPETITION', 'Competition'),
+            ('RECRUITMENT', 'Recruitment'),
+            ('INDUSTRIAL_VISIT', 'Industrial Visit'),
+            ('ANNOUNCEMENT', 'Announcement'),
+        ],
+        widget=forms.Select(attrs={'class': 'select select-bordered w-full focus:border-primary transition-all rounded-xl'}),
+        initial='WORKSHOP',
+        help_text="Select the category that best describes your event."
+    )
+    
     banner_image = forms.ImageField(
         required=False,
         widget=forms.FileInput(attrs={'class': 'file-input file-input-bordered w-full rounded-xl'}),
@@ -164,12 +177,11 @@ class EventCreationForm(forms.ModelForm):
     
     class Meta:
         model = Event
-        fields = ['title', 'event_date', 'location', 'status']
+        fields = ['title', 'event_date', 'location']
         widgets = {
             'title': forms.TextInput(attrs={'class': 'input input-bordered w-full focus:border-primary transition-all rounded-xl', 'placeholder': 'e.g., Annual Tech Symposium'}),
             'event_date': forms.DateInput(attrs={'class': 'input input-bordered w-full focus:border-primary transition-all rounded-xl', 'type': 'date'}),
             'location': forms.TextInput(attrs={'class': 'input input-bordered w-full focus:border-primary transition-all rounded-xl', 'placeholder': 'e.g., Main Hall'}),
-            'status': forms.Select(attrs={'class': 'select select-bordered w-full focus:border-primary transition-all rounded-xl'}),
         }
 
 
