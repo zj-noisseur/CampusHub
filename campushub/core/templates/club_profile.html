@@ -283,6 +283,12 @@
                                         <span class="badge badge-sm bg-green-50 text-green-600 border-green-100 font-bold px-2">✓ Attended</span>
                                     {% endif %}
                                 </div>
+
+                                {% if event.post.caption %}
+                                <p class="text-sm text-gray-600 line-clamp-3 leading-relaxed pt-2">
+                                    {{ event.post.caption }}
+                                </p>
+                                {% endif %}
                             </div>
 
                             <div class="border-t border-gray-50 pt-4 flex justify-between items-center">
