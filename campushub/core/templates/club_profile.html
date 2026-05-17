@@ -219,47 +219,85 @@
             </div>
 
             <!-- Tab 1: Events Section -->
-            <div id="tab-events-content" class="space-y-4">
+            <div id="tab-events-content" class="space-y-6">
                 {% if events or club_posts %}
                     <!-- Render manual database events first -->
                     {% for event in events %}
-                    <div class="bg-white rounded-2xl p-5 flex flex-col sm:flex-row gap-5 group hover:border-blue-400 border border-gray-100 shadow-sm hover:shadow-md transition-all cursor-pointer relative overflow-hidden">
-                        <a href="{% url 'core:feed' %}?club={{ club.id }}#post-{{ event.post.id }}" class="absolute inset-0 z-0"></a>
-                        
-                        <div class="relative z-10 w-16 h-16 rounded-xl bg-gray-50 border border-gray-100 flex flex-col items-center justify-center flex-shrink-0 pointer-events-none">
-                            <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">{{ event.event_date|date:"M" }}</span>
-                            <span class="text-xl font-bold text-gray-900 leading-none">{{ event.event_date|date:"d" }}</span>
-                        </div>
-                        
-                        <div class="relative z-10 flex-1 pointer-events-none">
-                            <div class="flex items-center gap-2 mb-1">
-                                <div class="text-sm text-gray-500 font-medium">{{ event.event_date|time:"g:i A" }}</div>
-                                {% if event.status == 'FINISHED' %}
-                                    <span class="badge badge-xs bg-gray-100 text-gray-500 border-none px-2 py-1.5">Finished</span>
-                                {% elif event.status == 'ONGOING' %}
-                                    <span class="badge badge-xs bg-blue-50 text-blue-600 border-none px-2 py-1.5 font-bold">Ongoing</span>
+                    <div class="card bg-white border border-gray-100 shadow-sm hover:shadow-md transition-all overflow-hidden rounded-2xl group">
+                        <div class="grid grid-cols-1 md:grid-cols-[280px_1fr]">
+                            <!-- Banner Image Left -->
+                            <div class="bg-gray-100 aspect-[16/10] md:aspect-auto overflow-hidden relative">
+                                {% if event.post.images.all.0 %}
+                                    <img src="{{ event.post.images.all.0.image.url }}" alt="{{ event.title }}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
                                 {% else %}
-                                    <span class="badge badge-xs bg-amber-50 text-amber-600 border-none px-2 py-1.5 font-bold">Preparing</span>
+                                    <!-- Fallback to club banner or gradient -->
+                                    {% if club.banner %}
+                                        <img src="{{ club.banner.url }}" alt="{{ event.title }}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                                    {% else %}
+                                        <div class="w-full h-full bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center text-gray-300">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                        </div>
+                                    {% endif %}
                                 {% endif %}
-                            </div>
-                            <h3 class="text-lg font-bold text-gray-900 group-hover:text-blue-600 transition-colors">{{ event.title }}</h3>
-                            <div class="text-sm text-gray-500 mt-2 flex items-center gap-3">
-                                <span>📍 {{ event.location|default:"TBA" }}</span>
-                                {% if event.id in attended_event_ids %}
-                                    <span class="badge badge-sm bg-green-50 text-green-600 border-green-100 font-bold px-2">✓ Attended</span>
-                                {% endif %}
-                            </div>
-                        </div>
 
-                        <div class="relative z-20 flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-center mt-4 sm:mt-0 border-t sm:border-t-0 pt-4 sm:pt-0 border-gray-100">
-                            <div class="text-sm font-medium text-gray-500 mb-2">
-                                {{ event.pre_registered.count }} Joined
+                                <!-- Status Overlay badge -->
+                                <div class="absolute top-3 left-3">
+                                    {% if event.status == 'FINISHED' %}
+                                        <span class="badge badge-sm bg-gray-600 text-white font-bold border-none py-2 px-3 rounded-lg shadow-sm">Finished</span>
+                                    {% elif event.status == 'ONGOING' %}
+                                        <span class="badge badge-sm bg-green-500 text-white font-bold border-none py-2 px-3 rounded-lg shadow-md animate-pulse">Ongoing</span>
+                                    {% else %}
+                                        <span class="badge badge-sm bg-blue-500 text-white font-bold border-none py-2 px-3 rounded-lg shadow-sm">Preparing</span>
+                                    {% endif %}
+                                </div>
                             </div>
-                            {% if is_manager %}
-                                <a href="{% url 'core:event_admin_dashboard' club.id event.id %}" class="btn btn-xs bg-gray-900 text-white hover:bg-gray-700 border-none rounded-full px-4 py-1.5 h-auto">
-                                    Manage Event
-                                </a>
-                            {% endif %}
+
+                            <!-- Content Details Right -->
+                            <div class="p-6 md:p-8 flex flex-col justify-between space-y-4">
+                                <div class="space-y-3">
+                                    <!-- Club Header (logo + name) -->
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-8 h-8 rounded-full border border-gray-100 overflow-hidden flex-shrink-0">
+                                            {% if club.logo %}
+                                                <img src="{{ club.logo.url }}" alt="Logo" class="w-full h-full object-cover">
+                                            {% else %}
+                                                <div class="w-full h-full bg-blue-100 flex items-center justify-center text-xs font-bold text-blue-600">{{ club.name|first }}</div>
+                                            {% endif %}
+                                        </div>
+                                        <div>
+                                            <p class="text-xs font-bold text-gray-900 leading-none">{{ club.name }}</p>
+                                            <p class="text-[10px] text-gray-400 font-medium uppercase tracking-widest mt-0.5">{{ club.institution.university_name }}</p>
+                                        </div>
+                                    </div>
+
+                                    <h3 class="text-xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors leading-tight">
+                                        {{ event.title }}
+                                    </h3>
+
+                                    <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-gray-500 font-semibold mt-2">
+                                        <span class="flex items-center gap-1">📅 {{ event.event_date|date:"M d, Y" }} ({% if event.event_date|time:"g:i A" %}{{ event.event_date|time:"g:i A" }}{% else %}TBA{% endif %})</span>
+                                        <span class="flex items-center gap-1">📍 {{ event.location|default:"TBA" }}</span>
+                                        <span class="flex items-center gap-1">👥 {{ event.pre_registered.count }} Joined</span>
+                                        {% if event.id in attended_event_ids %}
+                                            <span class="badge badge-sm bg-green-50 text-green-600 border-green-100 font-bold px-2">✓ Attended</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+
+                                <div class="border-t border-gray-50 pt-4 flex justify-between items-center">
+                                    <span class="text-xs text-gray-400">Created manually via CampusHub</span>
+                                    <div class="flex gap-2">
+                                        {% if is_manager %}
+                                            <a href="{% url 'core:event_admin_dashboard' club.id event.id %}" class="btn btn-sm bg-gray-900 text-white hover:bg-gray-800 border-none rounded-xl px-5">
+                                                Manage Event
+                                            </a>
+                                        {% endif %}
+                                        <a href="{% url 'core:feed' %}?club={{ club.id }}#post-{{ event.post.id }}" class="btn btn-ghost btn-sm text-blue-600 hover:bg-blue-50 font-bold rounded-xl px-4">
+                                            View Details
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     {% endfor %}
@@ -267,32 +305,64 @@
                     <!-- Render Instagram Posts classified as events that are NOT manually linked as Event model -->
                     {% for post in club_posts %}
                         {% if post.is_event or post.category != 'MISC' and not post.events %}
-                        <div class="bg-white rounded-2xl p-5 flex flex-col sm:flex-row gap-5 group hover:border-blue-400 border border-gray-100 shadow-sm hover:shadow-md transition-all cursor-pointer relative overflow-hidden">
-                            <a href="{% url 'core:feed' %}?club={{ club.id }}#post-{{ post.id }}" class="absolute inset-0 z-0"></a>
-                            
-                            <div class="relative z-10 w-16 h-16 rounded-xl bg-gray-50 border border-gray-100 flex flex-col items-center justify-center flex-shrink-0 pointer-events-none overflow-hidden">
-                                {% if post.images.all.0 %}
-                                    <img src="{{ post.images.all.0.image.url }}" class="w-full h-full object-cover rounded-xl" />
-                                {% else %}
-                                    <span class="text-2xl">📢</span>
-                                {% endif %}
-                            </div>
-                            
-                            <div class="relative z-10 flex-1 pointer-events-none">
-                                <div class="flex items-center gap-2 mb-1">
-                                    <span class="badge badge-xs bg-blue-50 text-blue-600 border-none px-2 py-1.5 font-bold">{{ post.get_category_display }}</span>
-                                </div>
-                                <h3 class="text-base font-bold text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-2">{{ post.caption|truncatewords:15 }}</h3>
-                                <div class="text-xs text-gray-500 mt-2 flex items-center gap-3">
-                                    <span>📅 Imported Event Post</span>
-                                    <span>• {{ post.timestamp|date:"M d, Y" }}</span>
-                                </div>
-                            </div>
+                        <div class="card bg-white border border-gray-100 shadow-sm hover:shadow-md transition-all overflow-hidden rounded-2xl group">
+                            <div class="grid grid-cols-1 md:grid-cols-[280px_1fr]">
+                                <!-- Post Image Left -->
+                                <div class="bg-gray-100 aspect-[16/10] md:aspect-auto overflow-hidden relative">
+                                    {% if post.images.all.0 %}
+                                        <img src="{{ post.images.all.0.image.url }}" alt="{{ post.caption|truncatewords:5 }}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                                    {% else %}
+                                        {% if club.banner %}
+                                            <img src="{{ club.banner.url }}" alt="Banner" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                                        {% else %}
+                                            <div class="w-full h-full bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center text-gray-300">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" /></svg>
+                                            </div>
+                                        {% endif %}
+                                    {% endif %}
 
-                            <div class="relative z-20 flex items-center justify-end mt-4 sm:mt-0">
-                                <span class="btn btn-xs bg-blue-50 text-blue-600 hover:bg-blue-100 border-none rounded-full px-4 py-1.5 h-auto">
-                                    View Post
-                                </span>
+                                    <!-- Category badge overlaid -->
+                                    <div class="absolute top-3 left-3">
+                                        <span class="badge badge-sm bg-blue-500 text-white font-bold border-none py-2 px-3 rounded-lg shadow-sm">{{ post.get_category_display }}</span>
+                                    </div>
+                                </div>
+
+                                <!-- Content Details Right -->
+                                <div class="p-6 md:p-8 flex flex-col justify-between space-y-4">
+                                    <div class="space-y-3">
+                                        <!-- Club Header (logo + name) -->
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-8 h-8 rounded-full border border-gray-100 overflow-hidden flex-shrink-0">
+                                                {% if club.logo %}
+                                                    <img src="{{ club.logo.url }}" alt="Logo" class="w-full h-full object-cover">
+                                                {% else %}
+                                                    <div class="w-full h-full bg-blue-100 flex items-center justify-center text-xs font-bold text-blue-600">{{ club.name|first }}</div>
+                                                {% endif %}
+                                            </div>
+                                            <div>
+                                                <p class="text-xs font-bold text-gray-900 leading-none">{{ club.name }}</p>
+                                                <p class="text-[10px] text-gray-400 font-medium uppercase tracking-widest mt-0.5">{{ club.institution.university_name }}</p>
+                                            </div>
+                                        </div>
+
+                                        <!-- Truncated Caption as Title -->
+                                        <h3 class="text-base font-bold text-gray-900 group-hover:text-blue-600 transition-colors leading-relaxed line-clamp-3">
+                                            {{ post.caption }}
+                                        </h3>
+
+                                        <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-gray-500 font-semibold mt-2">
+                                            <span class="flex items-center gap-1">📅 Posted on {{ post.timestamp|date:"M d, Y" }}</span>
+                                            <span class="flex items-center gap-1">📢 Instagram Announcement</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="border-t border-gray-50 pt-4 flex justify-between items-center">
+                                        <span class="text-xs text-gray-400">Imported from Instagram Feed</span>
+                                        <a href="{% url 'core:feed' %}?club={{ club.id }}#post-{{ post.id }}" class="btn btn-ghost btn-sm text-blue-600 hover:bg-blue-50 font-bold rounded-xl px-4">
+                                            View Full Post
+                                        </a>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         {% endif %}
