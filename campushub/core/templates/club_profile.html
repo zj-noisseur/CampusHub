@@ -241,15 +241,9 @@
                                 {% endif %}
                             {% endif %}
 
-                            <!-- Status Overlay badge -->
+                            <!-- Category Overlay badge -->
                             <div class="absolute top-3 left-3">
-                                {% if event.status == 'FINISHED' %}
-                                    <span class="badge badge-sm bg-gray-600 text-white font-bold border-none py-2 px-3 rounded-lg shadow-sm">Finished</span>
-                                {% elif event.status == 'ONGOING' %}
-                                    <span class="badge badge-sm bg-green-500 text-white font-bold border-none py-2 px-3 rounded-lg shadow-md animate-pulse">Ongoing</span>
-                                {% else %}
-                                    <span class="badge badge-sm bg-blue-500 text-white font-bold border-none py-2 px-3 rounded-lg shadow-sm">Preparing</span>
-                                {% endif %}
+                                <span class="badge badge-sm bg-blue-500 text-white font-bold border-none py-2 px-3 rounded-lg shadow-md">{{ event.post.get_category_display }}</span>
                             </div>
                         </a>
 
@@ -271,9 +265,16 @@
                                     </div>
                                 </div>
 
-                                <h3 class="text-xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors leading-tight">
-                                    <a href="{% url 'core:feed' %}?club={{ club.id }}#post-{{ event.post.id }}">{{ event.title }}</a>
-                                </h3>
+                                <div class="flex items-center flex-wrap gap-2">
+                                    <h3 class="text-xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors leading-tight">
+                                        <a href="{% url 'core:feed' %}?club={{ club.id }}#post-{{ event.post.id }}">{{ event.title }}</a>
+                                    </h3>
+                                    {% if event.status == 'FINISHED' %}
+                                        <span class="badge badge-xs bg-gray-100 text-gray-500 font-bold border-none py-1.5 px-2.5 rounded-lg">Finished</span>
+                                    {% elif event.status == 'ONGOING' %}
+                                        <span class="badge badge-xs bg-green-500 text-white font-bold border-none py-1.5 px-2.5 rounded-lg shadow-sm animate-pulse">Ongoing</span>
+                                    {% endif %}
+                                </div>
 
                                 <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-gray-500 font-semibold mt-2">
                                     <span class="flex items-center gap-1">📅 {{ event.event_date|date:"M d, Y" }} ({% if event.event_date|time:"g:i A" %}{{ event.event_date|time:"g:i A" }}{% else %}TBA{% endif %})</span>
