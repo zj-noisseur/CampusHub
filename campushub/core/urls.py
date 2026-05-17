@@ -14,7 +14,7 @@ from core.views.club_actions import join_club, apply_manager
 from core.views.manager_dashboard import manager_dashboard, process_membership
 from core.views.imports import import_attendees_csv
 from core.views.certificates import upload_certificate_template, download_certificates, download_my_certificate
-from core.views.dashboards import club_profile, club_admin_dashboard, club_settings, student_dashboard, toggle_ready_status, toggle_attended_status, set_event_status, create_event
+from core.views.dashboards import club_profile, club_admin_dashboard, club_settings, student_dashboard, toggle_ready_status, toggle_attended_status, set_event_status, create_event, my_events
 
 app_name = 'core'
 
@@ -24,6 +24,7 @@ urlpatterns = [
     path('feed/', feed, name='feed'),
     path('directory/', directory, name='directory'),
     path('calendar/', calendar, name='calendar'),
+    path('my-events/', my_events, name='my_events'),
     
     # --- Location & Institutional Discovery ---
     path('state/<int:state_id>/universities/', universities, name='universities'),
@@ -113,7 +114,5 @@ urlpatterns = [
          name='password_reset_complete'),
 
     # --- Account Activation Flow ---
-    path('activate/<uidb64>/<token>/',activate_account, name='activate'),
+    path('activate/<uidb64>/<token>/', activate_account, name='activate'),
 ]
-
-

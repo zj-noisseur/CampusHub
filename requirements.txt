@@ -1,8 +1,7 @@
-Django
-python-dotenv
-Pillow
+django
 celery
 redis
 django-celery-results
 resend
 reportlab
+requests

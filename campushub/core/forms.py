@@ -1,41 +1,56 @@
 from django.contrib.auth.forms import UserCreationForm, get_user_model
 from django import forms
-from core.models import Club, ClubManager, ClaimRequest, Membership
+from core.models import Club, ClubManager, ClaimRequest, Membership, Event, EventCertificate
 
 User = get_user_model()
 
 class StudentRegistrationForm(UserCreationForm):
     class Meta(UserCreationForm.Meta):
         model = User
-        fields = ('email', 'student_name', 'student_id', 'phone_number')
-        widgets = {
-            'email': forms.EmailInput(attrs={
-                'class': 'input input-bordered w-full rounded-xl',
-                'placeholder': 'name@example.com'
-            }),
-            'student_name': forms.TextInput(attrs={
-                'class': 'input input-bordered w-full rounded-xl',
-                'placeholder': 'Your Full Name'
-            }),
-        }
+        fields = ('student_name', 'email')
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        for field in self.fields.values():
-            field.widget.attrs.update({'class': 'input input-bordered w-full rounded-xl'})
+        self.fields['student_name'].widget.attrs.update({
+            'class': 'input input-bordered w-full rounded-xl',
+            'placeholder': 'John Doe'
+        })
+        self.fields['email'].widget.attrs.update({
+            'class': 'input input-bordered w-full rounded-xl',
+            'placeholder': 'student@mmu.edu.my'
+        })
+
+    def clean_email(self):
+        email = self.cleaned_data.get('email')
+        if email:
+            email = email.lower()
+            if not email.endswith('.edu.my'):
+                raise forms.ValidationError("You must register with a valid .edu.my student email address.")
+            if User.objects.filter(email=email).exists():
+                raise forms.ValidationError("An account with this email address already exists.")
+        return email
 
 
-class ClaimClubForm(forms.ModelForm):
+class ClubClaimForm(forms.ModelForm):
+    proof_document = forms.FileField(
+        required=True,
+        widget=forms.FileInput(attrs={
+            'class': 'file-input file-input-bordered w-full rounded-xl',
+            'accept': '.pdf,.doc,.docx,.jpg,.jpeg,.png'
+        }),
+        help_text="Upload official letters, SSM certificates, or student union registration documents."
+    )
+
     class Meta:
         model = ClaimRequest
-        fields = ['club', 'proof_document']
+        fields = ['club', 'proof_document', 'claimer_designation']
         widgets = {
             'club': forms.Select(attrs={
                 'class': 'select select-bordered w-full rounded-xl',
             }),
-            'proof_document': forms.ClearableFileInput(attrs={
-                'class': 'file-input file-input-bordered w-full rounded-xl',
-                'accept': '.pdf,.jpg,.jpeg,.png'
+            'claimer_designation': forms.TextInput(attrs={
+                'class': 'input input-bordered w-full rounded-xl',
+                'placeholder': 'e.g., Club President, Secretary'
             }),
         }
 
@@ -133,9 +148,14 @@ class ClubSettingsForm(forms.ModelForm):
         
         return cleaned_data
 
-from core.models import Event
 
 class EventCreationForm(forms.ModelForm):
+    banner_image = forms.ImageField(
+        required=False,
+        widget=forms.FileInput(attrs={'class': 'file-input file-input-bordered w-full'}),
+        help_text="Upload a specific banner or image for this event."
+    )
+    
     class Meta:
         model = Event
         fields = ['title', 'event_date', 'location']
@@ -145,7 +165,6 @@ class EventCreationForm(forms.ModelForm):
             'location': forms.TextInput(attrs={'class': 'input input-bordered w-full', 'placeholder': 'e.g., Main Hall'}),
         }
 
-from core.models import EventCertificate
 
 class CertificateUploadForm(forms.ModelForm):
     class Meta:

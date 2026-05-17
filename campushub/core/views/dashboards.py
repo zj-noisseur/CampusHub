@@ -61,34 +61,47 @@ def toggle_attended_status(request, event_id, prereg_id):
 
 
 @login_required
-def student_dashboard(request):
+def my_events(request):
     user = request.user
     
-    # 1. Get events this user actually attended
-    # Use Q to include events where the user is identified by their account OR guest email
-    participated_events = Event.objects.filter(
-        Q(attendances__user=user) | Q(attendances__guest_email=user.email)
-    ).distinct().order_by('-event_date')
-    
-    # 2. Get all registrations (RSVPs) for this user (account or guest email)
     my_registrations = PreRegisteredAttendee.objects.filter(
         Q(user=user) | Q(guest_email=user.email)
-    ).distinct().order_by('-event__event_date')
+    ).select_related('event', 'event__club').distinct().order_by('-event__event_date')
     
-    # 3. Get clubs (Looking THROUGH the ClubManager and Membership tables)
-    managed_clubs = Club.objects.filter(managers__user=user)
-    joined_clubs = Club.objects.filter(members__user=user).exclude(managers__user=user)
+    upcoming_events = []
+    ongoing_events = []
+    pending_events = []
+    past_events = []
+    
+    today = timezone.localdate()
+    
+    for prereg in my_registrations:
+        if prereg.event.status == 'FINISHED':
+            past_events.append(prereg)
+        elif prereg.event.status == 'ONGOING':
+            ongoing_events.append(prereg)
+        elif prereg.event.status == 'PREPARING':
+            upcoming_events.append(prereg)
+        else:
+            if prereg.event.event_date < today:
+                past_events.append(prereg)
+            else:
+                upcoming_events.append(prereg)
+            
+    attended_count = sum(1 for prereg in my_registrations if prereg.is_attended)
     
     context = {
         'user': user,
-        'participated_events': participated_events,
-        'my_registrations': my_registrations, # THIS WAS MISSING
-        'managed_clubs': managed_clubs,
-        'joined_clubs': joined_clubs,
-        'today': timezone.localdate(),
+        'upcoming_events': upcoming_events,
+        'ongoing_events': ongoing_events,
+        'pending_events': pending_events,
+        'past_events': past_events,
+        'joined_count': my_registrations.count(),
+        'attended_count': attended_count,
+        'today': today,
     }
     
-    return render(request, 'student_dashboard.html', context)
+    return render(request, 'my_events.html', context)
 
 @login_required
 def set_event_status(request, event_id, status):
@@ -167,7 +180,7 @@ def create_event(request, club_id):
     from ..models import Post
     
     if request.method == 'POST':
-        form = EventCreationForm(request.POST)
+        form = EventCreationForm(request.POST, request.FILES)
         if form.is_valid():
             event = form.save(commit=False)
             event.club = club
@@ -182,6 +195,15 @@ def create_event(request, club_id):
             )
             event.post = mock_post
             event.save()
+            
+            banner_image = form.cleaned_data.get('banner_image')
+            if banner_image:
+                from ..models import PostImage
+                PostImage.objects.create(
+                    post=mock_post,
+                    image=banner_image,
+                    order=1
+                )
             return redirect('core:event_admin_dashboard', club_id=club.id, event_id=event.id)
     else:
         form = EventCreationForm()
