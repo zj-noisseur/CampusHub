@@ -10,11 +10,6 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RenameField(
-            model_name='attendance',
-            old_name='scanned_at',
-            new_name='check_in_time',
-        ),
         migrations.AddField(
             model_name='event',
             name='status',
