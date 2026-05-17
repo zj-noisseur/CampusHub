@@ -118,6 +118,12 @@ class ClubSettingsForm(forms.ModelForm):
         }
 
 class EventCreationForm(forms.ModelForm):
+    banner_image = forms.ImageField(
+        required=False,
+        widget=forms.FileInput(attrs={'class': 'file-input file-input-bordered w-full'}),
+        help_text="Upload a specific banner or image for this event."
+    )
+    
     class Meta:
         model = Event
         fields = ['title', 'event_date', 'location']

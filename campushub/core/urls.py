@@ -13,7 +13,7 @@ from core.views.club_actions import join_club, apply_manager
 from core.views.manager_dashboard import manager_dashboard, process_membership
 from core.views.imports import import_attendees_csv
 from core.views.certificates import upload_certificate_template, download_certificates, download_my_certificate
-from core.views.dashboards import club_profile, club_admin_dashboard, club_settings, student_dashboard, toggle_ready_status, toggle_attended_status, set_event_status, create_event
+from core.views.dashboards import club_profile, club_admin_dashboard, club_settings, toggle_ready_status, toggle_attended_status, set_event_status, create_event, my_events
 
 app_name = 'core'
 urlpatterns = [
@@ -36,8 +36,7 @@ urlpatterns = [
     path('club/<int:club_id>/admin/<int:event_id>/', club_admin_dashboard, name='event_admin_dashboard'),
     path('club/<int:club_id>/create-event/', create_event, name='create_event'),
     path('club/<int:club_id>/settings/', club_settings, name='club_settings'),
-    path('student/dashboard/', student_dashboard, name='student_dashboard'),
-    path('dashboard/', student_dashboard, name='dashboard_shortcut'),
+    path('my-events/', my_events, name='my_events'),
     path('membership/<int:membership_id>/<str:action>/', process_membership, name='process_membership'),
     path('event/<int:event_id>/toggle-ready/<uuid:prereg_id>/', toggle_ready_status, name='toggle_ready_status'),
     path('event/<int:event_id>/toggle-attended/<uuid:prereg_id>/', toggle_attended_status, name='toggle_attended_status'),
