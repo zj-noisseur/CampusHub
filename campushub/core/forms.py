@@ -150,19 +150,26 @@ class ClubSettingsForm(forms.ModelForm):
 
 
 class EventCreationForm(forms.ModelForm):
+    description = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={'class': 'textarea textarea-bordered w-full h-28 focus:border-primary transition-all rounded-xl', 'placeholder': 'e.g. Schedule, RSVP info, requirements, and exciting highlights...'}),
+        help_text="Provide a detailed description of the event to display to students."
+    )
+    
     banner_image = forms.ImageField(
         required=False,
-        widget=forms.FileInput(attrs={'class': 'file-input file-input-bordered w-full'}),
+        widget=forms.FileInput(attrs={'class': 'file-input file-input-bordered w-full rounded-xl'}),
         help_text="Upload a specific banner or image for this event."
     )
     
     class Meta:
         model = Event
-        fields = ['title', 'event_date', 'location']
+        fields = ['title', 'event_date', 'location', 'status']
         widgets = {
-            'title': forms.TextInput(attrs={'class': 'input input-bordered w-full', 'placeholder': 'e.g., Annual Tech Symposium'}),
-            'event_date': forms.DateInput(attrs={'class': 'input input-bordered w-full', 'type': 'date'}),
-            'location': forms.TextInput(attrs={'class': 'input input-bordered w-full', 'placeholder': 'e.g., Main Hall'}),
+            'title': forms.TextInput(attrs={'class': 'input input-bordered w-full focus:border-primary transition-all rounded-xl', 'placeholder': 'e.g., Annual Tech Symposium'}),
+            'event_date': forms.DateInput(attrs={'class': 'input input-bordered w-full focus:border-primary transition-all rounded-xl', 'type': 'date'}),
+            'location': forms.TextInput(attrs={'class': 'input input-bordered w-full focus:border-primary transition-all rounded-xl', 'placeholder': 'e.g., Main Hall'}),
+            'status': forms.Select(attrs={'class': 'select select-bordered w-full focus:border-primary transition-all rounded-xl'}),
         }
 
 
