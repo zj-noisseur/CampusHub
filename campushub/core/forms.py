@@ -24,8 +24,6 @@ class StudentRegistrationForm(UserCreationForm):
         email = self.cleaned_data.get('email')
         if email:
             email = email.lower()
-            if not email.endswith('.edu.my'):
-                raise forms.ValidationError("You must register with a valid .edu.my student email address.")
             if User.objects.filter(email=email).exists():
                 raise forms.ValidationError("An account with this email address already exists.")
         return email
