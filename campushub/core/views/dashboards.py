@@ -103,6 +103,38 @@ def my_events(request):
     
     return render(request, 'my_events.html', context)
 
+
+@login_required
+def student_dashboard(request):
+    user = request.user
+    
+    # 1. Get events this user actually attended
+    # Use Q to include events where the user is identified by their account OR guest email
+    participated_events = Event.objects.filter(
+        Q(attendances__user=user) | Q(attendances__guest_email=user.email)
+    ).distinct().order_by('-event_date')
+    
+    # 2. Get all registrations (RSVPs) for this user (account or guest email)
+    my_registrations = PreRegisteredAttendee.objects.filter(
+        Q(user=user) | Q(guest_email=user.email)
+    ).distinct().order_by('-event__event_date')
+    
+    # 3. Get clubs (Looking THROUGH the ClubManager and Membership tables)
+    managed_clubs = Club.objects.filter(managers__user=user)
+    joined_clubs = Club.objects.filter(members__user=user).exclude(managers__user=user)
+    
+    context = {
+        'user': user,
+        'participated_events': participated_events,
+        'my_registrations': my_registrations, 
+        'managed_clubs': managed_clubs,
+        'joined_clubs': joined_clubs,
+        'today': timezone.localdate(),
+    }
+    
+    return render(request, 'student_dashboard.html', context)
+
+
 @login_required
 def set_event_status(request, event_id, status):
     event = get_object_or_404(Event, id=event_id)

@@ -58,6 +58,8 @@ class ClubClaimForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields['club'].queryset = Club.objects.filter(is_claimed=False)
 
+ClaimClubForm = ClubClaimForm
+
 
 class MembershipApplicationForm(forms.ModelForm):
     student_name = forms.CharField(disabled=True, required=False, widget=forms.TextInput(attrs={'class': 'input input-bordered w-full rounded-xl bg-gray-100'}))
