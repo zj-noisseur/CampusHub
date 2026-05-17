@@ -146,20 +146,37 @@ def set_event_status(request, event_id, status):
     return redirect('core:event_admin_dashboard', club_id=event.club.id, event_id=event.id)
 
 def club_profile(request, club_id):
-    club = get_object_or_404(Club, id=club_id)
-    events = Event.objects.filter(club=club).order_by('event_date')
+    # Optimize club queries by selecting/prefetching relationships
+    club = get_object_or_404(
+        Club.objects.select_related('institution', 'club_category')
+        .prefetch_related('managers__user', 'members__user'),
+        id=club_id
+    )
     
+    # 1. Fetch and prefetch events (with their linked post and post's images)
+    events = (
+        Event.objects.filter(club=club)
+        .select_related('post')
+        .prefetch_related('post__postimage_set')
+        .order_by('event_date')
+    )
+    
+    # 2. Fetch and prefetch club posts (Instagram posts/feed updates), capped for speed
     from ..models import Post
-    club_posts = Post.objects.filter(club=club).order_by('-timestamp')
+    club_posts = (
+        Post.objects.filter(club=club)
+        .prefetch_related('postimage_set')
+        .order_by('-timestamp')[:48]
+    )
     
     # Check if the logged-in user is in the managers
     is_manager = False
     user_membership = None
     
     if request.user.is_authenticated:
-        # Looking through the managers table to see if they are an active admin/manager
-        is_manager = club.managers.filter(user=request.user, is_active=True).exists()
-        user_membership = club.members.filter(user=request.user).first()
+        # Looking through the pre-fetched managers
+        is_manager = any(m.user == request.user and m.is_active for m in club.managers.all())
+        user_membership = next((m for m in club.members.all() if m.user == request.user), None)
         
     attended_event_ids = []
     if request.user.is_authenticated:
@@ -168,12 +185,16 @@ def club_profile(request, club_id):
             user=request.user
         ).values_list('event_id', flat=True))
 
+    is_member_active = False
+    if request.user.is_authenticated:
+        is_member_active = any(m.user == request.user and m.status == 'ACTIVE' for m in club.members.all())
+
     context = {
         'club': club,
         'events': events,
         'club_posts': club_posts,
         'is_manager': is_manager,
-        'is_member': club.members.filter(user=request.user, status='ACTIVE').exists() if request.user.is_authenticated else False,
+        'is_member': is_member_active,
         'attended_event_ids': attended_event_ids,
         'user_membership': user_membership,
     }

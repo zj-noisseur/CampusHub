@@ -177,6 +177,10 @@ class Club(models.Model):
             return False
         return self.valid_till > timezone.now()
 
+    @property
+    def committee(self):
+        return self.managers.filter(is_active=True)
+
     def add_committee_member(self, user, designation):
         if not self.is_active:
             raise ValidationError("Cannot add committee members to an inactive club.")
