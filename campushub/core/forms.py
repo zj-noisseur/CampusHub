@@ -7,18 +7,36 @@ User = get_user_model()
 class StudentRegistrationForm(UserCreationForm):
     class Meta(UserCreationForm.Meta):
         model = User
-        fields = ('student_name', 'email')
+        fields = ('student_name', 'email', 'student_id', 'phone_number')
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        
+        # Style standard fields with beautiful placeholders
         self.fields['student_name'].widget.attrs.update({
             'class': 'input input-bordered w-full rounded-xl',
-            'placeholder': 'John Doe'
+            'placeholder': 'Your Full Name'
         })
         self.fields['email'].widget.attrs.update({
             'class': 'input input-bordered w-full rounded-xl',
-            'placeholder': 'student@mmu.edu.my'
+            'placeholder': 'name@student.mmu.edu.my'
         })
+        self.fields['student_id'].widget.attrs.update({
+            'class': 'input input-bordered w-full rounded-xl',
+            'placeholder': 'e.g., 1211102234'
+        })
+        self.fields['phone_number'].widget.attrs.update({
+            'class': 'input input-bordered w-full rounded-xl',
+            'placeholder': 'e.g., 012-3456789'
+        })
+        
+        # Automatically style password fields as well
+        for field_name in ['password1', 'password2']:
+            if field_name in self.fields:
+                self.fields[field_name].widget.attrs.update({
+                    'class': 'input input-bordered w-full rounded-xl',
+                    'placeholder': '••••••••'
+                })
 
     def clean_email(self):
         email = self.cleaned_data.get('email')
