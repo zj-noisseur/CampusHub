@@ -130,7 +130,7 @@ class Migration(migrations.Migration):
                 ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
             ],
             options={
-                'constraints': [models.UniqueConstraint(condition=models.Q(('is_root', True)), fields=('club',), name='unique_root_per_club')],
+                'constraints': [models.UniqueConstraint(condition=models.Q(('is_root', True)), fields=('club',), name='unique_root_per_club_committee')],
             },
         ),
         migrations.AddField(
