@@ -38,7 +38,7 @@
                 </div>
                 <div class="flex items-center gap-1.5">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                    <span>{{ events.count }} Events</span>
+                    <span>{{ total_events_count }} Events</span>
                 </div>
 
                 <div class="flex items-center gap-2 ml-2">
@@ -208,7 +208,7 @@
                     Feed Updates
                 </button>
                 <button id="tab-committee-btn" onclick="switchProfileTab('committee')" class="text-2xl font-bold text-gray-400 hover:text-gray-600 pb-2 transition-all">
-                    Committee
+                    Members
                 </button>
             </div>
             
@@ -221,10 +221,10 @@
 
         <!-- Tab 1: Events Section -->
         <div id="tab-events-content" class="space-y-6">
-            {% if events or club_posts %}
+            {% if events or scraped_events %}
                 <!-- Render manual database events first -->
                 {% for event in events %}
-                <div class="card bg-white border border-gray-100 shadow-sm hover:shadow-md transition-all overflow-hidden rounded-2xl group">
+                <div class="event-card card bg-white border border-gray-100 shadow-sm hover:shadow-md transition-all overflow-hidden rounded-2xl group">
                     <div class="grid grid-cols-1 md:grid-cols-[280px_1fr]">
                         <!-- Banner Image Left -->
                         <a href="{% url 'core:feed' %}?club={{ club.id }}#post-{{ event.post.id }}" class="bg-gray-100 aspect-[16/10] md:aspect-auto overflow-hidden relative block">
@@ -311,68 +311,70 @@
                 {% endfor %}
 
                 <!-- Render Instagram Posts classified as events that are NOT manually linked as Event model -->
-                {% for post in club_posts %}
-                    {% if post.is_event or post.category != 'MISC' and not post.events %}
-                    <div class="card bg-white border border-gray-100 shadow-sm hover:shadow-md transition-all overflow-hidden rounded-2xl group">
-                        <div class="grid grid-cols-1 md:grid-cols-[280px_1fr]">
-                            <!-- Post Image Left -->
-                            <a href="{% url 'core:feed' %}?club={{ club.id }}#post-{{ post.id }}" class="bg-gray-100 aspect-[16/10] md:aspect-auto overflow-hidden relative block">
-                                {% if post.postimage_set.first %}
-                                    <img src="{{ post.postimage_set.first.image.url }}" alt="{{ post.caption|truncatewords:5 }}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                                {% else %}
-                                    {% if club.banner %}
-                                        <img src="{{ club.banner.url }}" alt="Banner" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                {% for post in scraped_events %}
+                    {% if not post.events %}
+                        {% if post.is_event or post.category != 'MISC' %}
+                        <div class="event-card card bg-white border border-gray-100 shadow-sm hover:shadow-md transition-all overflow-hidden rounded-2xl group">
+                            <div class="grid grid-cols-1 md:grid-cols-[280px_1fr]">
+                                <!-- Post Image Left -->
+                                <a href="{% url 'core:feed' %}?club={{ club.id }}#post-{{ post.id }}" class="bg-gray-100 aspect-[16/10] md:aspect-auto overflow-hidden relative block">
+                                    {% if post.postimage_set.first %}
+                                        <img src="{{ post.postimage_set.first.image.url }}" alt="{{ post.caption|truncatewords:5 }}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
                                     {% else %}
-                                        <div class="w-full h-full bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center text-gray-300">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" /></svg>
-                                        </div>
+                                        {% if club.banner %}
+                                            <img src="{{ club.banner.url }}" alt="Banner" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                                        {% else %}
+                                            <div class="w-full h-full bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center text-gray-300">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" /></svg>
+                                            </div>
+                                        {% endif %}
                                     {% endif %}
-                                {% endif %}
 
-                                <!-- Category badge overlaid -->
-                                <div class="absolute top-3 left-3">
-                                    <span class="badge badge-sm bg-blue-500 text-white font-bold border-none py-2 px-3 rounded-lg shadow-sm">{{ post.get_category_display }}</span>
-                                </div>
-                            </a>
+                                    <!-- Category badge overlaid -->
+                                    <div class="absolute top-3 left-3">
+                                        <span class="badge badge-sm bg-blue-500 text-white font-bold border-none py-2 px-3 rounded-lg shadow-sm">{{ post.get_category_display }}</span>
+                                    </div>
+                                </a>
 
-                            <!-- Content Details Right -->
-                            <div class="p-6 md:p-8 flex flex-col justify-between space-y-4">
-                                <div class="space-y-3">
-                                    <!-- Club Header (logo + name) -->
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-8 h-8 rounded-full border border-gray-100 overflow-hidden flex-shrink-0">
-                                            {% if club.logo %}
-                                                <img src="{{ club.logo.url }}" alt="Logo" class="w-full h-full object-cover">
-                                            {% else %}
-                                                <div class="w-full h-full bg-blue-100 flex items-center justify-center text-xs font-bold text-blue-600">{{ club.name|first }}</div>
-                                            {% endif %}
+                                <!-- Content Details Right -->
+                                <div class="p-6 md:p-8 flex flex-col justify-between space-y-4">
+                                    <div class="space-y-3">
+                                        <!-- Club Header (logo + name) -->
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-8 h-8 rounded-full border border-gray-100 overflow-hidden flex-shrink-0">
+                                                {% if club.logo %}
+                                                    <img src="{{ club.logo.url }}" alt="Logo" class="w-full h-full object-cover">
+                                                {% else %}
+                                                    <div class="w-full h-full bg-blue-100 flex items-center justify-center text-xs font-bold text-blue-600">{{ club.name|first }}</div>
+                                                {% endif %}
+                                            </div>
+                                            <div>
+                                                <p class="text-xs font-bold text-gray-900 leading-none">{{ club.name }}</p>
+                                                <p class="text-[10px] text-gray-400 font-medium uppercase tracking-widest mt-0.5">{{ club.institution.university_name }}</p>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <p class="text-xs font-bold text-gray-900 leading-none">{{ club.name }}</p>
-                                            <p class="text-[10px] text-gray-400 font-medium uppercase tracking-widest mt-0.5">{{ club.institution.university_name }}</p>
+
+                                        <!-- Truncated Caption as Title -->
+                                        <h3 class="text-base font-bold text-gray-900 group-hover:text-blue-600 transition-colors leading-relaxed line-clamp-3">
+                                            <a href="{% url 'core:feed' %}?club={{ club.id }}#post-{{ post.id }}">{{ post.caption }}</a>
+                                        </h3>
+
+                                        <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-gray-500 font-semibold mt-2">
+                                            <span class="flex items-center gap-1">📅 Posted on {{ post.timestamp|date:"M d, Y" }}</span>
+                                            <span class="flex items-center gap-1">📢 Instagram Announcement</span>
                                         </div>
                                     </div>
 
-                                    <!-- Truncated Caption as Title -->
-                                    <h3 class="text-base font-bold text-gray-900 group-hover:text-blue-600 transition-colors leading-relaxed line-clamp-3">
-                                        <a href="{% url 'core:feed' %}?club={{ club.id }}#post-{{ post.id }}">{{ post.caption }}</a>
-                                    </h3>
-
-                                    <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-gray-500 font-semibold mt-2">
-                                        <span class="flex items-center gap-1">📅 Posted on {{ post.timestamp|date:"M d, Y" }}</span>
-                                        <span class="flex items-center gap-1">📢 Instagram Announcement</span>
+                                    <div class="border-t border-gray-50 pt-4 flex justify-between items-center">
+                                        <span class="text-xs text-gray-400">Imported from Instagram Feed</span>
+                                        <a href="{% url 'core:feed' %}?club={{ club.id }}#post-{{ post.id }}" class="btn btn-ghost btn-sm text-blue-600 hover:bg-blue-50 font-bold rounded-xl px-4">
+                                            View Full Post
+                                        </a>
                                     </div>
-                                </div>
-
-                                <div class="border-t border-gray-50 pt-4 flex justify-between items-center">
-                                    <span class="text-xs text-gray-400">Imported from Instagram Feed</span>
-                                    <a href="{% url 'core:feed' %}?club={{ club.id }}#post-{{ post.id }}" class="btn btn-ghost btn-sm text-blue-600 hover:bg-blue-50 font-bold rounded-xl px-4">
-                                        View Full Post
-                                    </a>
                                 </div>
                             </div>
                         </div>
-                    </div>
+                        {% endif %}
                     {% endif %}
                 {% endfor %}
             {% else %}
@@ -382,13 +384,20 @@
                     <p class="text-sm text-gray-500 mt-1">Check back later for new activities!</p>
                 </div>
             {% endif %}
+
+            <!-- View All Button -->
+            <div id="view-all-events-container" class="text-center py-6 hidden">
+                <button onclick="showAllEvents()" class="btn bg-gray-900 text-white hover:bg-gray-800 rounded-xl px-8 py-3 font-semibold shadow-sm transition-all hover:scale-105 border-none">
+                    View All {{ total_events_count }} Events
+                </button>
+            </div>
         </div>
 
         <!-- Tab 2: Feed Updates Section -->
         <div id="tab-feed-content" class="hidden space-y-6">
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {% for post in club_posts %}
-                <div class="card bg-white border border-gray-100 shadow-sm hover:shadow-md transition-all overflow-hidden rounded-2xl group flex flex-col justify-between">
+                <div class="feed-card card bg-white border border-gray-100 shadow-sm hover:shadow-md transition-all overflow-hidden rounded-2xl group flex flex-col justify-between">
                     <div>
                         {% if post.postimage_set.first %}
                         <a href="{% url 'core:feed' %}?club={{ club.id }}#post-{{ post.id }}" class="block overflow-hidden aspect-[4/3] bg-gray-50 relative">
@@ -421,32 +430,82 @@
                 </div>
                 {% endfor %}
             </div>
+
+            <!-- View All Feed Button -->
+            <div id="view-all-feed-container" class="text-center py-6 hidden">
+                <button onclick="showAllFeed()" class="btn bg-gray-900 text-white hover:bg-gray-800 rounded-xl px-8 py-3 font-semibold shadow-sm transition-all hover:scale-105 border-none">
+                    View All Feed Updates
+                </button>
+            </div>
         </div>
 
-        <!-- Tab 3: Committee Section -->
+        <!-- Tab 3: Members Section -->
         <div id="tab-committee-content" class="hidden space-y-6">
             <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                <!-- Managers/Committee first -->
                 {% for manager in club.committee.all %}
                 <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition-all flex flex-col items-center text-center space-y-4 group">
-                    <div class="w-20 h-20 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-600 text-white flex items-center justify-center text-2xl font-bold shadow-md transition-transform duration-500 group-hover:scale-105">
-                        {{ manager.user.first_name|first|default:manager.user.student_name|first }}
+                    <div class="w-20 h-20 rounded-full overflow-hidden bg-gradient-to-tr from-blue-500 to-indigo-600 text-white flex items-center justify-center text-2xl font-bold shadow-md transition-transform duration-500 group-hover:scale-105 relative">
+                        {% if manager.user.profile_picture %}
+                            <img src="{{ manager.user.profile_picture.url }}" alt="{{ manager.user.student_name }}" class="w-full h-full object-cover">
+                        {% else %}
+                            <span>{{ manager.user.first_name|first|default:manager.user.student_name|first|upper }}</span>
+                        {% endif %}
                     </div>
                     <div class="space-y-1">
                         <h4 class="text-lg font-bold text-gray-900 leading-snug">{{ manager.user.student_name }}</h4>
-                        <span class="badge badge-primary badge-sm font-bold py-2 px-3 border-none shadow-sm rounded-lg">
-                            {{ manager.designation|default:"Committee Member" }}
+                        <span class="badge bg-indigo-50 text-indigo-600 border-none font-bold py-1.5 px-3 rounded-lg text-xs">
+                            {{ manager.designation|default:"Manager" }}
                         </span>
+                        {% if manager.user.faculty %}
+                        <p class="text-xs text-gray-400 font-semibold mt-1">
+                            {{ manager.user.get_faculty_display }}
+                            {% if manager.user.year_of_study %}
+                                • {{ manager.user.get_year_of_study_display|default:manager.user.year_of_study }}
+                            {% endif %}
+                        </p>
+                        {% endif %}
                     </div>
                     <p class="text-xs text-gray-400 font-semibold">Official Manager</p>
                 </div>
-                {% empty %}
-                <div class="col-span-full py-12 text-center bg-white rounded-2xl border border-dashed border-gray-200">
-                    <span class="text-4xl block mb-3">👥</span>
-                    <h3 class="font-medium text-gray-900">No committee listed</h3>
-                    <p class="text-sm text-gray-500 mt-1">Contact the club managers for details.</p>
+                {% endfor %}
+
+                <!-- Approved Members next -->
+                {% for member in approved_members %}
+                <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition-all flex flex-col items-center text-center space-y-4 group">
+                    <div class="w-20 h-20 rounded-full overflow-hidden bg-gradient-to-tr from-emerald-500 to-teal-600 text-white flex items-center justify-center text-2xl font-bold shadow-md transition-transform duration-500 group-hover:scale-105 relative">
+                        {% if member.user.profile_picture %}
+                            <img src="{{ member.user.profile_picture.url }}" alt="{{ member.user.student_name }}" class="w-full h-full object-cover">
+                        {% else %}
+                            <span>{{ member.user.first_name|first|default:member.user.student_name|first|upper }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="space-y-1">
+                        <h4 class="text-lg font-bold text-gray-900 leading-snug">{{ member.user.student_name }}</h4>
+                        <span class="badge bg-emerald-50 text-emerald-600 border-none font-bold py-1.5 px-3 rounded-lg text-xs">
+                            Member
+                        </span>
+                        {% if member.user.faculty %}
+                        <p class="text-xs text-gray-400 font-semibold mt-1">
+                            {{ member.user.get_faculty_display }}
+                            {% if member.user.year_of_study %}
+                                • {{ member.user.get_year_of_study_display|default:member.user.year_of_study }}
+                            {% endif %}
+                        </p>
+                        {% endif %}
+                    </div>
+                    <p class="text-xs text-gray-400 font-semibold">Club Member</p>
                 </div>
                 {% endfor %}
             </div>
+            
+            {% if not club.committee.all and not approved_members %}
+            <div class="py-12 text-center bg-white rounded-2xl border border-dashed border-gray-200">
+                <span class="text-4xl block mb-3">👥</span>
+                <h3 class="font-medium text-gray-900">No members listed</h3>
+                <p class="text-sm text-gray-500 mt-1">Contact the club managers for details.</p>
+            </div>
+            {% endif %}
         </div>
     </div>
 
@@ -479,6 +538,53 @@
             } else if (tabName === 'committee') {
                 committeeBtn.className = "text-2xl font-bold text-gray-900 border-b-4 border-blue-500 pb-2 transition-all";
                 committeeContent.classList.remove('hidden');
+            }
+        }
+
+        // Limit initial views (events to 10 and feed to 9)
+        document.addEventListener('DOMContentLoaded', function() {
+            // 1. Events Tab Pagination Limit
+            const eventCards = document.querySelectorAll('.event-card');
+            const eventLimit = 10;
+            if (eventCards.length > eventLimit) {
+                for (let i = eventLimit; i < eventCards.length; i++) {
+                    eventCards[i].classList.add('hidden');
+                }
+                const viewAllContainer = document.getElementById('view-all-events-container');
+                if (viewAllContainer) {
+                    viewAllContainer.classList.remove('hidden');
+                }
+            }
+
+            // 2. Feed Tab Pagination Limit
+            const feedCards = document.querySelectorAll('.feed-card');
+            const feedLimit = 9;
+            if (feedCards.length > feedLimit) {
+                for (let i = feedLimit; i < feedCards.length; i++) {
+                    feedCards[i].classList.add('hidden');
+                }
+                const viewAllFeedContainer = document.getElementById('view-all-feed-container');
+                if (viewAllFeedContainer) {
+                    viewAllFeedContainer.classList.remove('hidden');
+                }
+            }
+        });
+
+        function showAllEvents() {
+            const eventCards = document.querySelectorAll('.event-card');
+            eventCards.forEach(card => card.classList.remove('hidden'));
+            const viewAllContainer = document.getElementById('view-all-events-container');
+            if (viewAllContainer) {
+                viewAllContainer.classList.add('hidden');
+            }
+        }
+
+        function showAllFeed() {
+            const feedCards = document.querySelectorAll('.feed-card');
+            feedCards.forEach(card => card.classList.remove('hidden'));
+            const viewAllFeedContainer = document.getElementById('view-all-feed-container');
+            if (viewAllFeedContainer) {
+                viewAllFeedContainer.classList.add('hidden');
             }
         }
     </script>

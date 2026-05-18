@@ -148,7 +148,7 @@ def set_event_status(request, event_id, status):
 def club_profile(request, club_id):
     # Optimize club queries by selecting/prefetching relationships
     club = get_object_or_404(
-        Club.objects.select_related('institution', 'club_category')
+        Club.objects.select_related('institution')
         .prefetch_related('managers__user', 'members__user'),
         id=club_id
     )
@@ -168,7 +168,17 @@ def club_profile(request, club_id):
         .prefetch_related('postimage_set')
         .order_by('-timestamp')[:48]
     )
+
+    from django.db.models import Q
+    scraped_events = (
+        Post.objects.filter(club=club, events__isnull=True)
+        .filter(Q(is_event=True) | ~Q(category='MISC'))
+        .prefetch_related('postimage_set')
+        .order_by('-timestamp')[:120]
+    )
     
+    approved_members = [m for m in club.members.all() if m.status in ['ACTIVE', 'APPROVED']]
+
     # Check if the logged-in user is in the managers
     is_manager = False
     user_membership = None
@@ -187,16 +197,32 @@ def club_profile(request, club_id):
 
     is_member_active = False
     if request.user.is_authenticated:
-        is_member_active = any(m.user == request.user and m.status == 'ACTIVE' for m in club.members.all())
+        is_member_active = any(m.user == request.user and m.status in ['ACTIVE', 'APPROVED'] for m in club.members.all())
+
+    # Compute total events count
+    from django.db.models import Q
+    manual_events_count = events.count()
+    scraped_events_count = Post.objects.filter(
+        club=club,
+        events__isnull=True
+    ).filter(
+        Q(is_event=True) | ~Q(category='MISC')
+    ).count()
+    total_events_count = manual_events_count + scraped_events_count
+    total_feed_count = club_posts.count()
 
     context = {
         'club': club,
         'events': events,
         'club_posts': club_posts,
+        'scraped_events': scraped_events,
         'is_manager': is_manager,
         'is_member': is_member_active,
         'attended_event_ids': attended_event_ids,
         'user_membership': user_membership,
+        'total_events_count': total_events_count,
+        'total_feed_count': total_feed_count,
+        'approved_members': approved_members,
     }
     return render(request, 'club_profile.html', context)
 

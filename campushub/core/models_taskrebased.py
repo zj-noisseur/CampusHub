@@ -132,17 +132,16 @@ class Institution(models.Model):
         return self.university_name
 
 
-class ClubCategory(models.Model):
-    name = models.CharField(max_length=100, unique=True)
-
-    def __str__(self):
-        return self.name
-
-    class Meta:
-        verbose_name_plural = "Club Categories"
-
-
 class Club(models.Model):
+    class CategoryChoices(models.IntegerChoices):
+        ACADEMIC = 0, 'Academic & Professional'
+        SPORTS = 1, 'Sports & Recreation'
+        ARTS = 2, 'Arts & Culture'
+        COMMUNITY = 3, 'Community Service'
+        TECH = 4, 'Technology & Innovation'
+        INTEREST = 5, 'Special Interest'
+        OTHER = 6, 'Other'
+
     RENEWAL_CHOICES = [
         ('ROLLING', '1 Year from Join Date'),
         ('CALENDAR', 'Ends December 31st Every Year'),
@@ -152,7 +151,12 @@ class Club(models.Model):
     institution = models.ForeignKey(Institution, on_delete=models.CASCADE, related_name='clubs')
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
-    club_category = models.ForeignKey(ClubCategory, on_delete=models.SET_NULL, null=True, blank=True, related_name='clubs')
+    club_category = models.PositiveSmallIntegerField(
+        choices=CategoryChoices.choices,
+        default=CategoryChoices.OTHER,
+        null=True,
+        blank=True,
+    )
     is_claimed = models.BooleanField(default=False)
     membership_fee = models.DecimalField(max_digits=6, decimal_places=2, default=0.00, help_text="Set to 0 if the club is free to join.")
     payment_qr_code = models.ImageField(upload_to='club_qrs/', blank=True, null=True, help_text="Upload your DuitNow or TNG QR code.")
@@ -180,6 +184,17 @@ class Club(models.Model):
     @property
     def committee(self):
         return self.managers.filter(is_active=True)
+
+    @property
+    def category(self):
+        if self.club_category is None:
+            return None
+        class CategoryWrapper:
+            def __init__(self, name):
+                self.name = name
+            def __str__(self):
+                return self.name
+        return CategoryWrapper(self.get_club_category_display())
 
     def add_committee_member(self, user, designation):
         if not self.is_active:
@@ -422,6 +437,7 @@ class Membership(models.Model):
     STATUS_CHOICES = [
         ('PENDING', 'Pending'),
         ('ACTIVE', 'Active'),
+        ('APPROVED', 'Approved'),
         ('REJECTED', 'Rejected'),
     ]
     TYPE_CHOICES = [
