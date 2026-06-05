@@ -86,6 +86,30 @@
                         </div>
 
                         <div class="form-control w-full col-span-1">
+                            <label class="label"><span class="label-text font-bold text-gray-700">Start Time</span></label>
+                            {{ form.start_time }}
+                            {% if form.start_time.errors %}
+                            <label class="label"><span class="label-text-alt text-red-500">{{ form.start_time.errors.0 }}</span></label>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-control w-full col-span-1">
+                            <label class="label"><span class="label-text font-bold text-gray-700">End Time</span></label>
+                            {{ form.end_time }}
+                            {% if form.end_time.errors %}
+                            <label class="label"><span class="label-text-alt text-red-500">{{ form.end_time.errors.0 }}</span></label>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-control w-full col-span-1">
+                            <label class="label"><span class="label-text font-bold text-gray-700">Timezone</span></label>
+                            {{ form.timezone }}
+                            {% if form.timezone.errors %}
+                            <label class="label"><span class="label-text-alt text-red-500">{{ form.timezone.errors.0 }}</span></label>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-control w-full col-span-1">
                             <label class="label"><span class="label-text font-bold text-gray-700">Event Category</span></label>
                             {{ form.category }}
                             {% if form.category.errors %}

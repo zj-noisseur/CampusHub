@@ -227,7 +227,10 @@
                 <div class="event-card card bg-white border border-gray-100 shadow-sm hover:shadow-md transition-all overflow-hidden rounded-2xl group">
                     <div class="grid grid-cols-1 md:grid-cols-[280px_1fr]">
                         <!-- Banner Image Left -->
-                        <a href="{% url 'core:feed' %}?club={{ club.id }}#post-{{ event.post.id }}" class="bg-gray-100 aspect-[16/10] md:aspect-auto overflow-hidden relative block">
+                        <button hx-get="{% url 'core:event_detail' event.id %}" 
+                                hx-target="#event_modal_content" 
+                                onclick="event_modal.showModal()" 
+                                class="bg-gray-100 aspect-[16/10] md:aspect-auto overflow-hidden relative block w-full text-left cursor-pointer">
                             {% if event.post.postimage_set.first %}
                                 <img src="{{ event.post.postimage_set.first.image.url }}" alt="{{ event.title }}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
                             {% else %}
@@ -245,7 +248,7 @@
                             <div class="absolute top-3 left-3">
                                 <span class="badge badge-sm bg-blue-500 text-white font-bold border-none py-2 px-3 rounded-lg shadow-md">{{ event.post.get_category_display }}</span>
                             </div>
-                        </a>
+                        </button>
 
                         <!-- Content Details Right -->
                         <div class="p-6 md:p-8 flex flex-col justify-between space-y-4">
@@ -266,8 +269,11 @@
                                 </div>
 
                                 <div class="flex items-center flex-wrap gap-2">
-                                    <h3 class="text-xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors leading-tight">
-                                        <a href="{% url 'core:feed' %}?club={{ club.id }}#post-{{ event.post.id }}">{{ event.title }}</a>
+                                    <h3 class="text-xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors leading-tight cursor-pointer"
+                                        hx-get="{% url 'core:event_detail' event.id %}" 
+                                        hx-target="#event_modal_content" 
+                                        onclick="event_modal.showModal()">
+                                        {{ event.title }}
                                     </h3>
                                     {% if event.status == 'FINISHED' %}
                                         <span class="badge badge-xs bg-gray-100 text-gray-500 font-bold border-none py-1.5 px-2.5 rounded-lg">Finished</span>
@@ -277,7 +283,13 @@
                                 </div>
 
                                 <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-gray-500 font-semibold mt-2">
-                                    <span class="flex items-center gap-1">📅 {{ event.event_date|date:"M d, Y" }} ({% if event.event_date|time:"g:i A" %}{{ event.event_date|time:"g:i A" }}{% else %}TBA{% endif %})</span>
+                                    <span class="flex items-center gap-1">📅 {{ event.event_date|date:"M d, Y" }} 
+                                        {% if event.start_time %}
+                                            ({{ event.start_time|time:"g:i A" }}{% if event.end_time %} - {{ event.end_time|time:"g:i A" }}{% endif %})
+                                        {% else %}
+                                            (TBA)
+                                        {% endif %}
+                                    </span>
                                     <span class="flex items-center gap-1">📍 {{ event.location|default:"TBA" }}</span>
                                     <span class="flex items-center gap-1">👥 {{ event.pre_registered.count }} Joined</span>
                                     {% if event.id in attended_event_ids %}
@@ -300,9 +312,12 @@
                                             Manage Event
                                         </a>
                                     {% endif %}
-                                    <a href="{% url 'core:feed' %}?club={{ club.id }}#post-{{ event.post.id }}" class="btn btn-ghost btn-sm text-blue-600 hover:bg-blue-50 font-bold rounded-xl px-4">
+                                    <button hx-get="{% url 'core:event_detail' event.id %}" 
+                                            hx-target="#event_modal_content" 
+                                            onclick="event_modal.showModal()" 
+                                            class="btn btn-ghost btn-sm text-blue-600 hover:bg-blue-50 font-bold rounded-xl px-4 cursor-pointer">
                                         View Details
-                                    </a>
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -317,7 +332,10 @@
                         <div class="event-card card bg-white border border-gray-100 shadow-sm hover:shadow-md transition-all overflow-hidden rounded-2xl group">
                             <div class="grid grid-cols-1 md:grid-cols-[280px_1fr]">
                                 <!-- Post Image Left -->
-                                <a href="{% url 'core:feed' %}?club={{ club.id }}#post-{{ post.id }}" class="bg-gray-100 aspect-[16/10] md:aspect-auto overflow-hidden relative block">
+                                <button hx-get="{% url 'core:event_detail_by_post' post.id %}" 
+                                        hx-target="#event_modal_content" 
+                                        onclick="event_modal.showModal()" 
+                                        class="bg-gray-100 aspect-[16/10] md:aspect-auto overflow-hidden relative block w-full text-left cursor-pointer">
                                     {% if post.postimage_set.first %}
                                         <img src="{{ post.postimage_set.first.image.url }}" alt="{{ post.caption|truncatewords:5 }}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
                                     {% else %}
@@ -334,7 +352,7 @@
                                     <div class="absolute top-3 left-3">
                                         <span class="badge badge-sm bg-blue-500 text-white font-bold border-none py-2 px-3 rounded-lg shadow-sm">{{ post.get_category_display }}</span>
                                     </div>
-                                </a>
+                                </button>
 
                                 <!-- Content Details Right -->
                                 <div class="p-6 md:p-8 flex flex-col justify-between space-y-4">
@@ -355,8 +373,11 @@
                                         </div>
 
                                         <!-- Truncated Caption as Title -->
-                                        <h3 class="text-base font-bold text-gray-900 group-hover:text-blue-600 transition-colors leading-relaxed line-clamp-3">
-                                            <a href="{% url 'core:feed' %}?club={{ club.id }}#post-{{ post.id }}">{{ post.caption }}</a>
+                                        <h3 class="text-base font-bold text-gray-900 group-hover:text-blue-600 transition-colors leading-relaxed line-clamp-3 cursor-pointer"
+                                            hx-get="{% url 'core:event_detail_by_post' post.id %}" 
+                                            hx-target="#event_modal_content" 
+                                            onclick="event_modal.showModal()">
+                                            {{ post.caption }}
                                         </h3>
 
                                         <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-gray-500 font-semibold mt-2">
@@ -367,9 +388,12 @@
 
                                     <div class="border-t border-gray-50 pt-4 flex justify-between items-center">
                                         <span class="text-xs text-gray-400">Imported from Instagram Feed</span>
-                                        <a href="{% url 'core:feed' %}?club={{ club.id }}#post-{{ post.id }}" class="btn btn-ghost btn-sm text-blue-600 hover:bg-blue-50 font-bold rounded-xl px-4">
-                                            View Full Post
-                                        </a>
+                                        <button hx-get="{% url 'core:event_detail_by_post' post.id %}" 
+                                                hx-target="#event_modal_content" 
+                                                onclick="event_modal.showModal()" 
+                                                class="btn btn-ghost btn-sm text-blue-600 hover:bg-blue-50 font-bold rounded-xl px-4 cursor-pointer">
+                                            View Details
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -591,4 +615,18 @@
 
     </div>
 </div>
+
+<!-- Event Detail Modal Container -->
+<dialog id="event_modal" class="modal modal-bottom sm:modal-middle backdrop-blur-sm transition-all duration-300">
+  <div class="modal-box w-11/12 max-w-5xl p-0 overflow-y-auto max-h-[90vh] bg-base-100 shadow-2xl rounded-3xl" id="event_modal_content">
+      <!-- HTMX will inject the partial here -->
+      <div class="p-12 text-center">
+          <span class="loading loading-spinner loading-lg text-primary"></span>
+      </div>
+  </div>
+  <form method="dialog" class="modal-backdrop">
+    <button class="cursor-default">close</button>
+  </form>
+</dialog>
+
 {% endblock %}

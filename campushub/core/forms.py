@@ -195,10 +195,13 @@ class EventCreationForm(forms.ModelForm):
     
     class Meta:
         model = Event
-        fields = ['title', 'event_date', 'location']
+        fields = ['title', 'event_date', 'start_time', 'end_time', 'timezone', 'location']
         widgets = {
             'title': forms.TextInput(attrs={'class': 'input input-bordered w-full focus:border-primary transition-all rounded-xl', 'placeholder': 'e.g., Annual Tech Symposium'}),
             'event_date': forms.DateInput(attrs={'class': 'input input-bordered w-full focus:border-primary transition-all rounded-xl', 'type': 'date'}),
+            'start_time': forms.TimeInput(attrs={'class': 'input input-bordered w-full focus:border-primary transition-all rounded-xl', 'type': 'time'}),
+            'end_time': forms.TimeInput(attrs={'class': 'input input-bordered w-full focus:border-primary transition-all rounded-xl', 'type': 'time'}),
+            'timezone': forms.TextInput(attrs={'class': 'input input-bordered w-full focus:border-primary transition-all rounded-xl', 'placeholder': 'e.g., GMT+8 (MYT)'}),
             'location': forms.TextInput(attrs={'class': 'input input-bordered w-full focus:border-primary transition-all rounded-xl', 'placeholder': 'e.g., Main Hall'}),
         }
 

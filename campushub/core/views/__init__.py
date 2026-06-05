@@ -8,6 +8,7 @@ from core.views.imports import import_attendees_csv
 from core.views.certificates import download_certificates, download_my_certificate
 from core.views.dashboards import toggle_ready_status, toggle_attended_status, set_event_status
 from core.views.club_actions import join_club, apply_manager
+from core.views.event_detail import event_detail
 
 __all__ = [
     'sign_up',

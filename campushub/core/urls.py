@@ -15,7 +15,8 @@ from core.views.manager_dashboard import manager_dashboard, process_membership
 from core.views.imports import import_attendees_csv
 from core.views.certificates import upload_certificate_template, download_certificates, download_my_certificate
 from core.views.dashboards import club_profile, club_admin_dashboard, club_settings, student_dashboard, toggle_ready_status, toggle_attended_status, set_event_status, create_event, edit_event, my_events
-
+from core.views.event_detail import event_detail
+from core.views.post_detail import post_detail
 app_name = 'core'
 
 urlpatterns = [
@@ -25,6 +26,9 @@ urlpatterns = [
     path('directory/', directory, name='directory'),
     path('calendar/', calendar, name='calendar'),
     path('my-events/', my_events, name='my_events'),
+    path('event/<int:event_id>/', event_detail, name='event_detail'),
+    path('event/post/<int:post_id>/', event_detail, name='event_detail_by_post'),
+    path('post/<int:post_id>/', post_detail, name='post_detail'),
     
     # --- Location & Institutional Discovery ---
     path('state/<int:state_id>/universities/', universities, name='universities'),

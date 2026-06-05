@@ -390,7 +390,15 @@ class Event(models.Model):
     post = models.OneToOneField(Post, on_delete=models.CASCADE, related_name='events')
     title = models.CharField(max_length=255)
     event_date = models.DateField()
+    start_time = models.TimeField(blank=True, null=True)
+    end_time = models.TimeField(blank=True, null=True)
+    timezone = models.CharField(max_length=50, blank=True, null=True, default="GMT+8 (MYT)")
     location = models.CharField(max_length=255)
+    
+    fee = models.DecimalField(max_digits=6, decimal_places=2, default=0.00, help_text="Set to 0 if the event is free.")
+    requires_approval = models.BooleanField(default=False, help_text="If true, host must manually approve attendees.")
+    capacity = models.PositiveIntegerField(blank=True, null=True, help_text="Maximum number of attendees. Leave blank for unlimited.")
+    registration_deadline = models.DateTimeField(blank=True, null=True, help_text="When registration closes.")
 
     STATUS_CHOICES = [
         ('PREPARING', 'Preparing'),
