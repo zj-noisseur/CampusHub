@@ -64,3 +64,18 @@ def process_membership(request, membership_id, action):
         messages.success(request, 'Membership request rejected.')
         
     return redirect('core:manager_dashboard', club_id=membership.club.id)
+
+
+@login_required
+def extend_club_validity(request, club_id):
+    club = get_object_or_404(Club, id=club_id)
+
+    if not club.managers.filter(user=request.user, role='ROOT', is_active=True).exists():
+        messages.error(request, 'You do not have permission to extend this club.')
+        return redirect('core:manager_dashboard', club_id=club.id)
+
+    if request.method == 'POST':
+        club.extend_validity()
+        messages.success(request, f'{club.name} validity extended to {club.valid_till.strftime("%b %d, %Y")}')
+
+    return redirect('core:manager_dashboard', club_id=club.id)

@@ -213,3 +213,35 @@ def persist_club_dataset(self, club_id, dataset, full_sync=False):
         'phase': 'db_write',
         'club_id': str(club.id),
     }
+
+
+@shared_task
+def bulk_classify_temporal_task(post_ids):
+    """Background task for Step 1 classification."""
+    from core.models import Post
+    from core.services.post_categorization import assign_event_status_to_post
+    
+    posts = Post.objects.filter(id__in=post_ids)
+    for post in posts:
+        try:
+            assign_event_status_to_post(post)
+        except Exception as e:
+            print(f"Task Error: Failed to classify post {post.id}: {e}")
+            continue
+    return f"Processed {len(post_ids)} posts for temporal classification."
+
+
+@shared_task
+def bulk_classify_event_task(post_ids):
+    """Background task for Step 2 classification."""
+    from core.models import Post
+    from core.services.post_categorization import assign_category_to_post
+    
+    posts = Post.objects.filter(id__in=post_ids)
+    for post in posts:
+        try:
+            assign_category_to_post(post)
+        except Exception as e:
+            print(f"Task Error: Failed to classify post {post.id}: {e}")
+            continue
+    return f"Processed {len(post_ids)} posts for event classification."

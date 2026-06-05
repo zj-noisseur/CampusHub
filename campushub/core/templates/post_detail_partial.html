@@ -1,0 +1,82 @@
+<style>
+    .aspect-a4 { aspect-ratio: 1 / 1.414; }
+</style>
+
+<div class="relative max-w-5xl mx-auto px-4 sm:px-6 py-12 grid grid-cols-1 lg:grid-cols-12 gap-16">
+    <!-- Close Button -->
+    <form method="dialog" class="absolute right-4 top-4">
+      <button class="btn btn-sm btn-circle btn-ghost text-base-content/50 hover:text-base-content hover:bg-base-200">✕</button>
+    </form>
+
+    <!-- LEFT COLUMN: The Sticky Image -->
+    <div class="lg:col-span-5 relative">
+        <div class="sticky top-28 w-full">
+            <div class="w-full aspect-a4 rounded-2xl overflow-hidden shadow-2xl border border-base-200 bg-base-100">
+                {% if post.postimage_set.first %}
+                <img src="{{ post.postimage_set.first.image.url }}" alt="Post Image" class="w-full h-full object-cover">
+                {% else %}
+                <div class="w-full h-full bg-base-200 flex items-center justify-center text-base-content/30">
+                    <svg class="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="mt-6 flex items-center gap-3 px-2">
+                {% if post.club.logo %}
+                <img src="{{ post.club.logo.url }}" class="w-10 h-10 rounded-full border border-base-200 object-cover">
+                {% else %}
+                <div class="w-10 h-10 rounded-full bg-base-200 border border-base-300 flex items-center justify-center font-bold text-xs">{{ post.club.name|make_list|first }}</div>
+                {% endif %}
+                <div>
+                    <p class="text-xs text-base-content/50 font-medium uppercase tracking-wide">Posted By</p>
+                    <p class="font-bold text-base-content"><a href="{% url 'core:club_profile' post.club.id %}" class="hover:underline">{{ post.club.name }}</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- RIGHT COLUMN: Scrollable Post Details -->
+    <div class="lg:col-span-7 flex flex-col gap-8 pt-4">
+        
+        <!-- Category Badges -->
+        <div>
+            <div class="flex items-center gap-2 mb-4">
+                <span class="px-3 py-1 bg-base-200 text-base-content font-bold text-[11px] uppercase tracking-wider rounded-md">{{ post.get_category_display }}</span>
+            </div>
+        </div>
+
+        <!-- Post Timestamp & Action -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="p-5 rounded-2xl border border-base-200 bg-base-100 shadow-sm flex items-start gap-4">
+                <div class="w-12 h-12 bg-primary/10 text-primary rounded-xl flex items-center justify-center shrink-0">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                </div>
+                <div>
+                    <p class="font-bold text-base-content text-lg">{{ post.timestamp|date:"D, M j, Y" }}</p>
+                    <p class="text-base-content/60 font-medium mt-0.5 text-sm">
+                        Posted On
+                    </p>
+                </div>
+            </div>
+
+            <div class="p-5 rounded-2xl border border-base-200 bg-base-100 shadow-sm flex items-start gap-4">
+                <div class="w-12 h-12 bg-secondary/10 text-secondary rounded-xl flex items-center justify-center shrink-0">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>
+                </div>
+                <div>
+                    <p class="font-bold text-base-content text-lg"><a href="https://www.instagram.com/p/{{ post.short_code }}/" target="_blank" rel="noopener noreferrer" class="hover:underline">View on Instagram</a></p>
+                    <p class="text-base-content/60 font-medium mt-0.5 text-sm">Original Post</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="divider border-base-200 my-0"></div>
+
+        <!-- About Section -->
+        <div class="prose max-w-none text-base-content/80 text-[17px] leading-relaxed mt-4 pb-12">
+            <h2 class="text-2xl font-bold text-base-content mb-4">Description</h2>
+            <p class="whitespace-pre-wrap">{{ post.caption }}</p>
+        </div>
+
+    </div>
+</div>

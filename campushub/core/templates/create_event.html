@@ -1,22 +1,57 @@
 {% extends 'base.html' %}
-{% block title %}Create Event - {{ club.name }} - CampusHub{% endblock %}
+{% block title %}{% if is_edit %}Edit Event - {{ event.title }}{% else %}Create Event - {{ club.name }}{% endif %} - CampusHub{% endblock %}
 
 {% block content %}
     <style>
         .luma-card { border: 1px solid #EAEAEA; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
     </style>
 
-    <div class="max-w-3xl mx-auto py-12 px-4 md:px-0">
+    <div class="max-w-3xl mx-auto py-8 px-4 md:px-0">
+        <div class="mb-6">
+            <a href="{% url 'core:club_profile' club.id %}" class="inline-flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-primary transition-colors group">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transition-transform group-hover:-translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+                Back to {{ club.name }} Profile
+            </a>
+        </div>
+
         <div class="mb-10 text-center">
-            <h1 class="text-4xl font-bold tracking-tight text-gray-900">Create New Event</h1>
-            <p class="text-gray-500 mt-2">Add a new event for {{ club.name }} manually without using Instagram.</p>
+            <h1 class="text-4xl font-bold tracking-tight text-gray-900">
+                {% if is_edit %}✏️ Edit Event{% else %}✨ Create New Event{% endif %}
+            </h1>
+            <p class="text-gray-500 mt-2">
+                {% if is_edit %}
+                    Update the details, description, and status of your manually created event.
+                {% else %}
+                    Add a new event for {{ club.name }} manually without using Instagram.
+                {% endif %}
+            </p>
         </div>
 
         <div class="luma-card bg-white rounded-3xl p-8 md:p-10">
-            <form method="POST">
+            <form method="POST" enctype="multipart/form-data">
                 {% csrf_token %}
                 
                 <div class="space-y-6">
+                    {% if is_edit and event.post.postimage_set.first %}
+                    <div class="form-control w-full">
+                        <label class="label"><span class="label-text font-bold text-gray-700">Current Banner</span></label>
+                        <div class="relative w-full sm:w-80 aspect-[16/9] rounded-2xl overflow-hidden border border-gray-200 shadow-sm bg-base-200">
+                            <img src="{{ event.post.postimage_set.first.image.url }}" alt="Event Banner" class="w-full h-full object-cover" />
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="form-control w-full">
+                        <label class="label"><span class="label-text font-bold text-gray-700">Event Banner / Image</span></label>
+                        {{ form.banner_image }}
+                        {% if form.banner_image.help_text %}
+                        <label class="label"><span class="label-text-alt text-gray-500">{{ form.banner_image.help_text }}</span></label>
+                        {% endif %}
+                        {% if form.banner_image.errors %}
+                        <label class="label"><span class="label-text-alt text-red-500">{{ form.banner_image.errors.0 }}</span></label>
+                        {% endif %}
+                    </div>
+                    
                     <div class="form-control w-full">
                         <label class="label"><span class="label-text font-bold text-gray-700">Event Title</span></label>
                         {{ form.title }}
@@ -25,8 +60,16 @@
                         {% endif %}
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="form-control w-full">
+                    <div class="form-control w-full">
+                        <label class="label"><span class="label-text font-bold text-gray-700">Description / Highlights</span></label>
+                        {{ form.description }}
+                        {% if form.description.errors %}
+                        <label class="label"><span class="label-text-alt text-red-500">{{ form.description.errors.0 }}</span></label>
+                        {% endif %}
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="form-control w-full col-span-1">
                             <label class="label"><span class="label-text font-bold text-gray-700">Date</span></label>
                             {{ form.event_date }}
                             {% if form.event_date.errors %}
@@ -34,20 +77,52 @@
                             {% endif %}
                         </div>
 
-                        <div class="form-control w-full">
+                        <div class="form-control w-full col-span-1">
                             <label class="label"><span class="label-text font-bold text-gray-700">Location</span></label>
                             {{ form.location }}
                             {% if form.location.errors %}
                             <label class="label"><span class="label-text-alt text-red-500">{{ form.location.errors.0 }}</span></label>
                             {% endif %}
                         </div>
+
+                        <div class="form-control w-full col-span-1">
+                            <label class="label"><span class="label-text font-bold text-gray-700">Start Time</span></label>
+                            {{ form.start_time }}
+                            {% if form.start_time.errors %}
+                            <label class="label"><span class="label-text-alt text-red-500">{{ form.start_time.errors.0 }}</span></label>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-control w-full col-span-1">
+                            <label class="label"><span class="label-text font-bold text-gray-700">End Time</span></label>
+                            {{ form.end_time }}
+                            {% if form.end_time.errors %}
+                            <label class="label"><span class="label-text-alt text-red-500">{{ form.end_time.errors.0 }}</span></label>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-control w-full col-span-1">
+                            <label class="label"><span class="label-text font-bold text-gray-700">Timezone</span></label>
+                            {{ form.timezone }}
+                            {% if form.timezone.errors %}
+                            <label class="label"><span class="label-text-alt text-red-500">{{ form.timezone.errors.0 }}</span></label>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-control w-full col-span-1">
+                            <label class="label"><span class="label-text font-bold text-gray-700">Event Category</span></label>
+                            {{ form.category }}
+                            {% if form.category.errors %}
+                            <label class="label"><span class="label-text-alt text-red-500">{{ form.category.errors.0 }}</span></label>
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
 
                 <div class="mt-10 flex flex-col sm:flex-row justify-end gap-4 border-t border-gray-100 pt-8">
-                    <a href="{% url 'core:club_admin_dashboard' club.id %}" class="btn btn-ghost rounded-xl">Cancel</a>
-                    <button type="submit" class="btn bg-gray-900 text-white hover:bg-gray-800 border-none rounded-xl px-8">
-                        Create Event ✨
+                    <a href="{% if is_edit %}{% url 'core:event_admin_dashboard' club.id event.id %}{% else %}{% url 'core:club_admin_dashboard' club.id %}{% endif %}" class="btn btn-ghost rounded-xl">Cancel</a>
+                    <button type="submit" class="btn bg-gray-900 text-white hover:bg-gray-800 border-none rounded-xl px-8 font-bold">
+                        {% if is_edit %}Save Changes ✨{% else %}Create Event ✨{% endif %}
                     </button>
                 </div>
             </form>

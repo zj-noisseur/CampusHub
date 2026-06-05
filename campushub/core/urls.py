@@ -6,16 +6,17 @@ from core.views.universities import universities
 from core.views.admin_dashboard import admin_dashboard_home, admin_dashboard_action, admin_dashboard_task_queue, admin_dashboard_task_status
 from core.views import admin_classification as ac
 from core.views.feed import feed
-from core.views.sign_up import sign_up
+from core.views.sign_up import sign_up, activate_account
 from core.views.claim_club import claim_club
 from core.views.profile import user_profile, edit_profile
 from core.views.calendar import calendar
 from core.views.club_actions import join_club, apply_manager
-from core.views.manager_dashboard import manager_dashboard, process_membership
+from core.views.manager_dashboard import manager_dashboard, process_membership, extend_club_validity
 from core.views.imports import import_attendees_csv
 from core.views.certificates import upload_certificate_template, download_certificates, download_my_certificate
-from core.views.dashboards import club_profile, club_admin_dashboard, club_settings, student_dashboard, toggle_ready_status, toggle_attended_status, set_event_status, create_event
-
+from core.views.dashboards import club_profile, club_admin_dashboard, club_settings, student_dashboard, toggle_ready_status, toggle_attended_status, set_event_status, create_event, edit_event, my_events
+from core.views.event_detail import event_detail
+from core.views.post_detail import post_detail
 app_name = 'core'
 
 urlpatterns = [
@@ -24,6 +25,10 @@ urlpatterns = [
     path('feed/', feed, name='feed'),
     path('directory/', directory, name='directory'),
     path('calendar/', calendar, name='calendar'),
+    path('my-events/', my_events, name='my_events'),
+    path('event/<int:event_id>/', event_detail, name='event_detail'),
+    path('event/post/<int:post_id>/', event_detail, name='event_detail_by_post'),
+    path('post/<int:post_id>/', post_detail, name='post_detail'),
     
     # --- Location & Institutional Discovery ---
     path('state/<int:state_id>/universities/', universities, name='universities'),
@@ -73,8 +78,10 @@ urlpatterns = [
     path('club/<int:club_id>/admin/', club_admin_dashboard, name='club_admin_dashboard'),
     path('club/<int:club_id>/admin/<int:event_id>/', club_admin_dashboard, name='event_admin_dashboard'),
     path('club/<int:club_id>/create-event/', create_event, name='create_event'),
+    path('club/<int:club_id>/event/<int:event_id>/edit/', edit_event, name='edit_event'),
     path('club/<int:club_id>/settings/', club_settings, name='club_settings'),
     path('membership/<int:membership_id>/<str:action>/', process_membership, name='process_membership'),
+    path('club/<int:club_id>/extend-validity/', extend_club_validity, name='extend_club_validity'),
 
     # --- Event Operations & Attendance ---
     path('event/<int:event_id>/toggle-ready/<uuid:prereg_id>/', toggle_ready_status, name='toggle_ready_status'),
@@ -86,4 +93,32 @@ urlpatterns = [
     path('upload-certificate-template/<int:event_id>/', upload_certificate_template, name='upload_certificate_template'),
     path('event/<int:event_id>/download-certificates/', download_certificates, name='download_certificates'),
     path('event/<int:event_id>/download-certificate/', download_my_certificate, name='download_my_certificate'),
+
+    # --- Password Reset Flow ---
+    path('password-reset/', 
+         auth_views.PasswordResetView.as_view(
+             template_name='password_reset.html',
+             success_url='/password-reset/done/',
+             email_template_name='password_reset_email.html'
+         ), 
+         name='password_reset'),
+    # "Success" page 
+    path('password-reset/done/', 
+         auth_views.PasswordResetDoneView.as_view(template_name='password_reset_done.html'), 
+         name='password_reset_done'),
+
+    # The link users click in their email
+    path('password-reset-confirm/<uidb64>/<token>/', 
+         auth_views.PasswordResetConfirmView.as_view(
+             template_name='password_reset_confirm.html',
+             success_url='/password-reset-complete/'
+         ), 
+         name='password_reset_confirm'),
+    # Complete page after they successfully reset
+    path('password-reset-complete/', 
+         auth_views.PasswordResetCompleteView.as_view(template_name='password_reset_complete.html'), 
+         name='password_reset_complete'),
+
+    # --- Account Activation Flow ---
+    path('activate/<uidb64>/<token>/', activate_account, name='activate'),
 ]

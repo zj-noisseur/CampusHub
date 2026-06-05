@@ -1,5 +1,5 @@
 import uuid
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from django.conf import settings
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
@@ -9,11 +9,6 @@ from django.db.models import Q
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 from django.utils import timezone
-
-
-def validate_mmu_email(value):
-    if not value.endswith('@student.mmu.edu.my'):
-        raise ValidationError("Only @student.mmu.edu.my email addresses are allowed for Phase 1.")
 
 
 class CustomUserManager(BaseUserManager):
@@ -34,7 +29,7 @@ class CustomUserManager(BaseUserManager):
 
 class User(AbstractBaseUser, PermissionsMixin):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    email = models.EmailField(unique=True, validators=[validate_mmu_email])
+    email = models.EmailField(unique=True)
     student_name = models.CharField(max_length=255)
     student_id = models.CharField(max_length=20, blank=True, null=True, unique=True)
     phone_number = models.CharField(max_length=20, blank=True, null=True)
@@ -137,17 +132,16 @@ class Institution(models.Model):
         return self.university_name
 
 
-class ClubCategory(models.Model):
-    name = models.CharField(max_length=100, unique=True)
-
-    def __str__(self):
-        return self.name
-
-    class Meta:
-        verbose_name_plural = "Club Categories"
-
-
 class Club(models.Model):
+    class CategoryChoices(models.IntegerChoices):
+        ACADEMIC = 0, 'Academic & Professional'
+        SPORTS = 1, 'Sports & Recreation'
+        ARTS = 2, 'Arts & Culture'
+        COMMUNITY = 3, 'Community Service'
+        TECH = 4, 'Technology & Innovation'
+        INTEREST = 5, 'Special Interest'
+        OTHER = 6, 'Other'
+
     RENEWAL_CHOICES = [
         ('ROLLING', '1 Year from Join Date'),
         ('CALENDAR', 'Ends December 31st Every Year'),
@@ -157,7 +151,12 @@ class Club(models.Model):
     institution = models.ForeignKey(Institution, on_delete=models.CASCADE, related_name='clubs')
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
-    club_category = models.ForeignKey(ClubCategory, on_delete=models.SET_NULL, null=True, blank=True, related_name='clubs')
+    club_category = models.PositiveSmallIntegerField(
+        choices=CategoryChoices.choices,
+        default=CategoryChoices.OTHER,
+        null=True,
+        blank=True,
+    )
     is_claimed = models.BooleanField(default=False)
     membership_fee = models.DecimalField(max_digits=6, decimal_places=2, default=0.00, help_text="Set to 0 if the club is free to join.")
     payment_qr_code = models.ImageField(upload_to='club_qrs/', blank=True, null=True, help_text="Upload your DuitNow or TNG QR code.")
@@ -182,14 +181,62 @@ class Club(models.Model):
             return False
         return self.valid_till > timezone.now()
 
-    def add_committee_member(self, user, designation):
+    @property
+    def committee(self):
         if not self.is_active:
-            raise ValidationError("Cannot add committee members to an inactive club.")
+            return self.managers.none()
+        return self.managers.filter(is_active=True)
+
+    @property
+    def category(self):
+        if self.club_category is None:
+            return None
+        class CategoryWrapper:
+            def __init__(self, name):
+                self.name = name
+            def __str__(self):
+                return self.name
+        return CategoryWrapper(self.get_club_category_display())
+
+    def compute_membership_expiry(self, joined_at=None):
+        joined_at = joined_at or timezone.now()
+        policy = self.renewal_policy
+        if policy == 'ROLLING':
+            return joined_at + timedelta(days=365)
+        if policy == 'CALENDAR':
+            return timezone.make_aware(datetime(joined_at.year, 12, 31, 23, 59, 59))
+        return None
+
+    def extend_validity(self, years=1):
+        now = timezone.now()
+        extension = timedelta(days=365 * years)
+        if self.valid_till and self.valid_till > now:
+            self.valid_till += extension
+        else:
+            self.valid_till = now + extension
+        self.save(update_fields=['valid_till'])
+
+    def add_committee_member(self, user, designation, role='NON_ROOT'):
+        membership = Membership.objects.filter(user=user, club=self).first()
+        if not membership:
+            membership = Membership.objects.create(
+                user=user,
+                club=self,
+                membership_type='LIMITED',
+                status='APPROVED',
+                expired_at=self.compute_membership_expiry(),
+            )
+        elif membership.status != 'APPROVED':
+            membership.status = 'APPROVED'
+            if membership.expired_at is None:
+                membership.expired_at = self.compute_membership_expiry()
+            membership.save(update_fields=['status', 'expired_at'])
+
         return ClubManager.objects.create(
             user=user,
             club=self,
             designation=designation,
-            role='NON_ROOT',
+            role=role,
             is_active=True,
         )
 
@@ -221,13 +268,7 @@ class ClubManager(models.Model):
     is_active = models.BooleanField(default=True)
 
     class Meta:
-        constraints = [
-            models.UniqueConstraint(
-                fields=['club'],
-                condition=Q(role='ROOT'),
-                name='unique_root_per_club'
-            )
-        ]
+        pass
 
     @property
     def has_admin_access(self):
@@ -238,8 +279,12 @@ class ClubManager(models.Model):
         return self.is_active
 
     @property
+    def is_effectively_active(self):
+        return self.is_active and self.club.is_active
+
+    @property
     def has_management_powers(self):
-        return self.is_active and self.role == 'ROOT'
+        return self.is_effectively_active and self.role == 'ROOT'
 
     @property
     def role_label(self):
@@ -260,7 +305,13 @@ class ClubManager(models.Model):
         if not requester.has_management_powers:
             raise ValidationError("Permission Denied: Only active Root admins can manage members.")
         if self.role == 'ROOT' and self.is_active:
-            raise ValidationError("Critical Error: You cannot deactivate the Root admin. Transfer privileges first.")
+            other_active_roots = ClubManager.objects.filter(
+                club=self.club,
+                role='ROOT',
+                is_active=True
+            ).exclude(pk=self.pk).count()
+            if other_active_roots == 0:
+                raise ValidationError("Critical Error: You cannot deactivate the last active Root manager. Add another Root manager first.")
         self.is_active = not self.is_active
         self.save(update_fields=['is_active'])
 
@@ -376,7 +427,15 @@ class Event(models.Model):
     post = models.OneToOneField(Post, on_delete=models.CASCADE, related_name='events')
     title = models.CharField(max_length=255)
     event_date = models.DateField()
+    start_time = models.TimeField(blank=True, null=True)
+    end_time = models.TimeField(blank=True, null=True)
+    timezone = models.CharField(max_length=50, blank=True, null=True, default="GMT+8 (MYT)")
     location = models.CharField(max_length=255)
+    
+    fee = models.DecimalField(max_digits=6, decimal_places=2, default=0.00, help_text="Set to 0 if the event is free.")
+    requires_approval = models.BooleanField(default=False, help_text="If true, host must manually approve attendees.")
+    capacity = models.PositiveIntegerField(blank=True, null=True, help_text="Maximum number of attendees. Leave blank for unlimited.")
+    registration_deadline = models.DateTimeField(blank=True, null=True, help_text="When registration closes.")
 
     STATUS_CHOICES = [
         ('PREPARING', 'Preparing'),
@@ -423,6 +482,7 @@ class Membership(models.Model):
     STATUS_CHOICES = [
         ('PENDING', 'Pending'),
         ('ACTIVE', 'Active'),
+        ('APPROVED', 'Approved'),
         ('REJECTED', 'Rejected'),
     ]
     TYPE_CHOICES = [

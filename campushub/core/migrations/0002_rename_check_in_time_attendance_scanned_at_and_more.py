@@ -11,14 +11,9 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RenameField(
-            model_name='attendance',
-            old_name='check_in_time',
-            new_name='scanned_at',
-        ),
         migrations.AlterField(
             model_name='user',
             name='email',
-            field=models.EmailField(max_length=254, unique=True, validators=[core.models_taskrebased.validate_mmu_email]),
+            field=models.EmailField(max_length=254, unique=True),
         ),
     ]

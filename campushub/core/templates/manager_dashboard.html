@@ -45,7 +45,27 @@
         
         <div class="stat place-items-center">
             <div class="stat-title text-gray-500 font-medium">Club Status</div>
-            <div class="stat-value text-green-500 text-3xl">Active</div>
+            {% if club.is_active %}
+                <div class="stat-value text-green-500 text-3xl">Active</div>
+            {% else %}
+                <div class="stat-value text-red-500 text-3xl">Inactive</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="mb-8 flex flex-wrap gap-3 items-center">
+        <form method="POST" action="{% url 'core:extend_club_validity' club.id %}">
+            {% csrf_token %}
+            <button type="submit" class="btn bg-blue-900 text-white hover:bg-blue-800 rounded-full px-6 font-medium shadow-sm transition-transform hover:scale-105">
+                {% if club.is_active %}Extend Club Validity{% else %}Reactivate Club{% endif %}
+            </button>
+        </form>
+        <div class="text-sm text-gray-500">
+            {% if club.valid_till %}
+                Valid until {{ club.valid_till|date:"M d, Y" }}
+            {% else %}
+                Club has not been activated yet.
+            {% endif %}
         </div>
     </div>
 

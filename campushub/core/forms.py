@@ -1,47 +1,80 @@
 from django.contrib.auth.forms import UserCreationForm, get_user_model
 from django import forms
-from core.models import Club, ClubManager, ClaimRequest, Membership
+from core.models import Club, ClubManager, ClaimRequest, Membership, Event, EventCertificate
 
 User = get_user_model()
 
 class StudentRegistrationForm(UserCreationForm):
     class Meta(UserCreationForm.Meta):
         model = User
-        fields = ('email', 'student_name', 'student_id', 'phone_number')
-        widgets = {
-            'email': forms.EmailInput(attrs={
-                'class': 'input input-bordered w-full rounded-xl',
-                'placeholder': 'name@example.com'
-            }),
-            'student_name': forms.TextInput(attrs={
-                'class': 'input input-bordered w-full rounded-xl',
-                'placeholder': 'Your Full Name'
-            }),
-        }
+        fields = ('student_name', 'email', 'student_id', 'phone_number')
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        for field in self.fields.values():
-            field.widget.attrs.update({'class': 'input input-bordered w-full rounded-xl'})
+        
+        # Style standard fields with beautiful placeholders
+        self.fields['student_name'].widget.attrs.update({
+            'class': 'input input-bordered w-full rounded-xl',
+            'placeholder': 'Your Full Name'
+        })
+        self.fields['email'].widget.attrs.update({
+            'class': 'input input-bordered w-full rounded-xl',
+            'placeholder': 'name@student.mmu.edu.my'
+        })
+        self.fields['student_id'].widget.attrs.update({
+            'class': 'input input-bordered w-full rounded-xl',
+            'placeholder': 'e.g., 1211102234'
+        })
+        self.fields['phone_number'].widget.attrs.update({
+            'class': 'input input-bordered w-full rounded-xl',
+            'placeholder': 'e.g., 012-3456789'
+        })
+        
+        # Automatically style password fields as well
+        for field_name in ['password1', 'password2']:
+            if field_name in self.fields:
+                self.fields[field_name].widget.attrs.update({
+                    'class': 'input input-bordered w-full rounded-xl',
+                    'placeholder': '••••••••'
+                })
+
+    def clean_email(self):
+        email = self.cleaned_data.get('email')
+        if email:
+            email = email.lower()
+            if User.objects.filter(email=email).exists():
+                raise forms.ValidationError("An account with this email address already exists.")
+        return email
 
 
-class ClaimClubForm(forms.ModelForm):
+class ClubClaimForm(forms.ModelForm):
+    proof_document = forms.FileField(
+        required=True,
+        widget=forms.FileInput(attrs={
+            'class': 'file-input file-input-bordered w-full rounded-xl',
+            'accept': '.pdf,.doc,.docx,.jpg,.jpeg,.png'
+        }),
+        help_text="Upload official letters, SSM certificates, or student union registration documents."
+    )
+
     class Meta:
         model = ClaimRequest
-        fields = ['club', 'proof_document']
+        fields = ['club', 'proof_document', 'claimer_designation']
         widgets = {
             'club': forms.Select(attrs={
                 'class': 'select select-bordered w-full rounded-xl',
             }),
-            'proof_document': forms.ClearableFileInput(attrs={
-                'class': 'file-input file-input-bordered w-full rounded-xl',
-                'accept': '.pdf,.jpg,.jpeg,.png'
+            'claimer_designation': forms.TextInput(attrs={
+                'class': 'input input-bordered w-full rounded-xl',
+                'placeholder': 'e.g., Club President, Secretary'
             }),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['club'].queryset = Club.objects.filter(is_claimed=False)
+
+ClaimClubForm = ClubClaimForm
 
 
 class MembershipApplicationForm(forms.ModelForm):
@@ -133,19 +166,45 @@ class ClubSettingsForm(forms.ModelForm):
         
         return cleaned_data
 
-from core.models import Event
 
 class EventCreationForm(forms.ModelForm):
+    description = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={'class': 'textarea textarea-bordered w-full h-28 focus:border-primary transition-all rounded-xl', 'placeholder': 'e.g. Schedule, RSVP info, requirements, and exciting highlights...'}),
+        help_text="Provide a detailed description of the event to display to students."
+    )
+    
+    category = forms.ChoiceField(
+        choices=[
+            ('WORKSHOP', 'Workshop'),
+            ('COMPETITION', 'Competition'),
+            ('RECRUITMENT', 'Recruitment'),
+            ('INDUSTRIAL_VISIT', 'Industrial Visit'),
+            ('ANNOUNCEMENT', 'Announcement'),
+        ],
+        widget=forms.Select(attrs={'class': 'select select-bordered w-full focus:border-primary transition-all rounded-xl'}),
+        initial='WORKSHOP',
+        help_text="Select the category that best describes your event."
+    )
+    
+    banner_image = forms.ImageField(
+        required=False,
+        widget=forms.FileInput(attrs={'class': 'file-input file-input-bordered w-full rounded-xl'}),
+        help_text="Upload a specific banner or image for this event."
+    )
+    
     class Meta:
         model = Event
-        fields = ['title', 'event_date', 'location']
+        fields = ['title', 'event_date', 'start_time', 'end_time', 'timezone', 'location']
         widgets = {
-            'title': forms.TextInput(attrs={'class': 'input input-bordered w-full', 'placeholder': 'e.g., Annual Tech Symposium'}),
-            'event_date': forms.DateInput(attrs={'class': 'input input-bordered w-full', 'type': 'date'}),
-            'location': forms.TextInput(attrs={'class': 'input input-bordered w-full', 'placeholder': 'e.g., Main Hall'}),
+            'title': forms.TextInput(attrs={'class': 'input input-bordered w-full focus:border-primary transition-all rounded-xl', 'placeholder': 'e.g., Annual Tech Symposium'}),
+            'event_date': forms.DateInput(attrs={'class': 'input input-bordered w-full focus:border-primary transition-all rounded-xl', 'type': 'date'}),
+            'start_time': forms.TimeInput(attrs={'class': 'input input-bordered w-full focus:border-primary transition-all rounded-xl', 'type': 'time'}),
+            'end_time': forms.TimeInput(attrs={'class': 'input input-bordered w-full focus:border-primary transition-all rounded-xl', 'type': 'time'}),
+            'timezone': forms.TextInput(attrs={'class': 'input input-bordered w-full focus:border-primary transition-all rounded-xl', 'placeholder': 'e.g., GMT+8 (MYT)'}),
+            'location': forms.TextInput(attrs={'class': 'input input-bordered w-full focus:border-primary transition-all rounded-xl', 'placeholder': 'e.g., Main Hall'}),
         }
 
-from core.models import EventCertificate
 
 class CertificateUploadForm(forms.ModelForm):
     class Meta:

@@ -63,7 +63,7 @@ def user_profile(request):
 
     my_memberships = Membership.objects.filter(
         user=user, 
-        status='ACTIVE'
+        status__in=['ACTIVE', 'APPROVED']
     ).select_related('club')
 
     managed_clubs = Club.objects.filter(managers__user=user)

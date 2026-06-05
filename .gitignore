@@ -1,14 +1,23 @@
 # Python byte-code / optimized
 __pycache__/
+**/__pycache__/
 *.py[cod]
 *$py.class
+*.pyc
 
-
+# Environments
+.venv/
+venv/
 env/
 
 # Databases
 *.sqlite3
 
-ml-backend/
+# Uploaded Media Assets
+campushub/media/
 
+# Secrets
 campushub/.env
+
+# ML Backend
+ml-backend/

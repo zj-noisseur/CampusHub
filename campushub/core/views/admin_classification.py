@@ -6,6 +6,7 @@ from django.core.paginator import Paginator
 
 from core.models import Post, Club, Institution
 from core.services.post_categorization import assign_category_to_post, assign_event_status_to_post
+from core.tasks import bulk_classify_temporal_task, bulk_classify_event_task
 
 logger = logging.getLogger(__name__)
 
@@ -132,11 +133,12 @@ def admin_bulk_temporal_classify(request):
         if club_ids:
             posts = posts.filter(club_id__in=club_ids)
             
-        for post in posts:
-            try:
-                assign_event_status_to_post(post)
-            except: continue
-        return HttpResponse('<script>window.location.reload();</script>')
+        post_ids = list(posts.values_list('id', flat=True))
+        if post_ids:
+            bulk_classify_temporal_task.delay(post_ids)
+            return HttpResponse(f'<script>alert("Task started for {len(post_ids)} posts. Please refresh the page in a few moments to see the results."); window.location.reload();</script>')
+        
+        return HttpResponse('No pending posts found to classify.', status=200)
     return HttpResponse('Invalid request', status=400)
 
 # --- STEP 2: EVENT CLASSIFICATION ---
@@ -184,11 +186,12 @@ def admin_bulk_event_classify(request):
         if club_ids:
             posts = posts.filter(club_id__in=club_ids)
             
-        for post in posts:
-            try:
-                assign_category_to_post(post)
-            except: continue
-        return HttpResponse('<script>window.location.reload();</script>')
+        post_ids = list(posts.values_list('id', flat=True))
+        if post_ids:
+            bulk_classify_event_task.delay(post_ids)
+            return HttpResponse(f'<script>alert("Task started for {len(post_ids)} posts. Results will appear as they are processed."); window.location.reload();</script>')
+            
+        return HttpResponse('No MISC posts found to classify.', status=200)
     return HttpResponse('Invalid request', status=400)
 
 # --- STEP 3: DATE EXTRACTION (PLACEHOLDER) ---

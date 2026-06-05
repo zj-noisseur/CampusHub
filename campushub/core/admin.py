@@ -4,7 +4,6 @@ from core.models import (
     Attendance,
     ClaimRequest,
     Club,
-    ClubCategory,
     ClubManager,
     ClubScrapeStatus,
     Event,
@@ -31,7 +30,6 @@ class ClubAdmin(admin.ModelAdmin):
     list_filter = ('institution', 'club_category')
 
 admin.site.register(Club, ClubAdmin)
-admin.site.register(ClubCategory)
 admin.site.register(ClubManager)
 admin.site.register(Membership)
 

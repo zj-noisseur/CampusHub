@@ -1,6 +1,7 @@
 from typing import Optional, List, Dict
 import logging
 import requests
+import re
 from django.conf import settings
 
 logger = logging.getLogger(__name__)
@@ -50,26 +51,84 @@ def predict_post_category(caption: Optional[str]) -> str:
         return 'MISC'
 
 
+def condense_caption(text: str) -> str:
+    """Extract only the most semantically relevant lines for classification."""
+    lines = [l.strip() for l in text.splitlines() if l.strip()]
+    if len(lines) < 10:
+        return "\n".join(lines)
+
+    # 1. Keep the Hook (Title/Intro)
+    condensed = lines[:3]
+    
+    # 2. Extract structural signals (Middle)
+    # These are high-probability markers for event details
+    markers = ['date:', 'time:', 'venue:', 'location:', 'register', 'sign up', 'rsvp', 'join', 'link', 'http', 'deadline', 'fee', 'luma', 'free']
+    emoji_pattern = r'[📅⏰📍⏳🎟💰⚠️✨🔗]'
+    
+    for line in lines[3:-2]:
+        if any(m in line.lower() for m in markers) or re.search(emoji_pattern, line):
+            condensed.append(line[:250]) # Trim very long lines
+    
+    # 3. Keep the CTA (End)
+    condensed.extend(lines[-2:])
+    
+    # De-duplicate while preserving order
+    seen = set()
+    final_lines = []
+    for l in condensed:
+        if l not in seen:
+            final_lines.append(l)
+            seen.add(l)
+            
+    return "\n".join(final_lines)
+
+
 def predict_is_event(caption: str) -> Optional[bool]:
     """Predict if a post is an upcoming event using Step 1 (Temporal Classification)."""
-    caption_text = (caption or '').strip()
-    if not caption_text:
+    original_text = (caption or '').strip()
+    if not original_text:
         return False
+
+    # Condense the text to focus on structural signals (Date, Venue, CTA)
+    caption_text = condense_caption(original_text)
 
     service_url = getattr(settings, 'ML_BACKEND_URL', 'http://localhost:8001')
     endpoint = f"{service_url.rstrip('/')}/classify"
     
     # Candidate labels for Step 1
     # We use a premise-hypothesis approach by phrasing them as clear choices
+    cta_keywords = ["take part", "participate", "register", "sign up", "RSVP", "apply now", "join us", "recruitment", "recruit"]
+    template = f'This post is about'
+    
+    # 1. NEGATIVE BYPASS (Exclusion)
+    # If these keywords are present, it's likely a past event recap or general info
+    negative_markers = ["recap", "highlights", "throwback", "memory", "successful event", "thank you to all", "stay tuned for more", "congratulations", "well done"]
+    found_negative = next((k for k in negative_markers if k.lower() in original_text.lower()), None)
+    
+    if found_negative:
+        logger.info(f"Step 1: Negative bypass triggered by keyword '{found_negative}'")
+        return False
+
+    # 2. POSITIVE BYPASS (Inclusion)
+    # If these keywords are present (and no negative ones were found above)
+    strong_markers = cta_keywords + ["date", "venue", "location", "deadline", "limited slots", "luma", "form"]
+    found_positive = next((k for k in strong_markers if k.lower() in original_text.lower()), None)
+    
+    if found_positive:
+        # HIGH-CONFIDENCE BYPASS: Skip ML if we see a "smoking gun" event marker
+        logger.info(f"Step 1: Positive bypass triggered by keyword '{found_positive}'")
+        return True
+
+    template = f'This post is about'
     candidate_labels = [
-        "upcoming event or recruitment with a deadline", 
-        "past event recap or general announcement without a deadline"
+        "promoting an upcoming industrial visit, hackathon, competition, workshop or recruitment openings for committee positions for students to take part, participate in or register for", 
+        "a recap of a past event, a general announcement, or purely informational news"
     ]
     
     try:
         payload = {
             "text": caption_text,
-            "candidate_labels": candidate_labels
+            "candidate_labels": [f"{template} {candidate_labels[0]}", f"{template} {candidate_labels[1]}"]
         }
         
         response = requests.post(endpoint, json=payload, timeout=10)
