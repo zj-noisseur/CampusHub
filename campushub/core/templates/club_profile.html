@@ -207,8 +207,11 @@
                 <button id="tab-feed-btn" onclick="switchProfileTab('feed')" class="text-2xl font-bold text-gray-400 hover:text-gray-600 pb-2 transition-all">
                     Feed Updates
                 </button>
-                <button id="tab-committee-btn" onclick="switchProfileTab('committee')" class="text-2xl font-bold text-gray-400 hover:text-gray-600 pb-2 transition-all">
+                <button id="tab-members-btn" onclick="switchProfileTab('members')" class="text-2xl font-bold text-gray-400 hover:text-gray-600 pb-2 transition-all">
                     Members
+                </button>
+                <button id="tab-committee-btn" onclick="switchProfileTab('committee')" class="text-2xl font-bold text-gray-400 hover:text-gray-600 pb-2 transition-all">
+                    Committee
                 </button>
             </div>
             
@@ -464,7 +467,7 @@
         </div>
 
         <!-- Tab 3: Members Section -->
-        <div id="tab-committee-content" class="hidden space-y-6">
+        <div id="tab-members-content" class="hidden space-y-6">
             <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                 <!-- Managers/Committee first -->
                 {% for manager in club.committee.all %}
@@ -538,30 +541,41 @@
             const eventsBtn = document.getElementById('tab-events-btn');
             const feedBtn = document.getElementById('tab-feed-btn');
             const committeeBtn = document.getElementById('tab-committee-btn');
+            const orgBtn = document.getElementById('tab-org-btn');
             
             const eventsContent = document.getElementById('tab-events-content');
             const feedContent = document.getElementById('tab-feed-content');
             const committeeContent = document.getElementById('tab-committee-content');
+            const orgContent = document.getElementById('tab-org-content');
+
+            const safeSet = (el, value) => { if (el) el.className = value; };
+            const safeAddHidden = (el) => { if (el && el.classList) el.classList.add('hidden'); };
+            const safeRemoveHidden = (el) => { if (el && el.classList) el.classList.remove('hidden'); };
 
             // Reset all tab button styles
-            eventsBtn.className = "text-2xl font-bold text-gray-400 hover:text-gray-600 pb-2 transition-all";
-            feedBtn.className = "text-2xl font-bold text-gray-400 hover:text-gray-600 pb-2 transition-all";
-            committeeBtn.className = "text-2xl font-bold text-gray-400 hover:text-gray-600 pb-2 transition-all";
+            safeSet(eventsBtn, "text-2xl font-bold text-gray-400 hover:text-gray-600 pb-2 transition-all");
+            safeSet(feedBtn, "text-2xl font-bold text-gray-400 hover:text-gray-600 pb-2 transition-all");
+            safeSet(committeeBtn, "text-2xl font-bold text-gray-400 hover:text-gray-600 pb-2 transition-all");
+            safeSet(orgBtn, "text-2xl font-bold text-gray-400 hover:text-gray-600 pb-2 transition-all");
 
             // Hide all tab contents
-            eventsContent.classList.add('hidden');
-            feedContent.classList.add('hidden');
-            committeeContent.classList.add('hidden');
+            safeAddHidden(eventsContent);
+            safeAddHidden(feedContent);
+            safeAddHidden(committeeContent);
+            safeAddHidden(orgContent);
 
             if (tabName === 'events') {
-                eventsBtn.className = "text-2xl font-bold text-gray-900 border-b-4 border-blue-500 pb-2 transition-all";
-                eventsContent.classList.remove('hidden');
+                safeSet(eventsBtn, "text-2xl font-bold text-gray-900 border-b-4 border-blue-500 pb-2 transition-all");
+                safeRemoveHidden(eventsContent);
             } else if (tabName === 'feed') {
-                feedBtn.className = "text-2xl font-bold text-gray-900 border-b-4 border-blue-500 pb-2 transition-all";
-                feedContent.classList.remove('hidden');
+                safeSet(feedBtn, "text-2xl font-bold text-gray-900 border-b-4 border-blue-500 pb-2 transition-all");
+                safeRemoveHidden(feedContent);
+            } else if (tabName === 'members') {
+                safeSet(membersBtn, "text-2xl font-bold text-gray-900 border-b-4 border-blue-500 pb-2 transition-all");
+                safeRemoveHidden(membersContent);
             } else if (tabName === 'committee') {
-                committeeBtn.className = "text-2xl font-bold text-gray-900 border-b-4 border-blue-500 pb-2 transition-all";
-                committeeContent.classList.remove('hidden');
+                safeSet(committeeBtn, "text-2xl font-bold text-gray-900 border-b-4 border-blue-500 pb-2 transition-all");
+                safeRemoveHidden(committeeContent);
             }
         }
 
@@ -592,6 +606,19 @@
                     viewAllFeedContainer.classList.remove('hidden');
                 }
             }
+
+            // 3. Org Tab Pagination Limit
+            const orgCards = document.querySelectorAll('.org-card');
+            const orgLimit = 9;
+            if (orgCards.length > orgLimit) {
+                for (let i = orgLimit; i < orgCards.length; i++) {
+                    orgCards[i].classList.add('hidden');
+                }
+                const viewAllOrgContainer = document.getElementById('view-all-org-container');
+                if (viewAllOrgContainer) {
+                    viewAllOrgContainer.classList.remove('hidden');
+                }
+            }
         });
 
         function showAllEvents() {
@@ -609,6 +636,15 @@
             const viewAllFeedContainer = document.getElementById('view-all-feed-container');
             if (viewAllFeedContainer) {
                 viewAllFeedContainer.classList.add('hidden');
+            }
+        }
+
+        function showAllOrg() {
+            const orgCards = document.querySelectorAll('.org-card');
+            orgCards.forEach(card => card.classList.remove('hidden'));
+            const viewAllOrgContainer = document.getElementById('view-all-org-container');
+            if (viewAllOrgContainer) {
+                viewAllOrgContainer.classList.add('hidden');
             }
         }
     </script>

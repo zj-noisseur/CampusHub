@@ -141,8 +141,45 @@
                             </div>
                         </div>
                         
-                        <div class="prose prose-sm max-w-none text-base-content/80 leading-relaxed line-clamp-4 relative">
-                            {{ post.caption }}
+                        <div class="prose prose-sm max-w-none text-base-content/80 leading-relaxed">
+                            {% if post.is_event and post.category != 'MISC' and post.extracted_details %}
+                                <!-- GLANCEABLE VIEW (Extracted NER Data) -->
+                                <ul class="list-none p-0 m-0 space-y-2 mb-4 text-sm">
+                                    {% if post.extracted_details.date %}
+                                    <li class="flex items-start gap-2">
+                                        <span class="opacity-50">📅</span>
+                                        <span><strong class="text-base-content">Date:</strong> {{ post.extracted_details.date }}</span>
+                                    </li>
+                                    {% endif %}
+                                    
+                                    {% if post.extracted_details.venue %}
+                                    <li class="flex items-start gap-2">
+                                        <span class="opacity-50">📍</span>
+                                        <span><strong class="text-base-content">Venue:</strong> {{ post.extracted_details.venue }}</span>
+                                    </li>
+                                    {% endif %}
+                                    
+                                    {% if post.extracted_details.link %}
+                                    <li class="flex items-start gap-2">
+                                        <span class="opacity-50">🔗</span>
+                                        <a href="{{ post.extracted_details.link }}" class="text-primary font-bold hover:underline" target="_blank">Registration Link</a>
+                                    </li>
+                                    {% endif %}
+                                </ul>
+                                
+                                <!-- NATIVE HTML TOGGLE FOR FULL CAPTION -->
+                                <details class="group cursor-pointer">
+                                    <summary class="list-none text-xs font-bold uppercase tracking-wider text-primary hover:text-primary/80 transition-colors mb-2">
+                                        <span class="group-open:hidden">Read original caption ⌄</span>
+                                        <span class="hidden group-open:inline">Hide original caption ⌃</span>
+                                    </summary>
+                                    <div class="mt-2 pl-3 border-l-2 border-base-300 opacity-80 whitespace-pre-wrap">
+                                        {{ post.caption }}
+                                    </div>
+                                </details>
+                            {% else %}
+                                {{ post.caption }}
+                            {% endif %}
                         </div>
                         {% if post.caption|length > 180 %}
                         <div class="text-right -mt-2">

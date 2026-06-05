@@ -1,5 +1,5 @@
 import uuid
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from django.conf import settings
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
@@ -183,6 +183,8 @@ class Club(models.Model):
 
     @property
     def committee(self):
+        if not self.is_active:
+            return self.managers.none()
         return self.managers.filter(is_active=True)
 
     @property
@@ -196,14 +198,45 @@ class Club(models.Model):
                 return self.name
         return CategoryWrapper(self.get_club_category_display())
 
-    def add_committee_member(self, user, designation):
-        if not self.is_active:
-            raise ValidationError("Cannot add committee members to an inactive club.")
+    def compute_membership_expiry(self, joined_at=None):
+        joined_at = joined_at or timezone.now()
+        policy = self.renewal_policy
+        if policy == 'ROLLING':
+            return joined_at + timedelta(days=365)
+        if policy == 'CALENDAR':
+            return timezone.make_aware(datetime(joined_at.year, 12, 31, 23, 59, 59))
+        return None
+
+    def extend_validity(self, years=1):
+        now = timezone.now()
+        extension = timedelta(days=365 * years)
+        if self.valid_till and self.valid_till > now:
+            self.valid_till += extension
+        else:
+            self.valid_till = now + extension
+        self.save(update_fields=['valid_till'])
+
+    def add_committee_member(self, user, designation, role='NON_ROOT'):
+        membership = Membership.objects.filter(user=user, club=self).first()
+        if not membership:
+            membership = Membership.objects.create(
+                user=user,
+                club=self,
+                membership_type='LIMITED',
+                status='APPROVED',
+                expired_at=self.compute_membership_expiry(),
+            )
+        elif membership.status != 'APPROVED':
+            membership.status = 'APPROVED'
+            if membership.expired_at is None:
+                membership.expired_at = self.compute_membership_expiry()
+            membership.save(update_fields=['status', 'expired_at'])
+
         return ClubManager.objects.create(
             user=user,
             club=self,
             designation=designation,
-            role='NON_ROOT',
+            role=role,
             is_active=True,
         )
 
@@ -235,13 +268,7 @@ class ClubManager(models.Model):
     is_active = models.BooleanField(default=True)
 
     class Meta:
-        constraints = [
-            models.UniqueConstraint(
-                fields=['club'],
-                condition=Q(role='ROOT'),
-                name='unique_root_per_club'
-            )
-        ]
+        pass
 
     @property
     def has_admin_access(self):
@@ -252,8 +279,12 @@ class ClubManager(models.Model):
         return self.is_active
 
     @property
+    def is_effectively_active(self):
+        return self.is_active and self.club.is_active
+
+    @property
     def has_management_powers(self):
-        return self.is_active and self.role == 'ROOT'
+        return self.is_effectively_active and self.role == 'ROOT'
 
     @property
     def role_label(self):
@@ -274,7 +305,13 @@ class ClubManager(models.Model):
         if not requester.has_management_powers:
             raise ValidationError("Permission Denied: Only active Root admins can manage members.")
         if self.role == 'ROOT' and self.is_active:
-            raise ValidationError("Critical Error: You cannot deactivate the Root admin. Transfer privileges first.")
+            other_active_roots = ClubManager.objects.filter(
+                club=self.club,
+                role='ROOT',
+                is_active=True
+            ).exclude(pk=self.pk).count()
+            if other_active_roots == 0:
+                raise ValidationError("Critical Error: You cannot deactivate the last active Root manager. Add another Root manager first.")
         self.is_active = not self.is_active
         self.save(update_fields=['is_active'])
 
