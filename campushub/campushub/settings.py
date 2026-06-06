@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'core',
     'django_celery_results',
+    'naomi',
 ]
 
 MIDDLEWARE = [
@@ -168,5 +169,6 @@ CELERY_IGNORE_RESULT = False
 CELERY_RESULT_EXTENDED = True
 ML_BACKEND_URL = os.environ['ML_BACKEND_URL']
 
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-DEFAULT_FROM_EMAIL = 'noreply@campushub.local' 
+EMAIL_BACKEND = "naomi.mail.backends.naomi.NaomiBackend"
+DEFAULT_FROM_EMAIL = 'noreply@campushub.local'
+EMAIL_FILE_PATH = os.path.join(BASE_DIR, 'tmp_emails')  
