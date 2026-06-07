@@ -1,9 +1,14 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from core.models import Club, Membership, Post
+from core.models import Club, Membership, Post, User
 from datetime import date
 from django.utils import timezone
+from django.contrib.auth.hashers import make_password
+import csv
+import io
+import random
+import string
 
 @login_required
 def manager_dashboard(request, club_id):
@@ -20,7 +25,7 @@ def manager_dashboard(request, club_id):
     # Get all the students who have applied or joined this club
     memberships = Membership.objects.filter(club=my_club)
 
-    approved_members = memberships.filter(status='APPROVED')
+    approved_members = memberships.filter(status__in=['APPROVED', 'Member'])
     pending_members = memberships.filter(status='PENDING')
     
     # Get event posts for metadata editing
@@ -127,3 +132,67 @@ def update_post_extracted_details(request, club_id, post_id):
         messages.success(request, 'Event details successfully updated!')
         
     return redirect('core:manager_dashboard', club_id=club.id)
+
+def import_members(request, club_id):
+    club = get_object_or_404(Club, id=club_id)
+    
+    if request.method == 'POST':
+        csv_file = request.FILES.get('csv_file')
+        
+        # 1. THE BOUNCER: Make sure it's actually a CSV!
+        if not csv_file or not csv_file.name.endswith('.csv'):
+            messages.error(request, "Oops! Please make sure you uploaded a .csv file.")
+            return redirect('core:manager_dashboard', club_id=club.id)
+            
+        # 2. Crack open the file in memory
+        data_set = csv_file.read().decode('UTF-8')
+        io_string = io.StringIO(data_set)
+        
+        # Skip the header row (StudentID, FullName, PhoneNumber, Faculty, Email)
+        next(io_string, None) 
+        
+        success_count = 0
+        ghost_count = 0
+        
+        # 3. Loop through the rows
+        for row in csv.reader(io_string, delimiter=',', quotechar='"'):
+            if len(row) < 2:
+                continue # Skip empty or broken rows
+                
+            student_id_csv = row[0].strip()
+            full_name_csv = row[1].strip()
+
+            email_csv = row[4].strip() if len(row) > 4 else ""
+            if not email_csv:
+                email_csv = f"{student_id_csv}@pending.campushub.local"
+            
+            # Check if user exists. If not, create the Ghost Profile!
+            user, created = User.objects.get_or_create(
+                student_id=student_id_csv,
+                defaults={
+                    'student_name': full_name_csv,
+                    'email': email_csv,
+                    'is_active': False, # So they can't log in yet!
+                }
+            )
+            
+            if created:
+                # Give the ghost a random, unguessable password
+                random_pass = ''.join(random.choices(string.ascii_letters + string.digits, k=16))
+                user.password = make_password(random_pass)
+                user.save()
+                ghost_count += 1
+                
+            # 4. Add them to the club (whether real or ghost)
+            Membership.objects.get_or_create(
+                user=user,
+                club=club,
+                defaults={'status': 'APPROVED'}
+            )
+            success_count += 1
+            
+        messages.success(request, f"Import complete! Added {success_count} members ({ghost_count} are pending registration).")
+        return redirect('core:manager_dashboard', club_id=club.id)
+
+    # If it's a GET request, just show the upload form page
+    return render(request, 'import_members.html', {'club': club})
