@@ -35,8 +35,8 @@
           </a>
         </li>
         <li>
-          <a href="{% url 'core:admin_date_extraction_step3' %}" class="rounded-lg opacity-50 cursor-not-allowed {% if request.resolver_match.url_name == 'admin_date_extraction_step3' %}active bg-primary text-primary-content font-bold{% endif %}" onclick="event.preventDefault();">
-            Step 3: Date Extraction
+          <a href="{% url 'core:admin_data_extraction_dashboard' %}" class="rounded-lg {% if request.resolver_match.url_name == 'admin_data_extraction_dashboard' %}active bg-primary text-primary-content font-bold{% endif %}">
+            Step 3: Data Extraction
           </a>
         </li>
 
@@ -85,10 +85,10 @@
         </a>
       </li>
       <li>
-        <a href="{% url 'core:admin_date_extraction_step3' %}" class="py-2.5 px-4 rounded-xl font-medium transition-all opacity-50 cursor-not-allowed {% if request.resolver_match.url_name == 'admin_date_extraction_step3' %}active bg-primary text-primary-content font-bold shadow-md hover:bg-primary/90{% else %}hover:bg-base-300/60{% endif %}" onclick="event.preventDefault();">
+        <a href="{% url 'core:admin_data_extraction_dashboard' %}" class="py-2.5 px-4 rounded-xl font-medium transition-all {% if request.resolver_match.url_name == 'admin_data_extraction_dashboard' %}active bg-primary text-primary-content font-bold shadow-md hover:bg-primary/90{% else %}hover:bg-base-300/60{% endif %}">
           <div class="flex items-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="opacity-80"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg>
-            <span>3. Date Extract</span>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="opacity-80"><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg>
+            <span>3. Data Extract</span>
           </div>
         </a>
       </li>

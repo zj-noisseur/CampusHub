@@ -6,7 +6,9 @@ from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
-def predict_post_category(caption: Optional[str]) -> str:
+from requests.exceptions import RequestException
+
+def predict_post_category(caption: Optional[str], raise_on_error: bool = False) -> str:
     """Return a predicted category label for the post caption.
     
     This implementation calls the decoupled ML Backend microservice 
@@ -27,7 +29,7 @@ def predict_post_category(caption: Optional[str]) -> str:
         # We no longer need to send candidate_labels as the server knows them
         payload = {"text": caption_text}
         
-        response = requests.post(endpoint, json=payload, timeout=10)
+        response = requests.post(endpoint, json=payload, timeout=60)
         response.raise_for_status()
         
         data = response.json()
@@ -43,11 +45,15 @@ def predict_post_category(caption: Optional[str]) -> str:
         logger.warning(f"ML Backend returned unknown category key: {category_key}")
         return 'MISC'
         
-    except requests.exceptions.RequestException as e:
+    except RequestException as e:
         logger.error(f"Error calling ML Backend at {endpoint}: {e}")
+        if raise_on_error:
+            raise e
         return 'MISC'
     except Exception as e:
         logger.error(f"Unexpected error during classification: {e}")
+        if raise_on_error:
+            raise e
         return 'MISC'
 
 
@@ -83,7 +89,7 @@ def condense_caption(text: str) -> str:
     return "\n".join(final_lines)
 
 
-def predict_is_event(caption: str) -> Optional[bool]:
+def predict_is_event(caption: str, raise_on_error: bool = False) -> Optional[bool]:
     """Predict if a post is an upcoming event using Step 1 (Temporal Classification)."""
     original_text = (caption or '').strip()
     if not original_text:
@@ -131,7 +137,7 @@ def predict_is_event(caption: str) -> Optional[bool]:
             "candidate_labels": [f"{template} {candidate_labels[0]}", f"{template} {candidate_labels[1]}"]
         }
         
-        response = requests.post(endpoint, json=payload, timeout=10)
+        response = requests.post(endpoint, json=payload, timeout=60)
         response.raise_for_status()
         
         data = response.json()
@@ -140,14 +146,21 @@ def predict_is_event(caption: str) -> Optional[bool]:
         # If the top label is the one describing an upcoming event, return True
         return top_label == candidate_labels[0]
         
-    except Exception as e:
+    except RequestException as e:
         logger.error(f"Error during Step 1 Temporal Classification: {e}")
+        if raise_on_error:
+            raise e
+        return None
+    except Exception as e:
+        logger.error(f"Unexpected error during Step 1 Temporal Classification: {e}")
+        if raise_on_error:
+            raise e
         return None
 
 
-def assign_category_to_post(post) -> str:
+def assign_category_to_post(post, raise_on_error: bool = False) -> str:
     """Predict category from caption and persist it on the Post record."""
-    category_key = predict_post_category(post.caption)
+    category_key = predict_post_category(post.caption, raise_on_error=raise_on_error)
     post.category = category_key
     post.save(update_fields=['category'])
     
@@ -158,9 +171,9 @@ def assign_category_to_post(post) -> str:
     return label
 
 
-def assign_event_status_to_post(post) -> Optional[bool]:
+def assign_event_status_to_post(post, raise_on_error: bool = False) -> Optional[bool]:
     """Predict event status and persist it on the Post record."""
-    is_event = predict_is_event(post.caption)
+    is_event = predict_is_event(post.caption, raise_on_error=raise_on_error)
     post.is_event = is_event
     post.save(update_fields=['is_event'])
     return is_event

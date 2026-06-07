@@ -182,6 +182,20 @@ class Club(models.Model):
         return self.valid_till > timezone.now()
 
     @property
+    def days_remaining(self):
+        """Return the number of whole days remaining until validity expires.
+        Returns 0 if the club is expired or has never been activated."""
+        if not self.valid_till:
+            return 0
+        delta = self.valid_till - timezone.now()
+        return max(delta.days, 0)
+
+    @property
+    def can_extend(self):
+        """Extension is allowed only when 30 or fewer days remain."""
+        return self.days_remaining <= 30
+
+    @property
     def committee(self):
         if not self.is_active:
             return self.managers.none()
@@ -207,9 +221,10 @@ class Club(models.Model):
             return timezone.make_aware(datetime(joined_at.year, 12, 31, 23, 59, 59))
         return None
 
-    def extend_validity(self, years=1):
+    def extend_validity(self):
+        """Extend club validity by exactly 1 year (365 days)."""
         now = timezone.now()
-        extension = timedelta(days=365 * years)
+        extension = timedelta(days=365)
         if self.valid_till and self.valid_till > now:
             self.valid_till += extension
         else:
@@ -393,6 +408,7 @@ class Post(models.Model):
     )
     is_event = models.BooleanField(null=True, blank=True)
     timestamp = models.DateTimeField()
+    extracted_details = models.JSONField(blank=True, null=True, default=dict, help_text='Parsed event metadata such as date, venue, and registration link.')
 
     class Meta:
         indexes = [
@@ -431,6 +447,10 @@ class Event(models.Model):
     end_time = models.TimeField(blank=True, null=True)
     timezone = models.CharField(max_length=50, blank=True, null=True, default="GMT+8 (MYT)")
     location = models.CharField(max_length=255)
+
+    @property
+    def extracted_details(self):
+        return getattr(self.post, 'extracted_details', None)
     
     fee = models.DecimalField(max_digits=6, decimal_places=2, default=0.00, help_text="Set to 0 if the event is free.")
     requires_approval = models.BooleanField(default=False, help_text="If true, host must manually approve attendees.")
@@ -443,6 +463,7 @@ class Event(models.Model):
         ('FINISHED', 'Finished'),
     ]
     status = models.CharField(max_length=15, choices=STATUS_CHOICES, default='PREPARING')
+    qr_token = models.CharField(max_length=64, blank=True, null=True, help_text="Current active token for QR check-in")
 
     @property
     def is_finished(self):
