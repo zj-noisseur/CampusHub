@@ -1,5 +1,5 @@
 import uuid
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from django.conf import settings
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
@@ -182,7 +182,23 @@ class Club(models.Model):
         return self.valid_till > timezone.now()
 
     @property
+    def days_remaining(self):
+        """Return the number of whole days remaining until validity expires.
+        Returns 0 if the club is expired or has never been activated."""
+        if not self.valid_till:
+            return 0
+        delta = self.valid_till - timezone.now()
+        return max(delta.days, 0)
+
+    @property
+    def can_extend(self):
+        """Extension is allowed only when 30 or fewer days remain."""
+        return self.days_remaining <= 30
+
+    @property
     def committee(self):
+        if not self.is_active:
+            return self.managers.none()
         return self.managers.filter(is_active=True)
 
     @property
@@ -196,14 +212,46 @@ class Club(models.Model):
                 return self.name
         return CategoryWrapper(self.get_club_category_display())
 
-    def add_committee_member(self, user, designation):
-        if not self.is_active:
-            raise ValidationError("Cannot add committee members to an inactive club.")
+    def compute_membership_expiry(self, joined_at=None):
+        joined_at = joined_at or timezone.now()
+        policy = self.renewal_policy
+        if policy == 'ROLLING':
+            return joined_at + timedelta(days=365)
+        if policy == 'CALENDAR':
+            return timezone.make_aware(datetime(joined_at.year, 12, 31, 23, 59, 59))
+        return None
+
+    def extend_validity(self):
+        """Extend club validity by exactly 1 year (365 days)."""
+        now = timezone.now()
+        extension = timedelta(days=365)
+        if self.valid_till and self.valid_till > now:
+            self.valid_till += extension
+        else:
+            self.valid_till = now + extension
+        self.save(update_fields=['valid_till'])
+
+    def add_committee_member(self, user, designation, role='NON_ROOT'):
+        membership = Membership.objects.filter(user=user, club=self).first()
+        if not membership:
+            membership = Membership.objects.create(
+                user=user,
+                club=self,
+                membership_type='LIMITED',
+                status='APPROVED',
+                expired_at=self.compute_membership_expiry(),
+            )
+        elif membership.status != 'APPROVED':
+            membership.status = 'APPROVED'
+            if membership.expired_at is None:
+                membership.expired_at = self.compute_membership_expiry()
+            membership.save(update_fields=['status', 'expired_at'])
+
         return ClubManager.objects.create(
             user=user,
             club=self,
             designation=designation,
-            role='NON_ROOT',
+            role=role,
             is_active=True,
         )
 
@@ -235,13 +283,7 @@ class ClubManager(models.Model):
     is_active = models.BooleanField(default=True)
 
     class Meta:
-        constraints = [
-            models.UniqueConstraint(
-                fields=['club'],
-                condition=Q(role='ROOT'),
-                name='unique_root_per_club'
-            )
-        ]
+        pass
 
     @property
     def has_admin_access(self):
@@ -252,8 +294,12 @@ class ClubManager(models.Model):
         return self.is_active
 
     @property
+    def is_effectively_active(self):
+        return self.is_active and self.club.is_active
+
+    @property
     def has_management_powers(self):
-        return self.is_active and self.role == 'ROOT'
+        return self.is_effectively_active and self.role == 'ROOT'
 
     @property
     def role_label(self):
@@ -274,7 +320,13 @@ class ClubManager(models.Model):
         if not requester.has_management_powers:
             raise ValidationError("Permission Denied: Only active Root admins can manage members.")
         if self.role == 'ROOT' and self.is_active:
-            raise ValidationError("Critical Error: You cannot deactivate the Root admin. Transfer privileges first.")
+            other_active_roots = ClubManager.objects.filter(
+                club=self.club,
+                role='ROOT',
+                is_active=True
+            ).exclude(pk=self.pk).count()
+            if other_active_roots == 0:
+                raise ValidationError("Critical Error: You cannot deactivate the last active Root manager. Add another Root manager first.")
         self.is_active = not self.is_active
         self.save(update_fields=['is_active'])
 
@@ -356,6 +408,7 @@ class Post(models.Model):
     )
     is_event = models.BooleanField(null=True, blank=True)
     timestamp = models.DateTimeField()
+    extracted_details = models.JSONField(blank=True, null=True, default=dict, help_text='Parsed event metadata such as date, venue, and registration link.')
 
     class Meta:
         indexes = [
@@ -394,6 +447,10 @@ class Event(models.Model):
     end_time = models.TimeField(blank=True, null=True)
     timezone = models.CharField(max_length=50, blank=True, null=True, default="GMT+8 (MYT)")
     location = models.CharField(max_length=255)
+
+    @property
+    def extracted_details(self):
+        return getattr(self.post, 'extracted_details', None)
     
     fee = models.DecimalField(max_digits=6, decimal_places=2, default=0.00, help_text="Set to 0 if the event is free.")
     requires_approval = models.BooleanField(default=False, help_text="If true, host must manually approve attendees.")

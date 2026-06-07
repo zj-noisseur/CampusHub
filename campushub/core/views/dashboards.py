@@ -179,6 +179,20 @@ def club_profile(request, club_id):
     
     approved_members = [m for m in club.members.all() if m.status in ['ACTIVE', 'APPROVED']]
 
+    committee_managers = (
+        club.managers.select_related('user')
+        .order_by('-assigned_date')
+    )
+    committee_year_map = {}
+    for manager in committee_managers:
+        year = manager.assigned_date.year if manager.assigned_date else 'Unknown'
+        committee_year_map.setdefault(year, []).append(manager)
+
+    committee_year_groups = [
+        {'year': year, 'members': members}
+        for year, members in sorted(committee_year_map.items(), reverse=True)
+    ]
+
     # Check if the logged-in user is in the managers
     is_manager = False
     user_membership = None
@@ -223,6 +237,7 @@ def club_profile(request, club_id):
         'total_events_count': total_events_count,
         'total_feed_count': total_feed_count,
         'approved_members': approved_members,
+        'committee_year_groups': committee_year_groups,
     }
     return render(request, 'club_profile.html', context)
 

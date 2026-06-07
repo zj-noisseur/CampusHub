@@ -1,4 +1,5 @@
 import logging
+from django.db import models
 from django.shortcuts import render, get_object_or_404
 from django.http import HttpResponse
 from django.contrib.auth.decorators import user_passes_test
@@ -6,11 +7,28 @@ from django.core.paginator import Paginator
 
 from core.models import Post, Club, Institution
 from core.services.post_categorization import assign_category_to_post, assign_event_status_to_post
+from core.tasks import bulk_classify_temporal_task, bulk_classify_event_task
 
 logger = logging.getLogger(__name__)
 
 def is_superuser(user):
     return user.is_authenticated and user.is_superuser
+
+
+def _pending_extraction_q():
+    """Return a Q filter matching posts whose extraction is missing or entirely empty.
+
+    A post is considered 'pending' if:
+      - extracted_details is NULL, OR
+      - extracted_details is {} (empty dict), OR
+      - extracted_details has all four keys set to empty strings
+        (the fallback value written by post_extraction on failure).
+    """
+    return (
+        models.Q(extracted_details__isnull=True)
+        | models.Q(extracted_details={})
+        | models.Q(extracted_details={"venue": "", "date": "", "time": "", "link": ""})
+    )
 
 # --- SHARED HELPERS ---
 
@@ -132,11 +150,12 @@ def admin_bulk_temporal_classify(request):
         if club_ids:
             posts = posts.filter(club_id__in=club_ids)
             
-        for post in posts:
-            try:
-                assign_event_status_to_post(post)
-            except: continue
-        return HttpResponse('<script>window.location.reload();</script>')
+        post_ids = list(posts.values_list('id', flat=True))
+        if post_ids:
+            bulk_classify_temporal_task.delay(post_ids)
+            return HttpResponse(f'<script>alert("Task started for {len(post_ids)} posts. Please refresh the page in a few moments to see the results."); window.location.reload();</script>')
+        
+        return HttpResponse('No pending posts found to classify.', status=200)
     return HttpResponse('Invalid request', status=400)
 
 # --- STEP 2: EVENT CLASSIFICATION ---
@@ -184,19 +203,87 @@ def admin_bulk_event_classify(request):
         if club_ids:
             posts = posts.filter(club_id__in=club_ids)
             
-        for post in posts:
-            try:
-                assign_category_to_post(post)
-            except: continue
-        return HttpResponse('<script>window.location.reload();</script>')
+        post_ids = list(posts.values_list('id', flat=True))
+        if post_ids:
+            bulk_classify_event_task.delay(post_ids)
+            return HttpResponse(f'<script>alert("Task started for {len(post_ids)} posts. Results will appear as they are processed."); window.location.reload();</script>')
+            
+        return HttpResponse('No MISC posts found to classify.', status=200)
     return HttpResponse('Invalid request', status=400)
 
-# --- STEP 3: DATE EXTRACTION (PLACEHOLDER) ---
+# --- STEP 3: DATA EXTRACTION ---
 
 @user_passes_test(is_superuser)
-def admin_date_extraction_dashboard(request):
-    """Step 3: Placeholder for GLiNER-based date extraction."""
-    return render(request, 'admin_date_extraction.html', {'placeholder': True})
+def admin_data_extraction_dashboard(request):
+    """Step 3: Detail extraction dashboard for posts marked as events."""
+    status_filter = request.GET.get('status', '') # '', 'PENDING', 'COMPLETED'
+    posts = Post.objects.filter(is_event=True)
+    
+    # Filter by extraction status
+    if status_filter == 'PENDING':
+        posts = posts.filter(_pending_extraction_q())
+    elif status_filter == 'COMPLETED':
+        posts = posts.exclude(_pending_extraction_q())
+
+    context = get_dashboard_context(request, posts)
+    context['status_filter'] = status_filter
+
+    if request.headers.get('HX-Request'):
+        return render(request, 'admin_data_extraction_partial.html', context)
+    return render(request, 'admin_data_extraction.html', context)
+
+@user_passes_test(is_superuser)
+def admin_extract_post_details(request, post_id):
+    if request.method == 'POST':
+        post = get_object_or_404(Post, id=post_id)
+        if not post.is_event:
+            return HttpResponse('Post is not classified as an upcoming event.', status=400)
+        from core.services.post_extraction import extract_details as run_extract
+        post.extracted_details = run_extract(post.caption)
+        post.save(update_fields=['extracted_details'])
+        return render(request, 'admin_data_extraction_row.html', {'post': post})
+    return HttpResponse('Invalid request', status=400)
+
+@user_passes_test(is_superuser)
+def admin_revert_post_extraction(request, post_id):
+    if request.method == 'POST':
+        post = get_object_or_404(Post, id=post_id)
+        post.extracted_details = {}
+        post.save(update_fields=['extracted_details'])
+        return render(request, 'admin_data_extraction_row.html', {'post': post})
+    return HttpResponse('Invalid request', status=400)
+
+@user_passes_test(is_superuser)
+def admin_bulk_extract_details(request):
+    if request.method == 'POST':
+        club_ids = request.POST.getlist('club_ids[]') or request.POST.getlist('club_ids')
+        posts = Post.objects.filter(is_event=True).filter(_pending_extraction_q())
+        if club_ids:
+            posts = posts.filter(club_id__in=club_ids)
+            
+        post_ids = list(posts.values_list('id', flat=True))
+        if post_ids:
+            from core.services.tasks import extract_details
+            for pid in post_ids:
+                extract_details.delay(pid)
+            return HttpResponse(f'<script>alert("Task started for {len(post_ids)} posts. Results will appear as they are processed."); window.location.reload();</script>')
+            
+        return HttpResponse('No pending posts found for extraction.', status=200)
+    return HttpResponse('Invalid request', status=400)
+
+@user_passes_test(is_superuser)
+def admin_bulk_revert_extraction(request):
+    if request.method == 'POST':
+        scope = request.POST.get('scope', 'selected')
+        club_ids = request.POST.getlist('club_ids[]') or request.POST.getlist('club_ids')
+
+        posts = Post.objects.filter(is_event=True)
+        if scope != 'all' and club_ids:
+            posts = posts.filter(club_id__in=club_ids)
+
+        posts.update(extracted_details={})
+        return HttpResponse('<script>window.location.reload();</script>')
+    return HttpResponse('Invalid request', status=400)
 
 # --- SHARED BULK ACTIONS ---
 

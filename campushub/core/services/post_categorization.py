@@ -1,11 +1,14 @@
 from typing import Optional, List, Dict
 import logging
 import requests
+import re
 from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
-def predict_post_category(caption: Optional[str]) -> str:
+from requests.exceptions import RequestException
+
+def predict_post_category(caption: Optional[str], raise_on_error: bool = False) -> str:
     """Return a predicted category label for the post caption.
     
     This implementation calls the decoupled ML Backend microservice 
@@ -26,7 +29,7 @@ def predict_post_category(caption: Optional[str]) -> str:
         # We no longer need to send candidate_labels as the server knows them
         payload = {"text": caption_text}
         
-        response = requests.post(endpoint, json=payload, timeout=10)
+        response = requests.post(endpoint, json=payload, timeout=60)
         response.raise_for_status()
         
         data = response.json()
@@ -42,37 +45,99 @@ def predict_post_category(caption: Optional[str]) -> str:
         logger.warning(f"ML Backend returned unknown category key: {category_key}")
         return 'MISC'
         
-    except requests.exceptions.RequestException as e:
+    except RequestException as e:
         logger.error(f"Error calling ML Backend at {endpoint}: {e}")
+        if raise_on_error:
+            raise e
         return 'MISC'
     except Exception as e:
         logger.error(f"Unexpected error during classification: {e}")
+        if raise_on_error:
+            raise e
         return 'MISC'
 
 
-def predict_is_event(caption: str) -> Optional[bool]:
+def condense_caption(text: str) -> str:
+    """Extract only the most semantically relevant lines for classification."""
+    lines = [l.strip() for l in text.splitlines() if l.strip()]
+    if len(lines) < 10:
+        return "\n".join(lines)
+
+    # 1. Keep the Hook (Title/Intro)
+    condensed = lines[:3]
+    
+    # 2. Extract structural signals (Middle)
+    # These are high-probability markers for event details
+    markers = ['date:', 'time:', 'venue:', 'location:', 'register', 'sign up', 'rsvp', 'join', 'link', 'http', 'deadline', 'fee', 'luma', 'free']
+    emoji_pattern = r'[📅⏰📍⏳🎟💰⚠️✨🔗]'
+    
+    for line in lines[3:-2]:
+        if any(m in line.lower() for m in markers) or re.search(emoji_pattern, line):
+            condensed.append(line[:250]) # Trim very long lines
+    
+    # 3. Keep the CTA (End)
+    condensed.extend(lines[-2:])
+    
+    # De-duplicate while preserving order
+    seen = set()
+    final_lines = []
+    for l in condensed:
+        if l not in seen:
+            final_lines.append(l)
+            seen.add(l)
+            
+    return "\n".join(final_lines)
+
+
+def predict_is_event(caption: str, raise_on_error: bool = False) -> Optional[bool]:
     """Predict if a post is an upcoming event using Step 1 (Temporal Classification)."""
-    caption_text = (caption or '').strip()
-    if not caption_text:
+    original_text = (caption or '').strip()
+    if not original_text:
         return False
+
+    # Condense the text to focus on structural signals (Date, Venue, CTA)
+    caption_text = condense_caption(original_text)
 
     service_url = getattr(settings, 'ML_BACKEND_URL', 'http://localhost:8001')
     endpoint = f"{service_url.rstrip('/')}/classify"
     
     # Candidate labels for Step 1
     # We use a premise-hypothesis approach by phrasing them as clear choices
+    cta_keywords = ["take part", "participate", "register", "sign up", "RSVP", "apply now", "join us", "recruitment", "recruit"]
+    template = f'This post is about'
+    
+    # 1. NEGATIVE BYPASS (Exclusion)
+    # If these keywords are present, it's likely a past event recap or general info
+    negative_markers = ["recap", "highlights", "throwback", "memory", "successful event", "thank you to all", "stay tuned for more", "congratulations", "well done"]
+    found_negative = next((k for k in negative_markers if k.lower() in original_text.lower()), None)
+    
+    if found_negative:
+        logger.info(f"Step 1: Negative bypass triggered by keyword '{found_negative}'")
+        return False
+
+    # 2. POSITIVE BYPASS (Inclusion)
+    # If these keywords are present (and no negative ones were found above)
+    strong_markers = cta_keywords + ["date", "venue", "location", "deadline", "limited slots", "luma", "form"]
+    found_positive = next((k for k in strong_markers if k.lower() in original_text.lower()), None)
+    
+    if found_positive:
+        # HIGH-CONFIDENCE BYPASS: Skip ML if we see a "smoking gun" event marker
+        logger.info(f"Step 1: Positive bypass triggered by keyword '{found_positive}'")
+        return True
+
+    template = f'This post is about'
     candidate_labels = [
-        "upcoming event or recruitment with a deadline", 
-        "past event recap or general announcement without a deadline"
+        "promoting an upcoming industrial visit, hackathon, competition, workshop or recruitment openings for committee positions for students to take part, participate in or register for", 
+        "a recap of a past event, a general announcement, or purely informational news"
     ]
     
     try:
         payload = {
             "text": caption_text,
-            "candidate_labels": candidate_labels
+            "candidate_labels": [f"{template} {candidate_labels[0]}", f"{template} {candidate_labels[1]}"]
         }
         
-        response = requests.post(endpoint, json=payload, timeout=10)
+        response = requests.post(endpoint, json=payload, timeout=60)
         response.raise_for_status()
         
         data = response.json()
@@ -81,14 +146,21 @@ def predict_is_event(caption: str) -> Optional[bool]:
         # If the top label is the one describing an upcoming event, return True
         return top_label == candidate_labels[0]
         
-    except Exception as e:
+    except RequestException as e:
         logger.error(f"Error during Step 1 Temporal Classification: {e}")
+        if raise_on_error:
+            raise e
+        return None
+    except Exception as e:
+        logger.error(f"Unexpected error during Step 1 Temporal Classification: {e}")
+        if raise_on_error:
+            raise e
         return None
 
 
-def assign_category_to_post(post) -> str:
+def assign_category_to_post(post, raise_on_error: bool = False) -> str:
     """Predict category from caption and persist it on the Post record."""
-    category_key = predict_post_category(post.caption)
+    category_key = predict_post_category(post.caption, raise_on_error=raise_on_error)
     post.category = category_key
     post.save(update_fields=['category'])
     
@@ -99,9 +171,9 @@ def assign_category_to_post(post) -> str:
     return label
 
 
-def assign_event_status_to_post(post) -> Optional[bool]:
+def assign_event_status_to_post(post, raise_on_error: bool = False) -> Optional[bool]:
     """Predict event status and persist it on the Post record."""
-    is_event = predict_is_event(post.caption)
+    is_event = predict_is_event(post.caption, raise_on_error=raise_on_error)
     post.is_event = is_event
     post.save(update_fields=['is_event'])
     return is_event

@@ -169,4 +169,4 @@ CELERY_RESULT_EXTENDED = True
 ML_BACKEND_URL = os.environ['ML_BACKEND_URL']
 
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-DEFAULT_FROM_EMAIL = 'noreply@campushub.local' 
+DEFAULT_FROM_EMAIL = 'noreply@campushub.local'

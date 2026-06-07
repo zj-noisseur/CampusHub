@@ -11,7 +11,7 @@ from core.views.claim_club import claim_club
 from core.views.profile import user_profile, edit_profile
 from core.views.calendar import calendar
 from core.views.club_actions import join_club, apply_manager
-from core.views.manager_dashboard import manager_dashboard, process_membership
+from core.views.manager_dashboard import manager_dashboard, process_membership, extend_club_validity, update_post_extracted_details
 from core.views.imports import import_attendees_csv
 from core.views.certificates import upload_certificate_template, download_certificates, download_my_certificate
 from core.views.dashboards import club_profile, club_admin_dashboard, club_settings, student_dashboard, toggle_ready_status, toggle_attended_status, set_event_status, create_event, edit_event, my_events
@@ -67,8 +67,12 @@ urlpatterns = [
     path('admin-site/classification/event/post/<int:post_id>/update/', ac.admin_update_post_event_category, name='admin_update_post_event_category_step2'),
     path('admin-site/classification/event/bulk/', ac.admin_bulk_event_classify, name='admin_bulk_event_classify_step2'),
 
-    # Step 3: Date Extraction
-    path('admin-site/classification/dates/', ac.admin_date_extraction_dashboard, name='admin_date_extraction_step3'),
+    # Step 3: Data Extraction
+    path('admin-site/classification/data/', ac.admin_data_extraction_dashboard, name='admin_data_extraction_dashboard'),
+    path('admin-site/classification/data/post/<int:post_id>/', ac.admin_extract_post_details, name='admin_extract_post_details'),
+    path('admin-site/classification/data/post/<int:post_id>/revert/', ac.admin_revert_post_extraction, name='admin_revert_post_extraction'),
+    path('admin-site/classification/data/bulk/', ac.admin_bulk_extract_details, name='admin_bulk_extract_details'),
+    path('admin-site/classification/data/bulk/revert/', ac.admin_bulk_revert_extraction, name='admin_bulk_revert_extraction'),
 
     # Shared Bulk
     path('admin-site/classification/bulk/revert/', ac.admin_bulk_revert_classification, name='admin_bulk_revert_classification'),
@@ -83,6 +87,8 @@ urlpatterns = [
     path('club/<int:club_id>/event/<int:event_id>/edit/', edit_event, name='edit_event'),
     path('club/<int:club_id>/settings/', club_settings, name='club_settings'),
     path('membership/<int:membership_id>/<str:action>/', process_membership, name='process_membership'),
+    path('club/<int:club_id>/extend-validity/', extend_club_validity, name='extend_club_validity'),
+    path('club/<int:club_id>/post/<int:post_id>/update-extracted/', update_post_extracted_details, name='update_post_extracted_details'),
 
     # --- Event Operations & Attendance ---
     path('event/<int:event_id>/toggle-ready/<uuid:prereg_id>/', toggle_ready_status, name='toggle_ready_status'),
