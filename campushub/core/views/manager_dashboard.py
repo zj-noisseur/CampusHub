@@ -79,6 +79,10 @@ def extend_club_validity(request, club_id):
         return redirect('core:manager_dashboard', club_id=club.id)
 
     if request.method == 'POST':
+        if not club.can_extend:
+            messages.warning(request, f'Club validity cannot be extended yet — {club.days_remaining} days still remaining (must be 30 or fewer).')
+            return redirect('core:manager_dashboard', club_id=club.id)
+
         club.extend_validity()
         messages.success(request, f'{club.name} validity extended to {club.valid_till.strftime("%b %d, %Y")}')
 

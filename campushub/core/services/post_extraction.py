@@ -4,7 +4,9 @@ from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
-def extract_details(text: str) -> dict:
+from requests.exceptions import RequestException
+
+def extract_details(text: str, raise_on_error: bool = False) -> dict:
     """Extract details (venue, date, time, link) from text by querying the ML microservice backend."""
     caption_text = (text or '').strip()
     if not caption_text:
@@ -16,11 +18,18 @@ def extract_details(text: str) -> dict:
 
     try:
         payload = {"text": caption_text}
-        response = requests.post(endpoint, json=payload, timeout=15)
+        response = requests.post(endpoint, json=payload, timeout=60)
         response.raise_for_status()
         return response.json()
-    except Exception as e:
+    except RequestException as e:
         logger.error(f"Error calling ML Backend extraction at {endpoint}: {e}")
+        if raise_on_error:
+            raise e
+        return {"venue": "", "date": "", "time": "", "link": ""}
+    except Exception as e:
+        logger.error(f"Unexpected error calling ML Backend extraction at {endpoint}: {e}")
+        if raise_on_error:
+            raise e
         return {"venue": "", "date": "", "time": "", "link": ""}
 
 if __name__ == "__main__":

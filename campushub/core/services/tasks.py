@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 import requests
 from django.conf import settings
-from django.db.models import F
+from django.db.models import F, Q
 from django.utils import timezone
 from django.core.files.base import ContentFile
 
@@ -233,7 +233,17 @@ def retrieve_json(self, club_id, search_limit=20, max_items=50, export_dir=None,
 
     latest_timestamp = None
     if only_posts_newer_than is None:
-        latest_timestamp = club.posts.order_by('-timestamp').values_list('timestamp', flat=True).first()
+        from core.models import ClubScrapeStatus
+        last_status = ClubScrapeStatus.objects.filter(club=club).first()
+        last_failed = last_status and last_status.state == 'FAILURE'
+        
+        _empty_extraction = {"venue": "", "date": "", "time": "", "link": ""}
+        has_failed_extractions = club.posts.filter(is_event=True).filter(
+            Q(extracted_details__isnull=True) | Q(extracted_details={}) | Q(extracted_details=_empty_extraction)
+        ).exists()
+        
+        if not last_failed and not has_failed_extractions:
+            latest_timestamp = club.posts.order_by('-timestamp').values_list('timestamp', flat=True).first()
 
         if latest_timestamp is not None:
             if timezone.is_aware(latest_timestamp):
@@ -382,8 +392,14 @@ def process(self, dataset, club_id, full_sync=False):
             }
         )
         
-        # Trigger AI classification for new posts or those that are still uncategorized
-        if created or post.category == 'MISC':
+        # Trigger AI classification for new posts, uncategorized posts, or event posts with missing extracted details
+        _empty_extraction = {"venue": "", "date": "", "time": "", "link": ""}
+        is_missing_extraction = post.is_event and (
+            not post.extracted_details
+            or post.extracted_details == {}
+            or post.extracted_details == _empty_extraction
+        )
+        if created or post.category == 'MISC' or is_missing_extraction:
             try:
                 classify_post.delay(post.id)
             except Exception as e:
@@ -429,7 +445,9 @@ def process(self, dataset, club_id, full_sync=False):
     }
 
 
-@shared_task(bind=True)
+from requests.exceptions import RequestException
+
+@shared_task(bind=True, autoretry_for=(RequestException,), retry_backoff=True, max_retries=5, retry_jitter=True)
 def classify_post(self, post_id):
     from core.models import Post
     from core.services.post_categorization import predict_post_category, assign_event_status_to_post
@@ -440,13 +458,13 @@ def classify_post(self, post_id):
         return {'status': 'missing', 'post_id': post_id}
 
     try:
-        category_key = predict_post_category(post.caption)
+        category_key = predict_post_category(post.caption, raise_on_error=True)
         if category_key and category_key != post.category:
             post.category = category_key
             post.save(update_fields=['category'])
 
         # Predict and update event status (is_event)
-        assign_event_status_to_post(post)
+        assign_event_status_to_post(post, raise_on_error=True)
 
         label = dict(post._meta.get_field('category').choices).get(category_key, category_key)
         logger.info(f"Queued classification completed for post {post.short_code}: {label} ({category_key})")
@@ -460,6 +478,9 @@ def classify_post(self, post_id):
             'post_id': post_id,
             'category': category_key,
         }
+    except RequestException as e:
+        logger.error(f"Request exception during classification for post {post_id}: {e}. Retrying...")
+        raise e
     except Exception as e:
         logger.error(f"Classification task failed for post {post_id}: {e}")
         return {
@@ -469,7 +490,7 @@ def classify_post(self, post_id):
         }
 
 
-@shared_task(bind=True)
+@shared_task(bind=True, autoretry_for=(RequestException,), retry_backoff=True, max_retries=5, retry_jitter=True)
 def extract_details(self, post_id):
     from core.models import Post
     from core.services.post_extraction import extract_details as run_extract
@@ -484,7 +505,7 @@ def extract_details(self, post_id):
         return {"status": "skipped_not_event", "post_id": post_id}
     
     try:
-        details = run_extract(post.caption)
+        details = run_extract(post.caption, raise_on_error=True)
         post.extracted_details = details
         post.save(update_fields=['extracted_details'])
         logger.info(f"Successfully extracted details for post {post.short_code}: {details}")
@@ -493,6 +514,9 @@ def extract_details(self, post_id):
             "post_id": post_id,
             "extracted_details": details
         }
+    except RequestException as e:
+        logger.error(f"Request exception during extraction for post {post_id}: {e}. Retrying...")
+        raise e
     except Exception as e:
         logger.error(f"Extraction task failed for post {post_id}: {e}")
         return {

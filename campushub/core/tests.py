@@ -279,7 +279,7 @@ class UpcomingEventExtractionGuardTestCase(TestCase):
         mock_predict.return_value = 'MISC'
         
         # Simulate classification setting is_event to False
-        def side_effect(post):
+        def side_effect(post, *args, **kwargs):
             post.is_event = False
             post.save()
             return False
@@ -298,7 +298,7 @@ class UpcomingEventExtractionGuardTestCase(TestCase):
         mock_predict.return_value = 'WORKSHOP'
         
         # Simulate classification setting is_event to True
-        def side_effect(post):
+        def side_effect(post, *args, **kwargs):
             post.is_event = True
             post.save()
             return True
@@ -314,5 +314,49 @@ class UpcomingEventExtractionGuardTestCase(TestCase):
         from core.services.tasks import extract_details
         result = extract_details(self.non_event_post.id)
         self.assertEqual(result['status'], 'skipped_not_event')
+
+
+class RetrieveJsonTestCase(TestCase):
+    def setUp(self):
+        self.state = State.objects.create(name="Selangor")
+        self.inst = Institution.objects.create(university_name="MMU", state=self.state)
+        self.club = Club.objects.create(institution=self.inst, name="FCI Club", ig_handle="fci")
+
+    @patch('core.services.tasks.fetch_instagram_posts_via_apify')
+    def test_retrieve_json_no_failed_extractions(self, mock_fetch):
+        mock_fetch.return_value = []
+        Post.objects.create(
+            club=self.club,
+            short_code="abc",
+            caption="Normal caption",
+            timestamp=timezone.now(),
+            is_event=True,
+            extracted_details={"venue": "Agmo"}
+        )
+        from core.services.tasks import retrieve_json
+        from unittest.mock import MagicMock
+        self_mock = MagicMock()
+        
+        retrieve_json.__wrapped__(self.club.id)
+        mock_fetch.assert_called_once()
+        
+    @patch('core.services.tasks.fetch_instagram_posts_via_apify')
+    def test_retrieve_json_with_failed_extractions(self, mock_fetch):
+        mock_fetch.return_value = []
+        Post.objects.create(
+            club=self.club,
+            short_code="def",
+            caption="Failed extraction caption",
+            timestamp=timezone.now(),
+            is_event=True,
+            extracted_details={}
+        )
+        from core.services.tasks import retrieve_json
+        from unittest.mock import MagicMock
+        self_mock = MagicMock()
+        
+        retrieve_json.__wrapped__(self.club.id)
+        mock_fetch.assert_called_once()
+
 
 

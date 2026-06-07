@@ -14,6 +14,22 @@ logger = logging.getLogger(__name__)
 def is_superuser(user):
     return user.is_authenticated and user.is_superuser
 
+
+def _pending_extraction_q():
+    """Return a Q filter matching posts whose extraction is missing or entirely empty.
+
+    A post is considered 'pending' if:
+      - extracted_details is NULL, OR
+      - extracted_details is {} (empty dict), OR
+      - extracted_details has all four keys set to empty strings
+        (the fallback value written by post_extraction on failure).
+    """
+    return (
+        models.Q(extracted_details__isnull=True)
+        | models.Q(extracted_details={})
+        | models.Q(extracted_details={"venue": "", "date": "", "time": "", "link": ""})
+    )
+
 # --- SHARED HELPERS ---
 
 def get_dashboard_context(request, posts_qs):
@@ -205,9 +221,9 @@ def admin_data_extraction_dashboard(request):
     
     # Filter by extraction status
     if status_filter == 'PENDING':
-        posts = posts.filter(models.Q(extracted_details__isnull=True) | models.Q(extracted_details={}))
+        posts = posts.filter(_pending_extraction_q())
     elif status_filter == 'COMPLETED':
-        posts = posts.exclude(models.Q(extracted_details__isnull=True) | models.Q(extracted_details={}))
+        posts = posts.exclude(_pending_extraction_q())
 
     context = get_dashboard_context(request, posts)
     context['status_filter'] = status_filter
@@ -241,9 +257,7 @@ def admin_revert_post_extraction(request, post_id):
 def admin_bulk_extract_details(request):
     if request.method == 'POST':
         club_ids = request.POST.getlist('club_ids[]') or request.POST.getlist('club_ids')
-        posts = Post.objects.filter(is_event=True).filter(
-            models.Q(extracted_details__isnull=True) | models.Q(extracted_details={})
-        )
+        posts = Post.objects.filter(is_event=True).filter(_pending_extraction_q())
         if club_ids:
             posts = posts.filter(club_id__in=club_ids)
             

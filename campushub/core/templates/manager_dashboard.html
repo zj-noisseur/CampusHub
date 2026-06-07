@@ -56,13 +56,25 @@
     <div class="mb-8 flex flex-wrap gap-3 items-center">
         <form method="POST" action="{% url 'core:extend_club_validity' club.id %}">
             {% csrf_token %}
-            <button type="submit" class="btn bg-blue-900 text-white hover:bg-blue-800 rounded-full px-6 font-medium shadow-sm transition-transform hover:scale-105">
-                {% if club.is_active %}Extend Club Validity{% else %}Reactivate Club{% endif %}
-            </button>
+            {% if club.can_extend %}
+                <button type="submit" class="btn bg-blue-900 text-white hover:bg-blue-800 rounded-full px-6 font-medium shadow-sm transition-transform hover:scale-105">
+                    {% if club.is_active %}Extend Club Validity{% else %}Reactivate Club{% endif %}
+                </button>
+            {% else %}
+                <button type="button" disabled class="btn btn-disabled bg-gray-300 text-gray-500 rounded-full px-6 font-medium shadow-sm cursor-not-allowed" title="Extension available when 30 or fewer days remain">
+                    Extend Club Validity
+                </button>
+            {% endif %}
         </form>
         <div class="text-sm text-gray-500">
             {% if club.valid_till %}
                 Valid until {{ club.valid_till|date:"M d, Y" }}
+                <span class="ml-1 font-semibold {% if club.days_remaining <= 30 %}text-orange-500{% else %}text-green-600{% endif %}">
+                    ({{ club.days_remaining }} day{{ club.days_remaining|pluralize }} remaining)
+                </span>
+                {% if not club.can_extend %}
+                    <span class="block text-xs text-gray-400 mt-0.5">Extension available when ≤ 30 days remain</span>
+                {% endif %}
             {% else %}
                 Club has not been activated yet.
             {% endif %}
