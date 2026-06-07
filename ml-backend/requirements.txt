@@ -6,3 +6,5 @@ sentencepiece
 protobuf
 pydantic
 spacy
+spacy-curated-transformers
+

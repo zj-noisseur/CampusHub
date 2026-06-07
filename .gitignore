@@ -19,5 +19,3 @@ campushub/media/
 # Secrets
 campushub/.env
 
-# ML Backend
-ml-backend/
