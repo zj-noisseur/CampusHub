@@ -65,8 +65,12 @@ urlpatterns = [
     path('admin-site/classification/event/post/<int:post_id>/update/', ac.admin_update_post_event_category, name='admin_update_post_event_category_step2'),
     path('admin-site/classification/event/bulk/', ac.admin_bulk_event_classify, name='admin_bulk_event_classify_step2'),
 
-    # Step 3: Date Extraction
-    path('admin-site/classification/dates/', ac.admin_date_extraction_dashboard, name='admin_date_extraction_step3'),
+    # Step 3: Data Extraction
+    path('admin-site/classification/data/', ac.admin_data_extraction_dashboard, name='admin_data_extraction_dashboard'),
+    path('admin-site/classification/data/post/<int:post_id>/', ac.admin_extract_post_details, name='admin_extract_post_details'),
+    path('admin-site/classification/data/post/<int:post_id>/revert/', ac.admin_revert_post_extraction, name='admin_revert_post_extraction'),
+    path('admin-site/classification/data/bulk/', ac.admin_bulk_extract_details, name='admin_bulk_extract_details'),
+    path('admin-site/classification/data/bulk/revert/', ac.admin_bulk_revert_extraction, name='admin_bulk_revert_extraction'),
 
     # Shared Bulk
     path('admin-site/classification/bulk/revert/', ac.admin_bulk_revert_classification, name='admin_bulk_revert_classification'),

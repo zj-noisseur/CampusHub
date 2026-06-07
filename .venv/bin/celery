@@ -1,4 +1,4 @@
-#!/mnt/c/Users/bruce/Projects/CampusHub-linux/.venv/bin/python3
+#!/home/bruce/dev/projects/CampusHub-linux/.venv/bin/python3
 # -*- coding: utf-8 -*-
 import re
 import sys

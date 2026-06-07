@@ -393,6 +393,7 @@ class Post(models.Model):
     )
     is_event = models.BooleanField(null=True, blank=True)
     timestamp = models.DateTimeField()
+    extracted_details = models.JSONField(blank=True, null=True, default=dict, help_text='Parsed event metadata such as date, venue, and registration link.')
 
     class Meta:
         indexes = [
@@ -431,6 +432,10 @@ class Event(models.Model):
     end_time = models.TimeField(blank=True, null=True)
     timezone = models.CharField(max_length=50, blank=True, null=True, default="GMT+8 (MYT)")
     location = models.CharField(max_length=255)
+
+    @property
+    def extracted_details(self):
+        return getattr(self.post, 'extracted_details', None)
     
     fee = models.DecimalField(max_digits=6, decimal_places=2, default=0.00, help_text="Set to 0 if the event is free.")
     requires_approval = models.BooleanField(default=False, help_text="If true, host must manually approve attendees.")

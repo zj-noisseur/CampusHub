@@ -534,19 +534,74 @@
             </div>
             {% endif %}
         </div>
-    </div>
+
+        <div id="tab-committee-content" class="hidden space-y-6">
+            {% if committee_year_groups %}
+            <div class="flex flex-wrap gap-3 mb-6">
+                {% for group in committee_year_groups %}
+                <button id="committee-year-{{ group.year }}-btn"
+                        data-committee-year-btn
+                        type="button"
+                        onclick="switchCommitteeYear('{{ group.year }}')"
+                        class="text-base font-semibold px-4 py-2 rounded-xl border border-gray-200 transition {% if forloop.first %}bg-blue-500 text-white{% else %}text-gray-500 bg-white hover:text-gray-900{% endif %}">
+                    {{ group.year }}
+                </button>
+                {% endfor %}
+            </div>
+
+            {% for group in committee_year_groups %}
+            <div id="committee-year-{{ group.year }}-content"
+                 class="committee-year-content {% if not forloop.first %}hidden{% endif %} space-y-6">
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                    {% for manager in group.members %}
+                    <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition-all flex flex-col items-center text-center space-y-4 group">
+                        <div class="w-20 h-20 rounded-full overflow-hidden bg-gradient-to-tr from-blue-500 to-indigo-600 text-white flex items-center justify-center text-2xl font-bold shadow-md transition-transform duration-500 group-hover:scale-105 relative">
+                            {% if manager.user.profile_picture %}
+                                <img src="{{ manager.user.profile_picture.url }}" alt="{{ manager.user.student_name }}" class="w-full h-full object-cover">
+                            {% else %}
+                                <span>{{ manager.user.first_name|first|default:manager.user.student_name|first|upper }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="space-y-1">
+                            <h4 class="text-lg font-bold text-gray-900 leading-snug">{{ manager.user.student_name }}</h4>
+                            <span class="badge bg-indigo-50 text-indigo-600 border-none font-bold py-1.5 px-3 rounded-lg text-xs">
+                                {{ manager.role_label }}
+                            </span>
+                            {% if manager.user.faculty %}
+                            <p class="text-xs text-gray-400 font-semibold mt-1">
+                                {{ manager.user.get_faculty_display }}
+                                {% if manager.user.year_of_study %}
+                                    • {{ manager.user.get_year_of_study_display|default:manager.user.year_of_study }}
+                                {% endif %}
+                            </p>
+                            {% endif %}
+                        </div>
+                        <p class="text-xs text-gray-400 font-semibold">Assigned {{ manager.assigned_date|date:"Y" }}</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <div class="py-12 text-center bg-white rounded-2xl border border-dashed border-gray-200">
+                <span class="text-4xl block mb-3">👥</span>
+                <h3 class="font-medium text-gray-900">No committee listed</h3>
+                <p class="text-sm text-gray-500 mt-1">The club has yet been activated.</p>
+            </div>
+            {% endif %}
+        </div>
 
     <script>
         function switchProfileTab(tabName) {
             const eventsBtn = document.getElementById('tab-events-btn');
             const feedBtn = document.getElementById('tab-feed-btn');
+            const membersBtn = document.getElementById('tab-members-btn');
             const committeeBtn = document.getElementById('tab-committee-btn');
-            const orgBtn = document.getElementById('tab-org-btn');
             
             const eventsContent = document.getElementById('tab-events-content');
             const feedContent = document.getElementById('tab-feed-content');
+            const membersContent = document.getElementById('tab-members-content');
             const committeeContent = document.getElementById('tab-committee-content');
-            const orgContent = document.getElementById('tab-org-content');
 
             const safeSet = (el, value) => { if (el) el.className = value; };
             const safeAddHidden = (el) => { if (el && el.classList) el.classList.add('hidden'); };
@@ -555,14 +610,14 @@
             // Reset all tab button styles
             safeSet(eventsBtn, "text-2xl font-bold text-gray-400 hover:text-gray-600 pb-2 transition-all");
             safeSet(feedBtn, "text-2xl font-bold text-gray-400 hover:text-gray-600 pb-2 transition-all");
+            safeSet(membersBtn, "text-2xl font-bold text-gray-400 hover:text-gray-600 pb-2 transition-all");
             safeSet(committeeBtn, "text-2xl font-bold text-gray-400 hover:text-gray-600 pb-2 transition-all");
-            safeSet(orgBtn, "text-2xl font-bold text-gray-400 hover:text-gray-600 pb-2 transition-all");
 
             // Hide all tab contents
             safeAddHidden(eventsContent);
             safeAddHidden(feedContent);
+            safeAddHidden(membersContent);
             safeAddHidden(committeeContent);
-            safeAddHidden(orgContent);
 
             if (tabName === 'events') {
                 safeSet(eventsBtn, "text-2xl font-bold text-gray-900 border-b-4 border-blue-500 pb-2 transition-all");
@@ -576,6 +631,27 @@
             } else if (tabName === 'committee') {
                 safeSet(committeeBtn, "text-2xl font-bold text-gray-900 border-b-4 border-blue-500 pb-2 transition-all");
                 safeRemoveHidden(committeeContent);
+            }
+        }
+
+        function switchCommitteeYear(year) {
+            const buttons = document.querySelectorAll('[data-committee-year-btn]');
+            const contents = document.querySelectorAll('.committee-year-content');
+
+            buttons.forEach(button => {
+                button.classList.remove('bg-blue-500', 'text-white');
+                button.classList.add('text-gray-500', 'bg-white');
+            });
+            contents.forEach(content => content.classList.add('hidden'));
+
+            const activeButton = document.getElementById(`committee-year-${year}-btn`);
+            const activeContent = document.getElementById(`committee-year-${year}-content`);
+            if (activeButton) {
+                activeButton.classList.remove('text-gray-500', 'bg-white');
+                activeButton.classList.add('bg-blue-500', 'text-white');
+            }
+            if (activeContent) {
+                activeContent.classList.remove('hidden');
             }
         }
 

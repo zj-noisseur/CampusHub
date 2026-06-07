@@ -75,9 +75,6 @@ TEMPLATES = [
 WSGI_APPLICATION = 'campushub.wsgi.application'
 
 
-# Database
-# https://docs.djangoproject.com/en/6.0/ref/settings/#databases
-
 DATABASES = {
     # 'default':{
     #     'ENGINE': 'django.db.backends.postgresql',
@@ -169,4 +166,19 @@ CELERY_RESULT_EXTENDED = True
 ML_BACKEND_URL = os.environ['ML_BACKEND_URL']
 
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-DEFAULT_FROM_EMAIL = 'noreply@campushub.local' 
+DEFAULT_FROM_EMAIL = 'noreply@campushub.local'
+
+import sys
+if 'test' in sys.argv:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': ':memory:',
+        }
+    }
+    class DisableMigrations(object):
+        def __contains__(self, item):
+            return True
+        def __getitem__(self, item):
+            return None
+    MIGRATION_MODULES = DisableMigrations() 

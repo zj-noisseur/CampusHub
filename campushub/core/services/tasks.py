@@ -10,8 +10,11 @@
 
 # DJANGO_CELERY_RESULTS_DB_ALIAS=test CELERY_BROKER_URL=redis://localhost:6379/1 celery -A campushub worker -Q testworker -l info
 import json
+import logging
 import os
 from datetime import datetime, timezone as dt_timezone
+
+logger = logging.getLogger(__name__)
 
 import requests
 from django.conf import settings
@@ -429,7 +432,7 @@ def process(self, dataset, club_id, full_sync=False):
 @shared_task(bind=True)
 def classify_post(self, post_id):
     from core.models import Post
-    from core.services.post_categorization import predict_post_category
+    from core.services.post_categorization import predict_post_category, assign_event_status_to_post
 
     post = Post.objects.filter(id=post_id).first()
     if not post:
@@ -442,8 +445,14 @@ def classify_post(self, post_id):
             post.category = category_key
             post.save(update_fields=['category'])
 
+        # Predict and update event status (is_event)
+        assign_event_status_to_post(post)
+
         label = dict(post._meta.get_field('category').choices).get(category_key, category_key)
         logger.info(f"Queued classification completed for post {post.short_code}: {label} ({category_key})")
+
+        # Chain/trigger details extraction task
+        extract_details.delay(post.id)
 
         return {
             'status': 'success',
@@ -456,6 +465,35 @@ def classify_post(self, post_id):
             'status': 'error',
             'post_id': post_id,
             'error': str(e),
+        }
+
+
+@shared_task(bind=True)
+def extract_details(self, post_id):
+    from core.models import Post
+    from core.services.post_extraction import extract_details as run_extract
+
+    post = Post.objects.filter(id=post_id).first()
+    if not post:
+        logger.warning(f"Extraction for {post_id} post was skipped as it was not found")
+        return {"status": "missing", "post_id": post_id}
+    
+    try:
+        details = run_extract(post.caption)
+        post.extracted_details = details
+        post.save(update_fields=['extracted_details'])
+        logger.info(f"Successfully extracted details for post {post.short_code}: {details}")
+        return {
+            "status": "success",
+            "post_id": post_id,
+            "extracted_details": details
+        }
+    except Exception as e:
+        logger.error(f"Extraction task failed for post {post_id}: {e}")
+        return {
+            "status": "error",
+            "post_id": post_id,
+            "error": str(e),
         }
 
 
