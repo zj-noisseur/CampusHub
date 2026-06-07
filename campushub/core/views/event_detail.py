@@ -32,8 +32,8 @@ def event_detail(request, event_id=None, post_id=None):
     if post_id:
         post = get_object_or_404(Post, id=post_id)
         
-        # Populate extracted details if empty
-        if not post.extracted_details:
+        # Populate extracted details if empty (only for upcoming events)
+        if not post.extracted_details and post.is_event:
             from core.services.post_extraction import extract_details as run_extract
             post.extracted_details = run_extract(post.caption)
             post.save(update_fields=['extracted_details'])
@@ -74,7 +74,7 @@ def event_detail(request, event_id=None, post_id=None):
     else:
         event = get_object_or_404(Event, id=event_id)
         post = event.post
-        if post and not post.extracted_details:
+        if post and not post.extracted_details and post.is_event:
             from core.services.post_extraction import extract_details as run_extract
             post.extracted_details = run_extract(post.caption)
             post.save(update_fields=['extracted_details'])

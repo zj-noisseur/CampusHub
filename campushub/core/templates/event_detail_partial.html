@@ -97,6 +97,24 @@
                 Event Finished
             </button>
 
+            {% elif event.extracted_details.link %}
+            <!-- External Registration Link Logic -->
+            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-secondary"></div>
+            <div class="mb-5 flex justify-between items-start pt-2">
+                <div>
+                    <h3 class="font-bold text-2xl text-base-content tracking-tight">Registration</h3>
+                    <p class="text-base-content/60 text-sm mt-1 font-medium">
+                        This event uses an external registration platform.
+                    </p>
+                </div>
+            </div>
+            <a href="{{ event.extracted_details.link }}" target="_blank" rel="noopener noreferrer" 
+               class="w-full btn btn-primary btn-lg rounded-xl text-[16px] shadow-md flex justify-center items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                Register / RSVP External Link
+            </a>
+            <p class="text-center text-[11px] text-base-content/40 mt-4 uppercase tracking-wider font-semibold">Will open in a new tab.</p>
+
             {% else %}
 
                 {% if event.fee > 0 %}

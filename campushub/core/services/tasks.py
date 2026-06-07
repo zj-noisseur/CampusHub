@@ -451,8 +451,9 @@ def classify_post(self, post_id):
         label = dict(post._meta.get_field('category').choices).get(category_key, category_key)
         logger.info(f"Queued classification completed for post {post.short_code}: {label} ({category_key})")
 
-        # Chain/trigger details extraction task
-        extract_details.delay(post.id)
+        # Chain/trigger details extraction task ONLY if it is an upcoming event
+        if post.is_event:
+            extract_details.delay(post.id)
 
         return {
             'status': 'success',
@@ -477,6 +478,10 @@ def extract_details(self, post_id):
     if not post:
         logger.warning(f"Extraction for {post_id} post was skipped as it was not found")
         return {"status": "missing", "post_id": post_id}
+    
+    if not post.is_event:
+        logger.info(f"Extraction for post {post.short_code} was skipped because it is not classified as an upcoming event.")
+        return {"status": "skipped_not_event", "post_id": post_id}
     
     try:
         details = run_extract(post.caption)

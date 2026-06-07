@@ -170,6 +170,139 @@
             </table>
         </div>
     </div>
+
+    <!-- New Section: Event Posts & Extracted Details -->
+    <div class="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 mt-8 animate-fade-in">
+        <h2 class="text-2xl font-bold text-black mb-6">Club Events & Extracted Metadata</h2>
+        
+        <div class="overflow-x-auto">
+            <table class="table w-full">
+                <thead>
+                    <tr class="text-gray-500 border-b-2 border-gray-100">
+                        <th>Event Post</th>
+                        <th>Extracted Date</th>
+                        <th>Extracted Location</th>
+                        <th>Extracted Link</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for post in event_posts %}
+                    <tr class="hover:bg-gray-50 border-b border-gray-50">
+                        <td>
+                            <div class="font-bold text-black">
+                                {% if post.events %}
+                                    {{ post.events.title }}
+                                {% else %}
+                                    Event Post #{{ post.id }}
+                                {% endif %}
+                            </div>
+                            <div class="text-xs text-gray-400 mt-0.5">
+                                <a href="https://instagram.com/p/{{ post.short_code }}" target="_blank" class="text-primary hover:underline font-medium">
+                                    instagram.com/p/{{ post.short_code }}
+                                </a>
+                            </div>
+                        </td>
+                        <td class="text-gray-600 font-medium">
+                            {{ post.extracted_details.date|default:"-" }}
+                            {% if post.extracted_details.time %}
+                                <div class="text-xs text-gray-400 mt-0.5 font-normal">{{ post.extracted_details.time }}</div>
+                            {% endif %}
+                        </td>
+                        <td class="text-gray-600 font-medium">
+                            {{ post.extracted_details.venue|default:"-" }}
+                        </td>
+                        <td>
+                            {% if post.extracted_details.link %}
+                                <a href="{{ post.extracted_details.link }}" target="_blank" class="text-blue-600 hover:underline font-bold text-xs truncate max-w-[150px] inline-block">
+                                    {{ post.extracted_details.link }}
+                                </a>
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>
+                            <button type="button" onclick="document.getElementById('edit_modal_{{ post.id }}').showModal()" class="btn btn-sm bg-black hover:bg-gray-800 text-white rounded-full border-none">
+                                📝 Edit Details
+                            </button>
+                            
+                            <!-- EDIT MODAL -->
+                            <dialog id="edit_modal_{{ post.id }}" class="modal">
+                                <div class="modal-box bg-white p-8 rounded-3xl max-w-xl relative">
+                                    <form method="dialog">
+                                        <button class="btn btn-sm btn-circle btn-ghost absolute right-4 top-4 hover:bg-gray-200">✕</button>
+                                    </form>
+                                    
+                                    <h3 class="font-bold text-2xl text-black mb-4">Edit Event Metadata</h3>
+                                    
+                                    <div class="mb-6 p-4 bg-gray-50 rounded-2xl max-h-36 overflow-y-auto border border-gray-100 text-xs text-gray-600 leading-relaxed whitespace-pre-wrap"><strong>Caption Context:</strong><br>{{ post.caption }}</div>
+                                    
+                                    <form method="POST" action="{% url 'core:update_post_extracted_details' club_id=club.id post_id=post.id %}" class="space-y-6">
+                                        {% csrf_token %}
+                                        
+                                        <!-- Date Selector -->
+                                        <div>
+                                            <label class="block text-sm font-bold text-gray-700 mb-1.5">Event Date</label>
+                                            {% if post.extracted_details.dates and post.extracted_details.dates|length > 1 %}
+                                                <select name="date_choice" class="select select-bordered w-full bg-white text-gray-800 rounded-xl mb-2 font-medium">
+                                                    {% for dt in post.extracted_details.dates %}
+                                                        <option value="{{ dt }}" {% if post.extracted_details.date == dt %}selected{% endif %}>{{ dt }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                                <p class="text-xs text-gray-400 mb-1">Or enter a custom date value:</p>
+                                            {% endif %}
+                                            <input type="text" name="custom_date" placeholder="e.g. 29th May 2026" value="{% if not post.extracted_details.dates or post.extracted_details.dates|length <= 1 %}{{ post.extracted_details.date|default:'' }}{% endif %}" class="input input-bordered w-full bg-white text-gray-800 rounded-xl font-medium" />
+                                        </div>
+                                        
+                                        <!-- Location Selector -->
+                                        <div>
+                                            <label class="block text-sm font-bold text-gray-700 mb-1.5">Event Location / Venue</label>
+                                            {% if post.extracted_details.venues and post.extracted_details.venues|length > 1 %}
+                                                <select name="venue_choice" class="select select-bordered w-full bg-white text-gray-800 rounded-xl mb-2 font-medium">
+                                                    {% for vn in post.extracted_details.venues %}
+                                                        <option value="{{ vn }}" {% if post.extracted_details.venue == vn %}selected{% endif %}>{{ vn }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                                <p class="text-xs text-gray-400 mb-1">Or enter a custom location value:</p>
+                                            {% endif %}
+                                            <input type="text" name="custom_venue" placeholder="e.g. FAIE AI Design Lab" value="{% if not post.extracted_details.venues or post.extracted_details.venues|length <= 1 %}{{ post.extracted_details.venue|default:'' }}{% endif %}" class="input input-bordered w-full bg-white text-gray-800 rounded-xl font-medium" />
+                                        </div>
+                                        
+                                        <!-- Link Selector -->
+                                        <div>
+                                            <label class="block text-sm font-bold text-gray-700 mb-1.5">Registration / RSVP Link</label>
+                                            {% if post.extracted_details.links and post.extracted_details.links|length > 1 %}
+                                                <select name="link_choice" class="select select-bordered w-full bg-white text-gray-800 rounded-xl mb-2 font-medium">
+                                                    {% for lk in post.extracted_details.links %}
+                                                        <option value="{{ lk }}" {% if post.extracted_details.link == lk %}selected{% endif %}>{{ lk }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                                <p class="text-xs text-gray-400 mb-1">Or enter a custom link value:</p>
+                                            {% endif %}
+                                            <input type="text" name="custom_link" placeholder="e.g. https://forms.gle/..." value="{% if not post.extracted_details.links or post.extracted_details.links|length <= 1 %}{{ post.extracted_details.link|default:'' }}{% endif %}" class="input input-bordered w-full bg-white text-gray-800 rounded-xl font-medium" />
+                                        </div>
+                                        
+                                        <div class="flex gap-3 justify-end pt-4">
+                                            <button type="button" onclick="this.closest('dialog').close()" class="btn btn-ghost rounded-full px-6 font-medium text-gray-500">Cancel</button>
+                                            <button type="submit" class="btn bg-black hover:bg-gray-800 text-white rounded-full px-6 font-medium border-none">Save Changes</button>
+                                        </div>
+                                    </form>
+                                </div>
+                                <form method="dialog" class="modal-backdrop">
+                                    <button>close</button>
+                                </form>
+                            </dialog>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center py-8 text-gray-400 italic">No event posts found for this club.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
     
 </div>
 {% endblock %}

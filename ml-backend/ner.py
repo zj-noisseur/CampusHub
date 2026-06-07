@@ -167,7 +167,10 @@ def get_nlp():
 
 def extract_details_from_text(text: str) -> dict:
     if not text:
-        return {"venue": "", "date": "", "time": "", "link": ""}
+        return {
+            "venue": "", "date": "", "time": "", "link": "",
+            "venues": [], "dates": [], "times": [], "links": []
+        }
     
     nlp = get_nlp()
     doc = nlp(text.replace("\u2028", "\n").replace("\u2029", "\n"))
@@ -183,5 +186,9 @@ def extract_details_from_text(text: str) -> dict:
         "venue": unique_venues[0] if unique_venues else "",
         "date": dates[0] if dates else "",
         "time": times[0] if times else "",
-        "link": links[0] if links else ""
+        "link": links[0] if links else "",
+        "venues": unique_venues,
+        "dates": dates,
+        "times": times,
+        "links": links
     }

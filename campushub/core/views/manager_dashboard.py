@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from core.models import Club, Membership
+from core.models import Club, Membership, Post
 from datetime import date
 from django.utils import timezone
 
@@ -23,12 +23,16 @@ def manager_dashboard(request, club_id):
     approved_members = memberships.filter(status='APPROVED')
     pending_members = memberships.filter(status='PENDING')
     
+    # Get event posts for metadata editing
+    event_posts = Post.objects.filter(club=my_club, is_event=True).select_related('events').order_by('-timestamp')
+    
     context = {
         'club': my_club,
         'approved_members': approved_members,
         'pending_members': pending_members,
         'total_members': approved_members.count(),
         'pending_requests': pending_members.count(),
+        'event_posts': event_posts,
     }
     
     return render(request, 'manager_dashboard.html', context)
@@ -78,4 +82,44 @@ def extend_club_validity(request, club_id):
         club.extend_validity()
         messages.success(request, f'{club.name} validity extended to {club.valid_till.strftime("%b %d, %Y")}')
 
+    return redirect('core:manager_dashboard', club_id=club.id)
+
+
+@login_required
+def update_post_extracted_details(request, club_id, post_id):
+    club = get_object_or_404(Club, id=club_id)
+    
+    if not club.managers.filter(user=request.user).exists():
+        messages.error(request, 'You do not have permission to manage this club.')
+        return redirect('core:profile')
+        
+    post = get_object_or_404(Post, id=post_id, club=club)
+    
+    if request.method == 'POST':
+        date_val = request.POST.get('custom_date') or request.POST.get('date_choice')
+        venue_val = request.POST.get('custom_venue') or request.POST.get('venue_choice')
+        link_val = request.POST.get('custom_link') or request.POST.get('link_choice')
+        
+        date_val = (date_val or '').strip()
+        venue_val = (venue_val or '').strip()
+        link_val = (link_val or '').strip()
+        
+        details = post.extracted_details or {}
+        details['date'] = date_val
+        details['venue'] = venue_val
+        details['link'] = link_val
+        post.extracted_details = details
+        post.save(update_fields=['extracted_details'])
+        
+        if hasattr(post, 'events'):
+            event = post.events
+            from core.views.event_detail import parse_date
+            new_date = parse_date(date_val)
+            if new_date:
+                event.event_date = new_date
+            event.location = venue_val
+            event.save()
+            
+        messages.success(request, 'Event details successfully updated!')
+        
     return redirect('core:manager_dashboard', club_id=club.id)

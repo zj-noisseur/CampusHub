@@ -59,6 +59,10 @@ class ExtractionResponse(BaseModel):
     date: str
     time: str
     link: str
+    venues: Optional[List[str]] = []
+    dates: Optional[List[str]] = []
+    times: Optional[List[str]] = []
+    links: Optional[List[str]] = []
 
 @app.post("/extract", response_model=ExtractionResponse)
 async def extract_text_details(classification_data: ExtractionRequest):

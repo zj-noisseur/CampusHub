@@ -220,6 +220,8 @@ def admin_data_extraction_dashboard(request):
 def admin_extract_post_details(request, post_id):
     if request.method == 'POST':
         post = get_object_or_404(Post, id=post_id)
+        if not post.is_event:
+            return HttpResponse('Post is not classified as an upcoming event.', status=400)
         from core.services.post_extraction import extract_details as run_extract
         post.extracted_details = run_extract(post.caption)
         post.save(update_fields=['extracted_details'])
