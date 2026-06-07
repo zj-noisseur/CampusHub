@@ -54,6 +54,9 @@
                         <a href="{% url 'core:download_certificates' event.id %}" class="btn btn-sm border-none bg-green-50 text-green-600 hover:bg-green-100 rounded-full px-4 font-medium">
                             🎓 Certificates
                         </a>
+                        <button onclick="openQRModal('{{ event.id|escapejs }}', '{{ event.title|escapejs }}')" class="btn btn-sm border-none bg-orange-50 text-orange-600 hover:bg-orange-100 rounded-full px-4 font-medium">
+                            📱 QR Check-in
+                        </button>
                         <div class="dropdown dropdown-end">
                             <label tabindex="0" class="btn btn-sm border-none 
                                 {% if event.status == 'FINISHED' %}bg-gray-900 text-white
@@ -367,48 +370,67 @@
         let qrGenerator = null;
         let qrInterval = null;
 
-        function generateUniqueQR(eventId) {
+        async function generateUniqueQR(eventId) {
             const qrContainer = document.getElementById('qrcode');
-            qrContainer.innerHTML = '';
+            qrContainer.innerHTML = '<div class="text-gray-400 text-sm py-8">Generating Secure QR...</div>';
             
-            // qr content
-            const timestamp = Date.now();
-            const randomStr = Math.random().toString(36).substring(2, 8).toUpperCase();
-            const uniqueToken = `CH_${eventId}_${timestamp}_${randomStr}`;
-            
-            //generate qr code
-            new QRCode(qrContainer, {
-                text: uniqueToken,
-                width: 200,
-                height: 200,
-                colorDark : "#000000",
-                colorLight : "#ffffff",
-                correctLevel : QRCode.CorrectLevel.H
-            });
-            
-            console.log("Generated New QR:", uniqueToken);
+            try {
+                const response = await fetch(`/event/${eventId}/generate-qr-token/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    body: JSON.stringify({ action: 'generate' })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.status === 'generated' && data.token) {
+                        qrContainer.innerHTML = '';
+                        const checkinUrl = `${window.location.origin}/event/${eventId}/checkin/${data.token}/`;
+                        
+                        new QRCode(qrContainer, {
+                            text: checkinUrl,
+                            width: 200,
+                            height: 200,
+                            colorDark : "#000000",
+                            colorLight : "#ffffff",
+                            correctLevel : QRCode.CorrectLevel.H
+                        });
+                        console.log("Generated New Secure QR:", data.token);
+                    }
+                } else {
+                    qrContainer.innerHTML = '<div class="text-red-500 text-sm py-8">Failed to generate QR. Ensure you have permission.</div>';
+                }
+            } catch (error) {
+                console.error("Error generating QR:", error);
+                qrContainer.innerHTML = '<div class="text-red-500 text-sm py-8">Network error.</div>';
+            }
         }
 
         function openQRModal(eventId, eventTitle) {
+            currentEventId = eventId;
             document.getElementById('qr_event_title').innerText = eventTitle;
             
-            //generate 
+            // generate secure QR
             generateUniqueQR(eventId);
-            
-            //refresh every 10 seconds
-            if (qrInterval) clearInterval(qrInterval);
-            qrInterval = setInterval(() => {
-                generateUniqueQR(eventId);
-            }, 10000);
             
             document.getElementById('qr_modal').showModal();
         }
 
         // Close interval when modal is closed
         document.getElementById('qr_modal').addEventListener('close', () => {
-            if (qrInterval) {
-                clearInterval(qrInterval);
-                qrInterval = null;
+            if (currentEventId) {
+                // Clear the token securely
+                fetch(`/event/${currentEventId}/generate-qr-token/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    body: JSON.stringify({ action: 'clear' })
+                }).catch(err => console.error(err));
             }
         });
 

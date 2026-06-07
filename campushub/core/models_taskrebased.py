@@ -406,6 +406,7 @@ class Event(models.Model):
         ('FINISHED', 'Finished'),
     ]
     status = models.CharField(max_length=15, choices=STATUS_CHOICES, default='PREPARING')
+    qr_token = models.CharField(max_length=64, blank=True, null=True, help_text="Current active token for QR check-in")
 
     @property
     def is_finished(self):

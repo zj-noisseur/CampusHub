@@ -17,6 +17,8 @@ from core.views.certificates import upload_certificate_template, download_certif
 from core.views.dashboards import club_profile, club_admin_dashboard, club_settings, student_dashboard, toggle_ready_status, toggle_attended_status, set_event_status, create_event, edit_event, my_events
 from core.views.event_detail import event_detail
 from core.views.post_detail import post_detail
+from core.views.event_checkin import generate_qr_token, event_qr_checkin
+
 app_name = 'core'
 
 urlpatterns = [
@@ -87,6 +89,8 @@ urlpatterns = [
     path('event/<int:event_id>/toggle-attended/<uuid:prereg_id>/', toggle_attended_status, name='toggle_attended_status'),
     path('event/<int:event_id>/set-status/<str:status>/', set_event_status, name='set_event_status'),
     path('event/<int:event_id>/import-attendees/', import_attendees_csv, name='import_attendees_csv'),
+    path('event/<int:event_id>/generate-qr-token/', generate_qr_token, name='generate_qr_token'),
+    path('event/<int:event_id>/checkin/<str:token>/', event_qr_checkin, name='event_qr_checkin'),
 
     # --- Certificate Engine ---
     path('upload-certificate-template/<int:event_id>/', upload_certificate_template, name='upload_certificate_template'),
