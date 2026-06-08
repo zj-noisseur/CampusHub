@@ -278,13 +278,25 @@
 
         <!-- Social Proof -->
         <div class="flex items-center gap-4">
+            {% if attendance_count > 0 %}
             <div class="flex -space-x-3">
-                <div class="w-10 h-10 rounded-full bg-primary text-primary-content border-2 border-base-100 shadow-sm flex items-center justify-center font-bold text-xs">A</div>
-                <div class="w-10 h-10 rounded-full bg-secondary text-secondary-content border-2 border-base-100 shadow-sm flex items-center justify-center font-bold text-xs">B</div>
-                <div class="w-10 h-10 rounded-full bg-accent text-accent-content border-2 border-base-100 shadow-sm flex items-center justify-center font-bold text-xs">C</div>
-                <div class="w-10 h-10 rounded-full bg-base-200 text-base-content/60 border-2 border-base-100 shadow-sm flex items-center justify-center font-bold text-xs">+{{ attendance_count|default:"0" }}</div>
+                {% for attendee in recent_attendees %}
+                {% if attendee.user.profile_picture %}
+                <img src="{{ attendee.user.profile_picture.url }}" class="w-10 h-10 rounded-full border-2 border-base-100 shadow-sm object-cover" alt="{{ attendee.user.student_name }}">
+                {% else %}
+                <div class="w-10 h-10 rounded-full bg-primary text-primary-content border-2 border-base-100 shadow-sm flex items-center justify-center font-bold text-xs uppercase">
+                    {{ attendee.user.student_name|make_list|first|default:"U" }}
+                </div>
+                {% endif %}
+                {% endfor %}
+                {% if attendance_count > 3 %}
+                <div class="w-10 h-10 rounded-full bg-base-200 text-base-content/60 border-2 border-base-100 shadow-sm flex items-center justify-center font-bold text-xs">+{{ attendance_count|add:"-3" }}</div>
+                {% endif %}
             </div>
-            <p class="text-base-content/70 font-medium">{{ attendance_count|add:"3" }} people are attending</p>
+            {% endif %}
+            <p class="text-base-content/70 font-medium">
+                {{ attendance_count }} {% if attendance_count == 1 %}person is{% else %}people are{% endif %} attending
+            </p>
         </div>
 
         <!-- About Section -->

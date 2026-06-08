@@ -48,7 +48,9 @@ def event_detail(request, event_id=None, post_id=None):
             post.extracted_details = run_extract(post.caption)
             post.save(update_fields=['extracted_details'])
         
-    attendance_count = event.attendances.count()
+    joined_attendees = event.pre_registered.filter(status='APPROVED').select_related('user')
+    attendance_count = joined_attendees.count()
+    recent_attendees = list(joined_attendees[:3])
     user_prereg = event.pre_registered.filter(user=request.user).first() if request.user.is_authenticated else None
     
     template_name = 'event_detail_partial.html' if request.headers.get('HX-Request') else 'event_detail.html'
@@ -56,6 +58,7 @@ def event_detail(request, event_id=None, post_id=None):
     return render(request, template_name, {
         'event': event,
         'attendance_count': attendance_count,
+        'recent_attendees': recent_attendees,
         'user_prereg': user_prereg,
     })
 
@@ -81,11 +84,14 @@ def join_event(request, event_id):
         if event.join_mode == 'FEE' and not receipt:
             if is_htmx:
                 # Re-render the partial with an error message
-                attendance_count = event.attendances.count()
+                joined_attendees = event.pre_registered.filter(status='APPROVED').select_related('user')
+                attendance_count = joined_attendees.count()
+                recent_attendees = list(joined_attendees[:3])
                 user_prereg = event.pre_registered.filter(user=request.user).first()
                 return render(request, 'event_detail_partial.html', {
                     'event': event,
                     'attendance_count': attendance_count,
+                    'recent_attendees': recent_attendees,
                     'user_prereg': user_prereg,
                     'join_error': 'You must upload a payment receipt for this paid event.',
                 })
@@ -93,20 +99,27 @@ def join_event(request, event_id):
             next_url = request.POST.get('next') or request.META.get('HTTP_REFERER') or f'/event/{event.id}/'
             return redirect(next_url)
 
+        user = request.user
+        is_ready = bool(user.student_id and user.email and user.student_name)
+
         PreRegisteredAttendee.objects.create(
             event=event,
-            user=request.user,
+            user=user,
             status=status,
             receipt=receipt,
+            is_ready=is_ready,
         )
 
     # After joining (or if already joined), return the updated partial for HTMX
     if is_htmx:
-        attendance_count = event.attendances.count()
+        joined_attendees = event.pre_registered.filter(status='APPROVED').select_related('user')
+        attendance_count = joined_attendees.count()
+        recent_attendees = list(joined_attendees[:3])
         user_prereg = event.pre_registered.filter(user=request.user).first()
         return render(request, 'event_detail_partial.html', {
             'event': event,
             'attendance_count': attendance_count,
+            'recent_attendees': recent_attendees,
             'user_prereg': user_prereg,
         })
 
