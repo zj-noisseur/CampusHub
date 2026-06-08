@@ -40,11 +40,100 @@ class StudentRegistrationForm(UserCreationForm):
 
     def clean_email(self):
         email = self.cleaned_data.get('email')
+        student_id = self.data.get('student_id') # Get ID from raw form data
+        User = get_user_model()
+        
         if email:
             email = email.lower()
-            if User.objects.filter(email=email).exists():
+            existing_user = User.objects.filter(email=email).first()
+            
+            if existing_user:
+                # If this email already belongs to the exact ghost account we are waking up, forgive the error!
+                if not existing_user.is_active and existing_user.student_id == student_id:
+                    return email
+                # Otherwise, block it
                 raise forms.ValidationError("An account with this email address already exists.")
         return email
+    
+    def validate_unique(self):
+        """
+        Instead of deleting the error after it happens, we tell Django 
+        to completely skip checking uniqueness for ghost accounts!
+        """
+        student_id = self.cleaned_data.get('student_id')
+        User = get_user_model()
+        is_ghost = False
+        
+        if student_id:
+            ghost = User.objects.filter(student_id=student_id, is_active=False).first()
+            if ghost:
+                self.ghost_user = ghost
+                is_ghost = True
+
+        # Get the default list of fields Django plans to exclude from unique checks
+        exclude = self._get_validation_exclusions()
+        
+        if is_ghost:
+            # Tell Django: "Do NOT check if student_id or email are unique!"
+            exclude.add('student_id')
+            exclude.add('email')
+
+        # Now run the actual database validation with our new exclusion rules
+        try:
+            self.instance.validate_unique(exclude=exclude)
+        except forms.ValidationError as e:
+            self._update_errors(e)
+
+    def save(self, commit=True):
+        """
+        If we found a ghost during validation, update it instead of making a new one!
+        """
+        new_user = super().save(commit=False)
+        
+        if hasattr(self, 'ghost_user'):
+            ghost = self.ghost_user
+            
+            # Overwrite the ghost's old details with the new form details
+            ghost.student_name = new_user.student_name
+            ghost.email = new_user.email
+            ghost.phone_number = new_user.phone_number
+            ghost.password = new_user.password 
+            
+            if commit:
+                ghost.save()
+            return ghost
+            
+        if commit:
+            new_user.save()
+        return new_user
+
+    def save(self, commit=True):
+        """
+        If we found a ghost during validation, update it instead of making a new one!
+        """
+        # This creates a new user object in memory, but hasn't saved to DB yet
+        new_user = super().save(commit=False)
+        
+        # Did we find a ghost account earlier?
+        if hasattr(self, 'ghost_user'):
+            ghost = self.ghost_user
+            
+            # Overwrite the ghost's old details with the new form details
+            ghost.student_name = new_user.student_name
+            ghost.email = new_user.email
+            ghost.phone_number = new_user.phone_number
+            
+            # Copy the securely hashed password over
+            ghost.password = new_user.password 
+            
+            if commit:
+                ghost.save()
+            return ghost
+            
+        # If no ghost was found, just save normally!
+        if commit:
+            new_user.save()
+        return new_user
 
 
 class ClubClaimForm(forms.ModelForm):
