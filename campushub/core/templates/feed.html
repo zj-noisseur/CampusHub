@@ -119,9 +119,35 @@
                         {% endfor %}
                     </div>
                     <!-- Category Badge Over Image -->
-                    {% if post.category != 'MISC' %}
-                    <div class="absolute top-4 left-4">
+                    {% if post.category != 'MISC' or post.is_event or post.events %}
+                    <div class="absolute top-4 left-4 flex flex-col gap-2 items-start">
+                        {% if post.category != 'MISC' %}
                         <span class="badge badge-primary font-bold shadow-lg py-3 px-4 border-none">{{ post.get_category_display }}</span>
+                        {% endif %}
+                        
+                        {% if post.is_event or post.category != 'MISC' or post.events %}
+                        <span class="badge bg-base-100/90 text-base-content font-bold shadow-lg py-3 px-4 border-none backdrop-blur-sm">
+                            {% if post.events %}
+                                {% if post.events.join_mode == 'FREE' %}
+                                    Free to Join
+                                {% elif post.events.join_mode == 'REQUEST' %}
+                                    Request to Join
+                                {% elif post.events.join_mode == 'RSVP' %}
+                                    External RSVP
+                                {% elif post.events.join_mode == 'FEE' %}
+                                    Ticket required
+                                {% else %}
+                                    {{ post.events.get_join_mode_display }}
+                                {% endif %}
+                            {% else %}
+                                {% if post.extracted_details.link %}
+                                    External RSVP
+                                {% else %}
+                                    Free to Join
+                                {% endif %}
+                            {% endif %}
+                        </span>
+                        {% endif %}
                     </div>
                     {% endif %}
                 </figure>
