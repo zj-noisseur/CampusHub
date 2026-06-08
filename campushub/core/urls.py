@@ -14,8 +14,8 @@ from core.views.club_actions import join_club, apply_manager
 from core.views.manager_dashboard import import_members, manager_dashboard, process_membership, extend_club_validity, update_post_extracted_details
 from core.views.imports import import_attendees_csv
 from core.views.certificates import upload_certificate_template, download_certificates, download_my_certificate
-from core.views.dashboards import club_profile, club_admin_dashboard, club_settings, student_dashboard, toggle_ready_status, toggle_attended_status, set_event_status, create_event, edit_event, my_events
-from core.views.event_detail import event_detail
+from core.views.dashboards import club_profile, club_admin_dashboard, club_settings, student_dashboard, toggle_ready_status, toggle_attended_status, set_event_status, create_event, edit_event, my_events, manage_attendee_status
+from core.views.event_detail import event_detail, join_event
 from core.views.post_detail import post_detail
 from core.views.event_checkin import generate_qr_token, event_qr_checkin
 
@@ -29,6 +29,7 @@ urlpatterns = [
     path('calendar/', calendar, name='calendar'),
     path('my-events/', my_events, name='my_events'),
     path('event/<int:event_id>/', event_detail, name='event_detail'),
+    path('event/<int:event_id>/join/', join_event, name='join_event'),
     path('event/post/<int:post_id>/', event_detail, name='event_detail_by_post'),
     path('post/<int:post_id>/', post_detail, name='post_detail'),
     
@@ -94,6 +95,7 @@ urlpatterns = [
     # --- Event Operations & Attendance ---
     path('event/<int:event_id>/toggle-ready/<uuid:prereg_id>/', toggle_ready_status, name='toggle_ready_status'),
     path('event/<int:event_id>/toggle-attended/<uuid:prereg_id>/', toggle_attended_status, name='toggle_attended_status'),
+    path('event/<int:event_id>/attendee/<uuid:prereg_id>/<str:action>/', manage_attendee_status, name='manage_attendee_status'),
     path('event/<int:event_id>/set-status/<str:status>/', set_event_status, name='set_event_status'),
     path('event/<int:event_id>/import-attendees/', import_attendees_csv, name='import_attendees_csv'),
     path('event/<int:event_id>/generate-qr-token/', generate_qr_token, name='generate_qr_token'),

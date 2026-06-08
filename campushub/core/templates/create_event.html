@@ -116,6 +116,45 @@
                             <label class="label"><span class="label-text-alt text-red-500">{{ form.category.errors.0 }}</span></label>
                             {% endif %}
                         </div>
+
+                        <div class="col-span-1 md:col-span-3">
+                            <div class="divider">Join Settings</div>
+                        </div>
+
+                        <div class="form-control w-full col-span-1 md:col-span-1">
+                            <label class="label"><span class="label-text font-bold text-gray-700">Join Mode</span></label>
+                            {{ form.join_mode }}
+                            {% if form.join_mode.errors %}
+                            <label class="label"><span class="label-text-alt text-red-500">{{ form.join_mode.errors.0 }}</span></label>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-control w-full col-span-1 md:col-span-1">
+                            <label class="label"><span class="label-text font-bold text-gray-700">Registration Fee (RM)</span></label>
+                            {{ form.fee }}
+                            <label class="label"><span class="label-text-alt text-gray-500">Only required if mode is "Pay to Join"</span></label>
+                            {% if form.fee.errors %}
+                            <label class="label"><span class="label-text-alt text-red-500">{{ form.fee.errors.0 }}</span></label>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-control w-full col-span-1 md:col-span-1">
+                            <label class="label"><span class="label-text font-bold text-gray-700">Payment QR Code</span></label>
+                            {{ form.payment_qr }}
+                            <label class="label"><span class="label-text-alt text-gray-500">Upload payment QR for "Pay to Join" events</span></label>
+                            {% if form.payment_qr.errors %}
+                            <label class="label"><span class="label-text-alt text-red-500">{{ form.payment_qr.errors.0 }}</span></label>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-control w-full col-span-1 md:col-span-1">
+                            <label class="label"><span class="label-text font-bold text-gray-700">RSVP Link</span></label>
+                            {{ form.rsvp_link }}
+                            <label class="label"><span class="label-text-alt text-gray-500">Only required if mode is "External RSVP"</span></label>
+                            {% if form.rsvp_link.errors %}
+                            <label class="label"><span class="label-text-alt text-red-500">{{ form.rsvp_link.errors.0 }}</span></label>
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
 

@@ -102,8 +102,13 @@
                             <tr>
                                 <th class="py-4 pl-8">Attendee</th>
                                 <th>Student ID</th>
+                                <th>Join Status</th>
+                                {% if event.join_mode == 'FEE' %}
+                                <th>Receipt</th>
+                                {% endif %}
                                 <th>Cert. Status</th>
                                 <th class="pr-8">Attendance</th>
+                                <th class="pr-8 text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody class="text-sm">
@@ -122,6 +127,24 @@
                                 </td>
                                 <td class="font-mono text-gray-500">{{ prereg.user.student_id|default:"-" }}</td>
                                 <td>
+                                    {% if prereg.status == 'APPROVED' %}
+                                        <span class="badge badge-sm border-none bg-green-100 text-green-700 rounded-full px-3 py-2.5 font-medium">Approved</span>
+                                    {% elif prereg.status == 'PENDING' %}
+                                        <span class="badge badge-sm border-none bg-yellow-100 text-yellow-700 rounded-full px-3 py-2.5 font-medium">Pending</span>
+                                    {% elif prereg.status == 'REJECTED' %}
+                                        <span class="badge badge-sm border-none bg-red-100 text-red-700 rounded-full px-3 py-2.5 font-medium">Rejected</span>
+                                    {% endif %}
+                                </td>
+                                {% if event.join_mode == 'FEE' %}
+                                <td>
+                                    {% if prereg.receipt %}
+                                        <a href="{{ prereg.receipt.url }}" target="_blank" class="btn btn-xs btn-outline btn-primary rounded-full">View Receipt</a>
+                                    {% else %}
+                                        <span class="text-xs text-gray-400">No Receipt</span>
+                                    {% endif %}
+                                </td>
+                                {% endif %}
+                                <td>
                                     <a href="{% url 'core:toggle_ready_status' event.id prereg.id %}" 
                                        class="badge badge-sm border-none {% if prereg.is_ready %}bg-green-100 text-green-700{% else %}bg-gray-100 text-gray-400{% endif %} rounded-full px-3 py-2.5 font-medium hover:opacity-70 transition-all">
                                         {% if prereg.is_ready %}Ready{% else %}Unready{% endif %}
@@ -132,6 +155,23 @@
                                        class="badge badge-sm border-none {% if prereg.is_attended %}bg-blue-600 text-white{% else %}bg-gray-100 text-gray-400{% endif %} rounded-full px-3 py-2.5 font-medium hover:opacity-70 transition-all">
                                         {% if prereg.is_attended %}Present{% else %}Absent{% endif %}
                                     </a>
+                                </td>
+                                <td class="pr-8 text-right">
+                                    <div class="dropdown dropdown-end">
+                                        <div tabindex="0" role="button" class="btn btn-ghost btn-xs btn-circle"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path></svg></div>
+                                        <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-44">
+                                            {% if prereg.status != 'APPROVED' %}
+                                            <li><a href="{% url 'core:manage_attendee_status' event.id prereg.id 'approve' %}" class="text-success font-semibold">✓ Approve</a></li>
+                                            {% endif %}
+                                            {% if prereg.status != 'REJECTED' %}
+                                            <li><a href="{% url 'core:manage_attendee_status' event.id prereg.id 'reject' %}" class="text-warning font-semibold">✕ Reject</a></li>
+                                            {% endif %}
+                                            {% if prereg.status != 'PENDING' %}
+                                            <li><a href="{% url 'core:manage_attendee_status' event.id prereg.id 'pending' %}" class="text-info font-semibold">⏳ Set to Pending</a></li>
+                                            {% endif %}
+                                            <li class="border-t border-base-200 mt-1 pt-1"><a href="{% url 'core:manage_attendee_status' event.id prereg.id 'remove' %}" class="text-error font-semibold" onclick="return confirm('Are you sure you want to remove this attendee?')">🗑 Remove</a></li>
+                                        </ul>
+                                    </div>
                                 </td>
                             </tr>
                             {% empty %}

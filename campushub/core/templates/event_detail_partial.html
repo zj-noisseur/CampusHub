@@ -97,7 +97,7 @@
                 Event Finished
             </button>
 
-            {% elif event.extracted_details.link %}
+            {% elif event.join_mode == 'RSVP' or event.extracted_details.link %}
             <!-- External Registration Link Logic -->
             <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-secondary"></div>
             <div class="mb-5 flex justify-between items-start pt-2">
@@ -108,16 +108,47 @@
                     </p>
                 </div>
             </div>
-            <a href="{{ event.extracted_details.link }}" target="_blank" rel="noopener noreferrer" 
+            <a href="{{ event.rsvp_link|default:event.extracted_details.link }}" target="_blank" rel="noopener noreferrer" 
                class="w-full btn btn-primary btn-lg rounded-xl text-[16px] shadow-md flex justify-center items-center gap-2">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
                 Register / RSVP External Link
             </a>
             <p class="text-center text-[11px] text-base-content/40 mt-4 uppercase tracking-wider font-semibold">Will open in a new tab.</p>
 
+            {% elif user_prereg %}
+            <!-- User already registered / requested -->
+            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-info to-primary"></div>
+            <div class="mb-5 flex flex-col justify-center items-center pt-6 pb-2">
+                {% if user_prereg.status == 'APPROVED' %}
+                <div class="w-16 h-16 bg-success/20 text-success rounded-full flex items-center justify-center mb-4">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                </div>
+                <h3 class="font-bold text-2xl text-base-content tracking-tight">You're on the list!</h3>
+                <p class="text-base-content/60 text-sm mt-2 font-medium text-center">
+                    Your spot is confirmed. We'll see you there.
+                </p>
+                {% elif user_prereg.status == 'PENDING' %}
+                <div class="w-16 h-16 bg-warning/20 text-warning rounded-full flex items-center justify-center mb-4">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                </div>
+                <h3 class="font-bold text-2xl text-base-content tracking-tight">Request Pending</h3>
+                <p class="text-base-content/60 text-sm mt-2 font-medium text-center">
+                    The host is reviewing your request. Please check back later.
+                </p>
+                {% elif user_prereg.status == 'REJECTED' %}
+                <div class="w-16 h-16 bg-error/20 text-error rounded-full flex items-center justify-center mb-4">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </div>
+                <h3 class="font-bold text-2xl text-base-content tracking-tight">Request Declined</h3>
+                <p class="text-base-content/60 text-sm mt-2 font-medium text-center">
+                    Unfortunately, your request to join was declined by the host.
+                </p>
+                {% endif %}
+            </div>
+
             {% else %}
 
-                {% if event.fee > 0 %}
+                {% if event.join_mode == 'FEE' or event.fee > 0 %}
                 <!-- Priced Join Logic -->
                 <div class="mb-5 flex justify-between items-start">
                     <div>
@@ -138,15 +169,46 @@
                     </div>
                     <p class="text-sm text-base-content/50 font-medium">{% if event.registration_deadline %}Sales end on {{ event.registration_deadline|date:"M d" }}{% else %}Limited availability{% endif %}</p>
                 </div>
-                <button class="w-full btn btn-neutral btn-lg rounded-xl text-[16px] shadow-md flex justify-center items-center gap-2">
-                    Get Tickets
-                </button>
+                
+                {% if join_error %}
+                <div class="mb-4 p-3 rounded-xl bg-error/10 border border-error/30 text-error text-sm font-medium">
+                    ⚠️ {{ join_error }}
+                </div>
+                {% endif %}
+                <form action="{% url 'core:join_event' event.id %}" method="POST" enctype="multipart/form-data"
+                      hx-post="{% url 'core:join_event' event.id %}"
+                      hx-target="#event_modal_content"
+                      hx-swap="innerHTML"
+                      hx-encoding="multipart/form-data">
+                    {% csrf_token %}
+                    
+                    {% if event.payment_qr %}
+                    <div class="mb-5 bg-base-200/50 p-4 rounded-xl border border-base-200 text-center">
+                        <label class="block text-sm font-bold text-base-content mb-2">Scan to Pay</label>
+                        <img src="{{ event.payment_qr.url }}" alt="Payment QR" class="mx-auto max-h-48 rounded-lg mb-2">
+                    </div>
+                    {% elif event.club.payment_qr_code %}
+                    <div class="mb-5 bg-base-200/50 p-4 rounded-xl border border-base-200 text-center">
+                        <label class="block text-sm font-bold text-base-content mb-2">Scan to Pay (Club QR)</label>
+                        <img src="{{ event.club.payment_qr_code.url }}" alt="Club Payment QR" class="mx-auto max-h-48 rounded-lg mb-2">
+                    </div>
+                    {% endif %}
+
+                    <div class="mb-5 bg-base-200/50 p-4 rounded-xl border border-base-200">
+                        <label class="block text-sm font-bold text-base-content mb-2">Upload Payment Receipt</label>
+                        <input type="file" name="receipt" required class="file-input file-input-bordered w-full bg-base-100/50 text-base-content rounded-lg">
+                    </div>
+                    <input type="hidden" name="next" value="{{ request.path }}">
+                    <button type="submit" class="w-full btn btn-neutral btn-lg rounded-xl text-[16px] shadow-md flex justify-center items-center gap-2">
+                        Get Tickets & Join
+                    </button>
+                </form>
                 <p class="text-center text-[12px] text-base-content/40 mt-4 font-medium flex items-center justify-center gap-1">
                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
                     Secure Checkout
                 </p>
                 
-                {% elif event.requires_approval %}
+                {% elif event.join_mode == 'REQUEST' or event.requires_approval %}
                 <!-- Free (Requires Approval) Logic -->
                 <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-secondary to-accent"></div>
                 <div class="mb-5 flex justify-between items-start pt-2">
@@ -166,11 +228,15 @@
                     <input type="text" value="{{ request.user.student_id|default:'' }}" readonly class="input input-bordered w-full bg-base-100/50 text-base-content/70 rounded-lg cursor-not-allowed">
                 </div>
 
-                <div class="flex flex-col gap-3">
-                    <button class="w-full btn btn-neutral btn-lg rounded-xl text-[16px] shadow-md">
+                <form action="{% url 'core:join_event' event.id %}" method="POST" class="flex flex-col gap-3"
+                      hx-post="{% url 'core:join_event' event.id %}"
+                      hx-target="#event_modal_content"
+                      hx-swap="innerHTML">
+                    {% csrf_token %}
+                    <button type="submit" class="w-full btn btn-neutral btn-lg rounded-xl text-[16px] shadow-md">
                         Request to Join
                     </button>
-                </div>
+                </form>
                 <p class="text-center text-[11px] text-base-content/40 mt-4 uppercase tracking-wider font-semibold">The host must approve your request.</p>
 
                 {% else %}
@@ -193,9 +259,15 @@
                     <input type="text" value="{{ request.user.student_id|default:'' }}" readonly class="input input-bordered w-full bg-base-100/50 text-base-content/70 rounded-lg cursor-not-allowed">
                 </div>
 
-                <button class="w-full btn btn-neutral btn-lg rounded-xl text-[16px] shadow-md flex justify-center items-center gap-2">
-                    Join Event
-                </button>
+                <form action="{% url 'core:join_event' event.id %}" method="POST"
+                      hx-post="{% url 'core:join_event' event.id %}"
+                      hx-target="#event_modal_content"
+                      hx-swap="innerHTML">
+                    {% csrf_token %}
+                    <button type="submit" class="w-full btn btn-neutral btn-lg rounded-xl text-[16px] shadow-md flex justify-center items-center gap-2">
+                        Join Event
+                    </button>
+                </form>
                 <p class="text-center text-[11px] text-base-content/40 mt-4 uppercase tracking-wider font-semibold">Open to everyone. Reserve your spot!</p>
                 {% endif %}
             

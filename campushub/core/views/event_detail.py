@@ -38,39 +38,8 @@ def event_detail(request, event_id=None, post_id=None):
             post.extracted_details = run_extract(post.caption)
             post.save(update_fields=['extracted_details'])
 
-        if hasattr(post, 'events'):
-            event = post.events
-        else:
-            # Auto-create dummy Event for scraped post
-            title = post.caption[:50] + "..." if len(post.caption) > 50 else (post.caption or "Imported Event")
-            if not title.strip():
-                title = "Imported Event"
+        # No auto-created dummy Event for scraped posts; if an Event does not exist, we simply skip rendering.
 
-            extracted = post.extracted_details or {}
-            event_date = parse_date(extracted.get('date')) or post.timestamp.date()
-            location = extracted.get('venue') or "TBA"
-
-            start_time = None
-            end_time = None
-            time_val = extracted.get('time')
-            if time_val:
-                parts = re.split(r'[-–—to]', time_val)
-                if len(parts) >= 1:
-                    start_time = parse_time(parts[0].strip())
-                if len(parts) >= 2:
-                    end_time = parse_time(parts[1].strip())
-
-            event = Event.objects.create(
-                club=post.club,
-                post=post,
-                title=title,
-                event_date=event_date,
-                location=location,
-                start_time=start_time,
-                end_time=end_time,
-                fee=0.00,
-                requires_approval=True
-            )
     else:
         event = get_object_or_404(Event, id=event_id)
         post = event.post
@@ -80,10 +49,67 @@ def event_detail(request, event_id=None, post_id=None):
             post.save(update_fields=['extracted_details'])
         
     attendance_count = event.attendances.count()
+    user_prereg = event.pre_registered.filter(user=request.user).first() if request.user.is_authenticated else None
     
     template_name = 'event_detail_partial.html' if request.headers.get('HX-Request') else 'event_detail.html'
     
     return render(request, template_name, {
         'event': event,
         'attendance_count': attendance_count,
+        'user_prereg': user_prereg,
     })
+
+from django.contrib import messages
+from core.models import PreRegisteredAttendee
+
+@login_required
+def join_event(request, event_id):
+    if request.method != 'POST':
+        return redirect('core:feed')
+
+    event = get_object_or_404(Event, id=event_id)
+    is_htmx = request.headers.get('HX-Request') == 'true'
+
+    # Check if already joined
+    prereg = event.pre_registered.filter(user=request.user).first()
+    if not prereg:
+        status = 'PENDING'
+        if event.join_mode == 'FREE':
+            status = 'APPROVED'
+
+        receipt = request.FILES.get('receipt')
+        if event.join_mode == 'FEE' and not receipt:
+            if is_htmx:
+                # Re-render the partial with an error message
+                attendance_count = event.attendances.count()
+                user_prereg = event.pre_registered.filter(user=request.user).first()
+                return render(request, 'event_detail_partial.html', {
+                    'event': event,
+                    'attendance_count': attendance_count,
+                    'user_prereg': user_prereg,
+                    'join_error': 'You must upload a payment receipt for this paid event.',
+                })
+            messages.error(request, 'You must upload a payment receipt for this paid event.')
+            next_url = request.POST.get('next') or request.META.get('HTTP_REFERER') or f'/event/{event.id}/'
+            return redirect(next_url)
+
+        PreRegisteredAttendee.objects.create(
+            event=event,
+            user=request.user,
+            status=status,
+            receipt=receipt,
+        )
+
+    # After joining (or if already joined), return the updated partial for HTMX
+    if is_htmx:
+        attendance_count = event.attendances.count()
+        user_prereg = event.pre_registered.filter(user=request.user).first()
+        return render(request, 'event_detail_partial.html', {
+            'event': event,
+            'attendance_count': attendance_count,
+            'user_prereg': user_prereg,
+        })
+
+    # Non-HTMX fallback: redirect back to referer
+    next_url = request.POST.get('next') or request.META.get('HTTP_REFERER') or f'/event/{event.id}/'
+    return redirect(next_url)

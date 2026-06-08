@@ -454,6 +454,17 @@ class Event(models.Model):
     
     fee = models.DecimalField(max_digits=6, decimal_places=2, default=0.00, help_text="Set to 0 if the event is free.")
     requires_approval = models.BooleanField(default=False, help_text="If true, host must manually approve attendees.")
+    
+    JOIN_MODES = [
+        ('FREE', 'Free to Join'),
+        ('REQUEST', 'Request to Join (Approval required)'),
+        ('RSVP', 'External RSVP Link'),
+        ('FEE', 'Pay to Join (Requires receipt)'),
+    ]
+    join_mode = models.CharField(max_length=15, choices=JOIN_MODES, default='FREE')
+    rsvp_link = models.URLField(max_length=500, blank=True, null=True, help_text="Link for external RSVP")
+    payment_qr = models.ImageField(upload_to='event_payment_qrs/', blank=True, null=True, help_text="Payment QR code for this event")
+    
     capacity = models.PositiveIntegerField(blank=True, null=True, help_text="Maximum number of attendees. Leave blank for unlimited.")
     registration_deadline = models.DateTimeField(blank=True, null=True, help_text="When registration closes.")
 
@@ -532,6 +543,14 @@ class PreRegisteredAttendee(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     is_ready = models.BooleanField(default=False)
     is_attended = models.BooleanField(default=False)
+    
+    STATUS_CHOICES = [
+        ('PENDING', 'Pending'),
+        ('APPROVED', 'Approved'),
+        ('REJECTED', 'Rejected'),
+    ]
+    status = models.CharField(max_length=15, choices=STATUS_CHOICES, default='PENDING')
+    receipt = models.ImageField(upload_to='event_receipts/', blank=True, null=True)
 
     class Meta:
         unique_together = ('event', 'user')
@@ -591,3 +610,13 @@ def sync_prereg_on_delete(sender, instance, **kwargs):
         PreRegisteredAttendee.objects.filter(event=instance.event, user=instance.user).update(is_attended=False)
     elif instance.guest_email:
         PreRegisteredAttendee.objects.filter(event=instance.event, guest_email=instance.guest_email).update(is_attended=False)
+
+
+@receiver(post_delete, sender=Event)
+def delete_mock_post_on_event_delete(sender, instance, **kwargs):
+    """When a manually created Event is deleted, also delete its mock Post."""
+    post = instance.post
+    if post and post.short_code.startswith('manual_'):
+        # Delete using the queryset to avoid cascade recursion issues if any
+        from core.models import Post
+        Post.objects.filter(id=post.id).delete()

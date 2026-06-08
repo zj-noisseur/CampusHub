@@ -195,7 +195,7 @@ class EventCreationForm(forms.ModelForm):
     
     class Meta:
         model = Event
-        fields = ['title', 'event_date', 'start_time', 'end_time', 'timezone', 'location']
+        fields = ['title', 'event_date', 'start_time', 'end_time', 'timezone', 'location', 'join_mode', 'fee', 'rsvp_link', 'payment_qr']
         widgets = {
             'title': forms.TextInput(attrs={'class': 'input input-bordered w-full focus:border-primary transition-all rounded-xl', 'placeholder': 'e.g., Annual Tech Symposium'}),
             'event_date': forms.DateInput(attrs={'class': 'input input-bordered w-full focus:border-primary transition-all rounded-xl', 'type': 'date'}),
@@ -203,7 +203,24 @@ class EventCreationForm(forms.ModelForm):
             'end_time': forms.TimeInput(attrs={'class': 'input input-bordered w-full focus:border-primary transition-all rounded-xl', 'type': 'time'}),
             'timezone': forms.TextInput(attrs={'class': 'input input-bordered w-full focus:border-primary transition-all rounded-xl', 'placeholder': 'e.g., GMT+8 (MYT)'}),
             'location': forms.TextInput(attrs={'class': 'input input-bordered w-full focus:border-primary transition-all rounded-xl', 'placeholder': 'e.g., Main Hall'}),
+            'join_mode': forms.Select(attrs={'class': 'select select-bordered w-full focus:border-primary transition-all rounded-xl'}),
+            'fee': forms.NumberInput(attrs={'class': 'input input-bordered w-full focus:border-primary transition-all rounded-xl', 'step': '0.01'}),
+            'rsvp_link': forms.URLInput(attrs={'class': 'input input-bordered w-full focus:border-primary transition-all rounded-xl', 'placeholder': 'https://...'}),
+            'payment_qr': forms.FileInput(attrs={'class': 'file-input file-input-bordered w-full focus:border-primary transition-all rounded-xl'}),
         }
+
+    def clean(self):
+        cleaned_data = super().clean()
+        join_mode = cleaned_data.get('join_mode')
+        fee = cleaned_data.get('fee')
+        rsvp_link = cleaned_data.get('rsvp_link')
+
+        if join_mode == 'FEE' and (fee is None or fee <= 0):
+            self.add_error('fee', 'You must set a fee greater than 0 for Pay to Join events.')
+        if join_mode == 'RSVP' and not rsvp_link:
+            self.add_error('rsvp_link', 'You must provide an RSVP link for External RSVP events.')
+
+        return cleaned_data
 
 
 class CertificateUploadForm(forms.ModelForm):
