@@ -1,21 +1,29 @@
-# Python byte-code / optimized
-__pycache__/
+# 1. Ignore everything by default
+*
+
+# 2. Allow Git to traverse directories (critical, otherwise it won't check subfolders)
+!*/
+!**/
+
+# 3. Un-ignore specific root files we need
+!.gitignore
+!requirements.txt
+!Dockerfile
+
+# 4. Un-ignore the Django folders and files
+!campushub/
+!campushub/manage.py
+!campushub/campushub/
+!campushub/campushub/**
+!campushub/core/
+!campushub/core/**
+!ml-backend/
+!ml-backend/**
+
+
+# 5. Re-ignore specific patterns inside the allowed folders
+**/.env
 **/__pycache__/
-*.py[cod]
-*$py.class
-*.pyc
-
-# Environments
-.venv/
-venv/
-env/
-
-# Databases
-*.sqlite3
-
-# Uploaded Media Assets
-campushub/media/
-
-# Secrets
-campushub/.env
-
+**/*.pyc
+**/media/
+**/*.sqlite3

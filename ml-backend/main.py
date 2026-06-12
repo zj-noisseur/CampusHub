@@ -1,5 +1,6 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
 from transformers import pipeline
@@ -34,6 +35,14 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="CampusHub ML Backend Service", lifespan=lifespan)
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["https://campushub.dev"],
+    allow_origin_regex=r"https?://localhost(:\d+)?", 
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 CATEGORIES = {
     "RECRUITMENT": "Recruitment",
     "COMPETITION": "Competition",
