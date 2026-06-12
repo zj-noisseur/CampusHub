@@ -6,3 +6,6 @@ resend
 reportlab
 requests
 python-dotenv
+gunicorn
+django-storages[s3]
+boto3

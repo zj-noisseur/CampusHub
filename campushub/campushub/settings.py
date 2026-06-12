@@ -79,25 +79,32 @@ WSGI_APPLICATION = 'campushub.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-DATABASES = {
-    # 'default':{
-    #     'ENGINE': 'django.db.backends.postgresql',
-    #     'NAME': 'campushub',
-    #     'USER': 'campushubdb',
-    #     'PASSWORD': f'{os.environ.get("LOCAL_POSTGRES_PASSWORD")}',
-    #     'HOST': 'localhost',
-    #     'PORT': '5432', 
-    # } 
+import urllib.parse
 
-    'default':{
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'postgres',
-        'USER': 'postgres',
-        'PASSWORD': f'{os.environ.get("POSTGRES_PASSWORD")}',
-        'HOST': os.environ.get('POSTGRES_HOST', os.environ.get('REMOTE_HOST', 'localhost')),
-        'PORT': '5432', 
+DATABASE_URL = os.environ.get("DATABASE_URL")
+if DATABASE_URL:
+    url = urllib.parse.urlparse(DATABASE_URL)
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': url.path[1:],
+            'USER': url.username,
+            'PASSWORD': url.password,
+            'HOST': url.hostname,
+            'PORT': url.port or 5432,
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': 'postgres',
+            'USER': 'postgres',
+            'PASSWORD': os.environ.get("POSTGRES_PASSWORD"),
+            'HOST': os.environ.get('POSTGRES_HOST', 'localhost'),
+            'PORT': '5432', 
+        }
+    }
 
 
 # Password validation
@@ -134,10 +141,40 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
-STATIC_URL = 'static/'
+USE_S3 = os.environ.get('USE_S3', 'False') == 'True'
 
-MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+if USE_S3:
+    AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID')
+    AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY')
+    AWS_STORAGE_BUCKET_NAME = os.environ.get('AWS_STORAGE_BUCKET_NAME')
+    AWS_S3_ENDPOINT_URL = os.environ.get('AWS_S3_ENDPOINT_URL')
+    AWS_S3_REGION_NAME = os.environ.get('AWS_S3_REGION_NAME')
+    
+    AWS_S3_SIGNATURE_VERSION = 's3v4'
+    AWS_S3_FILE_OVERWRITE = False
+    AWS_DEFAULT_ACL = None
+    AWS_QUERYSTRING_AUTH = True
+
+    STORAGES = {
+        "default": {
+            "BACKEND": "storages.backends.s3.S3Storage",
+            "OPTIONS": {
+                "location": "media",
+            },
+        },
+        "staticfiles": {
+            "BACKEND": "storages.backends.s3.S3Storage",
+            "OPTIONS": {
+                "location": "static",
+            },
+        },
+    }
+else:
+    STATIC_URL = 'static/'
+    STATIC_ROOT = BASE_DIR / 'staticfiles'
+    
+    MEDIA_URL = '/media/'
+    MEDIA_ROOT = BASE_DIR / 'media'
 AUTH_USER_MODEL = 'core.User'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -153,10 +190,21 @@ AUTHENTICATION_BACKENDS = [
 JSON_EXPORT_DIR = BASE_DIR / 'export'
 
 # Celery configuration
-# CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'redis://localhost:6379/0')
-CELERY_BROKER_URL = f'redis://default:{os.environ["REDIS_PASSWORD"]}@{os.environ["REMOTE_HOST"]}:6379/0'
+CELERY_BROKER_URL = os.environ.get('REDIS_URL', f'redis://default:{os.environ.get("REDIS_PASSWORD", "")}@{os.environ.get("REDIS_HOST", "localhost")}:6379/0')
 
-CELERY_RESULT_BACKEND = f'db+postgresql+psycopg2://postgres:{os.environ["POSTGRES_PASSWORD"]}@{os.environ["REMOTE_HOST"]}:5432/postgres'
+# If CELERY_RESULT_BACKEND is not specified, construct it using DATABASE_URL or POSTGRES host details
+if 'CELERY_RESULT_BACKEND' in os.environ:
+    CELERY_RESULT_BACKEND = os.environ['CELERY_RESULT_BACKEND']
+elif os.environ.get('DATABASE_URL'):
+    # Adapt postgres:// to db+postgresql+psycopg2:// for SQLAlchemy backend used by celery-results
+    db_url = os.environ['DATABASE_URL']
+    if db_url.startswith('postgres://'):
+        db_url = db_url.replace('postgres://', 'db+postgresql+psycopg2://', 1)
+    elif db_url.startswith('postgresql://'):
+        db_url = db_url.replace('postgresql://', 'db+postgresql+psycopg2://', 1)
+    CELERY_RESULT_BACKEND = db_url
+else:
+    CELERY_RESULT_BACKEND = f'db+postgresql+psycopg2://postgres:{os.environ.get("POSTGRES_PASSWORD", "")}@{os.environ.get("POSTGRES_HOST", "localhost")}:5432/postgres'
 CELERY_IMPORTS = ('core.tasks',)
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
