@@ -43,8 +43,10 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'core',
     'django_celery_results',
-    'naomi',
 ]
+
+if not USE_S3:
+    INSTALLED_APPS.append('naomi')
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -217,6 +219,10 @@ CELERY_IGNORE_RESULT = False
 CELERY_RESULT_EXTENDED = True
 ML_BACKEND_URL = os.environ['ML_BACKEND_URL']
 
-EMAIL_BACKEND = "naomi.mail.backends.naomi.NaomiBackend"
+if USE_S3:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+else:
+    EMAIL_BACKEND = "naomi.mail.backends.naomi.NaomiBackend"
+    EMAIL_FILE_PATH = os.path.join(BASE_DIR, 'tmp_emails')
+
 DEFAULT_FROM_EMAIL = 'noreply@campushub.local'
-EMAIL_FILE_PATH = os.path.join(BASE_DIR, 'tmp_emails')  
