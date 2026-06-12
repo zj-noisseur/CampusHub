@@ -46,7 +46,13 @@ INSTALLED_APPS = [
     'django_celery_results',
 ]
 
-if not USE_S3:
+try:
+    import naomi
+    HAS_NAOMI = True
+except ImportError:
+    HAS_NAOMI = False
+
+if not USE_S3 and HAS_NAOMI:
     INSTALLED_APPS.append('naomi')
 
 MIDDLEWARE = [
@@ -219,7 +225,7 @@ CELERY_IGNORE_RESULT = False
 CELERY_RESULT_EXTENDED = True
 ML_BACKEND_URL = os.environ['ML_BACKEND_URL']
 
-if USE_S3:
+if USE_S3 or not HAS_NAOMI:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 else:
     EMAIL_BACKEND = "naomi.mail.backends.naomi.NaomiBackend"
