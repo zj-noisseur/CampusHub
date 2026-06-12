@@ -221,10 +221,9 @@ class Club(models.Model):
             return timezone.make_aware(datetime(joined_at.year, 12, 31, 23, 59, 59))
         return None
 
-    def extend_validity(self):
-        """Extend club validity by exactly 1 year (365 days)."""
+    def extend_validity(self, years=1):
         now = timezone.now()
-        extension = timedelta(days=365)
+        extension = timedelta(days=365 * years)
         if self.valid_till and self.valid_till > now:
             self.valid_till += extension
         else:

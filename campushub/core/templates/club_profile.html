@@ -672,11 +672,14 @@
             const feedBtn = document.getElementById('tab-feed-btn');
             const membersBtn = document.getElementById('tab-members-btn');
             const committeeBtn = document.getElementById('tab-committee-btn');
+            const orgBtn = document.getElementById('tab-org-btn');
             
             const eventsContent = document.getElementById('tab-events-content');
             const feedContent = document.getElementById('tab-feed-content');
             const membersContent = document.getElementById('tab-members-content');
             const committeeContent = document.getElementById('tab-committee-content');
+            const orgContent = document.getElementById('tab-org-content');
+
 
             const safeSet = (el, value) => { if (el) el.className = value; };
             const safeAddHidden = (el) => { if (el && el.classList) el.classList.add('hidden'); };
