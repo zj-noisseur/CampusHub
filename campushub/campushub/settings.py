@@ -15,6 +15,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 load_dotenv()
+USE_S3 = os.environ.get('USE_S3', 'False') == 'True'
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -143,7 +144,6 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
-USE_S3 = os.environ.get('USE_S3', 'False') == 'True'
 
 if USE_S3:
     AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID')
