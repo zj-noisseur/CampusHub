@@ -23,6 +23,7 @@
 
 # 5. Re-ignore specific patterns inside the allowed folders
 **/.env
+**/.venv
 **/__pycache__/
 **/*.pyc
 **/media/
