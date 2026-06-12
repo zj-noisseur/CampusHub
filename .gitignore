@@ -18,6 +18,7 @@
 !campushub/core/
 !campushub/core/**
 !ml-backend/
+!ml-backend/**
 
 
 # 5. Re-ignore specific patterns inside the allowed folders
