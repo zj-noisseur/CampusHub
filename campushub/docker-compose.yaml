@@ -16,6 +16,8 @@ services:
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
       - AWS_STORAGE_BUCKET_NAME=${AWS_STORAGE_BUCKET_NAME}
       - USE_S3=True
+    networks:
+      - coolify
     restart: always
 
   celery_worker:
@@ -31,9 +33,11 @@ services:
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
       - AWS_STORAGE_BUCKET_NAME=${AWS_STORAGE_BUCKET_NAME}
       - USE_S3=True
+    networks:
+      - coolify
     restart: always
 
 networks:
-  default:
+  coolify:
     name: coolify
     external: true
