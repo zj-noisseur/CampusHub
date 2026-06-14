@@ -42,3 +42,41 @@ def generate_certificate_pdf(student_name, background_path, custom_x, custom_y, 
     buffer.seek(0)
     
     return buffer
+
+
+import base64
+from django.conf import settings
+
+def get_fernet():
+    try:
+        from cryptography.fernet import Fernet
+        # Derive a 32-byte key from settings.SECRET_KEY
+        # Ensure it is exactly 32 bytes and urlsafe base64 encoded
+        derived_key = settings.SECRET_KEY[:32].encode().ljust(32, b' ')
+        key = base64.urlsafe_b64encode(derived_key)
+        return Fernet(key)
+    except ImportError:
+        return None
+
+def encrypt_val(val):
+    if not val:
+        return ""
+    f = get_fernet()
+    if f:
+        return f.encrypt(val.encode()).decode()
+    # Fallback to simple base64 if cryptography is not installed
+    return base64.b64encode(val.encode()).decode()
+
+def decrypt_val(val):
+    if not val:
+        return ""
+    f = get_fernet()
+    if f:
+        try:
+            return f.decrypt(val.encode()).decode()
+        except Exception:
+            pass
+    try:
+        return base64.b64decode(val.encode()).decode()
+    except Exception:
+        return val

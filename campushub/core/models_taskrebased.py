@@ -174,6 +174,15 @@ class Club(models.Model):
     last_fetched_date = models.DateTimeField(null=True, blank=True)
     posts_count = models.PositiveIntegerField(default=0)
     renewal_policy = models.CharField(max_length=20, choices=RENEWAL_CHOICES, default='ROLLING')
+    encrypted_apify_api_key = models.TextField(blank=True, null=True)
+
+    def set_apify_api_key(self, raw_key):
+        from core.utils import encrypt_val
+        self.encrypted_apify_api_key = encrypt_val(raw_key)
+
+    def get_apify_api_key(self):
+        from core.utils import decrypt_val
+        return decrypt_val(self.encrypted_apify_api_key)
 
     @property
     def is_active(self):
