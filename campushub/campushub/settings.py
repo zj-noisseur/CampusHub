@@ -233,9 +233,16 @@ CELERY_RESULT_EXTENDED = True
 ML_BACKEND_URL = os.environ['ML_BACKEND_URL']
 
 if USE_S3 or not HAS_NAOMI:
-    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_HOST = 'smtp.resend.com'
+    EMAIL_PORT = 587
+    EMAIL_USE_TLS = True
+    EMAIL_HOST_USER = 'resend' 
+    EMAIL_HOST_PASSWORD = os.environ.get('RESEND_API_KEY')
+
+    DEFAULT_FROM_EMAIL = 'CampusHub <noreply@campushub.dev>'
 else:
     EMAIL_BACKEND = "naomi.mail.backends.naomi.NaomiBackend"
     EMAIL_FILE_PATH = os.path.join(BASE_DIR, 'tmp_emails')
 
-DEFAULT_FROM_EMAIL = 'noreply@campushub.local'
+    DEFAULT_FROM_EMAIL = 'CampusHub <noreply@campushub.local>'
