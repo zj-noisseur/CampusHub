@@ -59,23 +59,60 @@ def toggle_attended_status(request, event_id, prereg_id):
             
     return redirect('core:event_admin_dashboard', club_id=prereg.event.club.id, event_id=prereg.event.id)
 
+@login_required
+def manage_attendee_status(request, event_id, prereg_id, action):
+    prereg = get_object_or_404(PreRegisteredAttendee, id=prereg_id, event_id=event_id)
+
+    # Verify the user is a manager of the club
+    if not prereg.event.club.managers.filter(user=request.user, is_active=True).exists():
+        return redirect('core:feed')
+
+    if action == 'approve':
+        prereg.status = 'APPROVED'
+        prereg.save()
+    elif action == 'reject':
+        prereg.status = 'REJECTED'
+        prereg.save()
+    elif action == 'pending':
+        prereg.status = 'PENDING'
+        prereg.save()
+    elif action == 'remove':
+        prereg.delete()
+        return redirect('core:event_admin_dashboard', club_id=prereg.event.club.id, event_id=prereg.event.id)
+
+    return redirect('core:event_admin_dashboard', club_id=prereg.event.club.id, event_id=prereg.event.id)
+
 
 @login_required
 def my_events(request):
     user = request.user
-    
+
     my_registrations = PreRegisteredAttendee.objects.filter(
         Q(user=user) | Q(guest_email=user.email)
-    ).select_related('event', 'event__club').distinct().order_by('-event__event_date')
-    
+    ).select_related('event', 'event__club', 'event__post').order_by('-event__event_date')
+
     upcoming_events = []
     ongoing_events = []
     pending_events = []
     past_events = []
-    
+
     today = timezone.localdate()
-    
+
     for prereg in my_registrations:
+        # Guard: skip if the event was deleted (shouldn't happen with CASCADE but safety net)
+        if not prereg.event_id:
+            continue
+
+        # Pending (awaiting approval) goes to its own tab regardless of event status
+        if prereg.status == 'PENDING':
+            pending_events.append(prereg)
+            continue
+
+        # Rejected registrations — skip (don't show)
+        if prereg.status == 'REJECTED':
+            continue
+
+        # APPROVED registrations — sort by event status
         if prereg.event.status == 'FINISHED':
             past_events.append(prereg)
         elif prereg.event.status == 'ONGOING':
@@ -87,9 +124,9 @@ def my_events(request):
                 past_events.append(prereg)
             else:
                 upcoming_events.append(prereg)
-            
+
     attended_count = sum(1 for prereg in my_registrations if prereg.is_attended)
-    
+
     context = {
         'user': user,
         'upcoming_events': upcoming_events,
@@ -100,8 +137,9 @@ def my_events(request):
         'attended_count': attended_count,
         'today': today,
     }
-    
+
     return render(request, 'my_events.html', context)
+
 
 
 @login_required
@@ -179,6 +217,20 @@ def club_profile(request, club_id):
     
     approved_members = [m for m in club.members.all() if m.status in ['ACTIVE', 'APPROVED']]
 
+    committee_managers = (
+        club.managers.select_related('user')
+        .order_by('-assigned_date')
+    )
+    committee_year_map = {}
+    for manager in committee_managers:
+        year = manager.assigned_date.year if manager.assigned_date else 'Unknown'
+        committee_year_map.setdefault(year, []).append(manager)
+
+    committee_year_groups = [
+        {'year': year, 'members': members}
+        for year, members in sorted(committee_year_map.items(), reverse=True)
+    ]
+
     # Check if the logged-in user is in the managers
     is_manager = False
     user_membership = None
@@ -223,6 +275,7 @@ def club_profile(request, club_id):
         'total_events_count': total_events_count,
         'total_feed_count': total_feed_count,
         'approved_members': approved_members,
+        'committee_year_groups': committee_year_groups,
     }
     return render(request, 'club_profile.html', context)
 

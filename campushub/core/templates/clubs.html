@@ -45,8 +45,9 @@
                         <div class="list-col-grow px-4">
                             <h2 class="text-lg font-bold">{{club.name}}</h2>
                         </div>
-                        <div class="flex items-center">
+                        <div class="flex items-center gap-2">
                             <a href="{% url 'core:feed' %}?club={{ club.id }}" class="btn btn-primary">View posts</a>
+                            <a href="{% url 'core:club_profile' club.id %}" class="btn btn-outline">View profile</a>
                         </div>
                     </li>
                 {% empty %}

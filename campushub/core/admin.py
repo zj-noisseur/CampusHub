@@ -35,7 +35,12 @@ admin.site.register(Membership)
 
 # --- Post & Event Admins ---
 admin.site.register(Post)
-admin.site.register(Event)
+@admin.register(Event)
+class EventAdmin(admin.ModelAdmin):
+    list_display = ('title', 'club', 'event_date', 'status', 'join_mode')
+    list_filter = ('status', 'join_mode', 'club')
+    raw_id_fields = ('post', 'club')
+    search_fields = ('title', 'club__name')
 admin.site.register(Attendance)
 
 class PreRegisteredAttendeeAdmin(admin.ModelAdmin):

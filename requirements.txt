@@ -1,8 +1,0 @@
-django
-celery
-redis
-django-celery-results
-resend
-reportlab
-requests
-python-dotenv

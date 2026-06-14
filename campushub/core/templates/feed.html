@@ -119,9 +119,35 @@
                         {% endfor %}
                     </div>
                     <!-- Category Badge Over Image -->
-                    {% if post.category != 'MISC' %}
-                    <div class="absolute top-4 left-4">
+                    {% if post.category != 'MISC' or post.is_event or post.events %}
+                    <div class="absolute top-4 left-4 flex flex-col gap-2 items-start">
+                        {% if post.category != 'MISC' %}
                         <span class="badge badge-primary font-bold shadow-lg py-3 px-4 border-none">{{ post.get_category_display }}</span>
+                        {% endif %}
+                        
+                        {% if post.is_event or post.category != 'MISC' or post.events %}
+                        <span class="badge bg-base-100/90 text-base-content font-bold shadow-lg py-3 px-4 border-none backdrop-blur-sm">
+                            {% if post.events %}
+                                {% if post.events.join_mode == 'FREE' %}
+                                    Free to Join
+                                {% elif post.events.join_mode == 'REQUEST' %}
+                                    Request to Join
+                                {% elif post.events.join_mode == 'RSVP' %}
+                                    External RSVP
+                                {% elif post.events.join_mode == 'FEE' %}
+                                    Ticket required
+                                {% else %}
+                                    {{ post.events.get_join_mode_display }}
+                                {% endif %}
+                            {% else %}
+                                {% if post.extracted_details.link %}
+                                    External RSVP
+                                {% else %}
+                                    Free to Join
+                                {% endif %}
+                            {% endif %}
+                        </span>
+                        {% endif %}
                     </div>
                     {% endif %}
                 </figure>
@@ -142,70 +168,98 @@
                         </div>
                         
                         <div class="prose prose-sm max-w-none text-base-content/80 leading-relaxed">
-                            {% if post.is_event and post.category != 'MISC' and post.extracted_details %}
-                                <!-- GLANCEABLE VIEW (Extracted NER Data) -->
-                                <ul class="list-none p-0 m-0 space-y-2 mb-4 text-sm">
-                                    {% if post.extracted_details.date %}
-                                    <li class="flex items-start gap-2">
-                                        <span class="opacity-50">📅</span>
-                                        <span><strong class="text-base-content">Date:</strong> {{ post.extracted_details.date }}</span>
-                                    </li>
-                                    {% endif %}
-                                    
-                                    {% if post.extracted_details.venue %}
-                                    <li class="flex items-start gap-2">
-                                        <span class="opacity-50">📍</span>
-                                        <span><strong class="text-base-content">Venue:</strong> {{ post.extracted_details.venue }}</span>
-                                    </li>
-                                    {% endif %}
-                                    
-                                    {% if post.extracted_details.link %}
-                                    <li class="flex items-start gap-2">
-                                        <span class="opacity-50">🔗</span>
-                                        <a href="{{ post.extracted_details.link }}" class="text-primary font-bold hover:underline" target="_blank">Registration Link</a>
-                                    </li>
-                                    {% endif %}
-                                </ul>
-                                
-                                <!-- NATIVE HTML TOGGLE FOR FULL CAPTION -->
-                                <details class="group cursor-pointer">
-                                    <summary class="list-none text-xs font-bold uppercase tracking-wider text-primary hover:text-primary/80 transition-colors mb-2">
-                                        <span class="group-open:hidden">Read original caption ⌄</span>
-                                        <span class="hidden group-open:inline">Hide original caption ⌃</span>
-                                    </summary>
-                                    <div class="mt-2 pl-3 border-l-2 border-base-300 opacity-80 whitespace-pre-wrap">
-                                        {{ post.caption }}
+                            {% if post.is_event or post.category != 'MISC' %}
+                                <!-- Date & Location Grid -->
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4 not-prose">
+                                    <!-- Date Block -->
+                                    <div class="p-4 rounded-xl border border-base-200 bg-base-100 flex items-start gap-3">
+                                        <div class="w-10 h-10 bg-primary/10 text-primary rounded-lg flex items-center justify-center shrink-0">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                        </div>
+                                        <div>
+                                            <p class="font-bold text-base-content text-sm">
+                                                {% if post.events %}
+                                                    {{ post.events.event_date|date:"M d, Y" }}
+                                                {% else %}
+                                                    {{ post.extracted_details.date|default:"Date TBD" }}
+                                                {% endif %}
+                                            </p>
+                                            <p class="text-base-content/60 font-medium mt-0.5 text-xs">
+                                                {% if post.events %}
+                                                    {% if post.events.start_time %}
+                                                        {{ post.events.start_time|time:"g:i A" }}
+                                                    {% else %}
+                                                        Time TBD
+                                                    {% endif %}
+                                                {% elif post.extracted_details.time %}
+                                                    {{ post.extracted_details.time }}
+                                                {% else %}
+                                                    Time TBD
+                                                {% endif %}
+                                            </p>
+                                        </div>
                                     </div>
-                                </details>
+
+                                    <!-- Location Block -->
+                                    <div class="p-4 rounded-xl border border-base-200 bg-base-100 flex items-start gap-3">
+                                        <div class="w-10 h-10 bg-secondary/10 text-secondary rounded-lg flex items-center justify-center shrink-0">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                                        </div>
+                                        <div>
+                                            <p class="font-bold text-base-content text-sm">
+                                                {% if post.events %}
+                                                    {{ post.events.location|default:"Location TBD" }}
+                                                {% else %}
+                                                    {{ post.extracted_details.venue|default:"Location TBD" }}
+                                                {% endif %}
+                                            </p>
+                                            <p class="text-base-content/60 font-medium mt-0.5 text-xs">{{ post.club.institution.university_name }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {% if post.extracted_details.link %}
+                                <div class="mb-4 not-prose">
+                                    <a href="{{ post.extracted_details.link }}" target="_blank" class="btn btn-outline btn-primary btn-sm rounded-xl gap-2 w-full sm:w-auto">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+                                        Register / Join Event
+                                    </a>
+                                </div>
+                                {% endif %}
                             {% else %}
                                 {{ post.caption }}
                             {% endif %}
                         </div>
-                        {% if post.caption|length > 180 %}
-                        <div class="text-right -mt-2">
-                            <span class="text-xs font-bold text-primary cursor-pointer hover:underline" onclick="event_modal.showModal()" hx-get="{% if post.events %}{% url 'core:event_detail' post.events.id %}{% elif post.is_event or post.category != 'MISC' %}{% url 'core:event_detail_by_post' post.id %}{% else %}{% url 'core:post_detail' post.id %}{% endif %}" hx-target="#event_modal_content">...more</span>
-                        </div>
+                        
+                        {% if not post.is_event and post.category == 'MISC' %}
+                            {% if post.caption|length > 180 %}
+                            <div class="text-right -mt-2">
+                                <span class="text-xs font-bold text-primary cursor-pointer hover:underline" onclick="event_modal.showModal()" hx-get="{% if post.events %}{% url 'core:event_detail' post.events.id %}{% elif post.is_event or post.category != 'MISC' %}{% url 'core:event_detail_by_post' post.id %}{% else %}{% url 'core:post_detail' post.id %}{% endif %}" hx-target="#event_modal_content">...more</span>
+                            </div>
+                            {% endif %}
                         {% endif %}
 
-                        {% if post.events %}
-                        <div class="mt-4 p-4 bg-base-200/50 rounded-xl border border-base-200 flex items-center justify-between">
-                            <div>
-                                <p class="font-bold text-sm">{{ post.events.event_date|date:"D, M j, Y" }}</p>
-                                <p class="text-xs font-medium text-base-content/60 mt-1">
-                                    {% if post.events.start_time %}
-                                        {{ post.events.start_time|time:"g:i A" }} 
-                                        {% if post.events.end_time %}- {{ post.events.end_time|time:"g:i A" }}{% endif %}
-                                        {% if post.events.timezone %}({{ post.events.timezone }}){% endif %}
-                                    {% else %}
-                                        Time TBD
-                                    {% endif %}
-                                </p>
+                        {% if not post.is_event and post.category == 'MISC' %}
+                            {% if post.events %}
+                            <div class="mt-4 p-4 bg-base-200/50 rounded-xl border border-base-200 flex items-center justify-between">
+                                <div>
+                                    <p class="font-bold text-sm">{{ post.events.event_date|date:"D, M j, Y" }}</p>
+                                    <p class="text-xs font-medium text-base-content/60 mt-1">
+                                        {% if post.events.start_time %}
+                                            {{ post.events.start_time|time:"g:i A" }} 
+                                            {% if post.events.end_time %}- {{ post.events.end_time|time:"g:i A" }}{% endif %}
+                                            {% if post.events.timezone %}({{ post.events.timezone }}){% endif %}
+                                        {% else %}
+                                            Time TBD
+                                        {% endif %}
+                                    </p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-xs font-bold uppercase tracking-wider text-base-content/40">Location</p>
+                                    <p class="text-sm font-bold text-base-content/80">{{ post.events.location }}</p>
+                                </div>
                             </div>
-                            <div class="text-right">
-                                <p class="text-xs font-bold uppercase tracking-wider text-base-content/40">Location</p>
-                                <p class="text-sm font-bold text-base-content/80">{{ post.events.location }}</p>
-                            </div>
-                        </div>
+                            {% endif %}
                         {% endif %}
                     </div>
 

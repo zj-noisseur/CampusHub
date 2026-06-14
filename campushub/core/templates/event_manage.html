@@ -54,6 +54,9 @@
                         <a href="{% url 'core:download_certificates' event.id %}" class="btn btn-sm border-none bg-green-50 text-green-600 hover:bg-green-100 rounded-full px-4 font-medium">
                             🎓 Certificates
                         </a>
+                        <button onclick="openQRModal('{{ event.id|escapejs }}', '{{ event.title|escapejs }}')" class="btn btn-sm border-none bg-orange-50 text-orange-600 hover:bg-orange-100 rounded-full px-4 font-medium">
+                            📱 QR Check-in
+                        </button>
                         <div class="dropdown dropdown-end">
                             <label tabindex="0" class="btn btn-sm border-none 
                                 {% if event.status == 'FINISHED' %}bg-gray-900 text-white
@@ -99,8 +102,13 @@
                             <tr>
                                 <th class="py-4 pl-8">Attendee</th>
                                 <th>Student ID</th>
+                                <th>Join Status</th>
+                                {% if event.join_mode == 'FEE' %}
+                                <th>Receipt</th>
+                                {% endif %}
                                 <th>Cert. Status</th>
                                 <th class="pr-8">Attendance</th>
+                                <th class="pr-8 text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody class="text-sm">
@@ -119,6 +127,24 @@
                                 </td>
                                 <td class="font-mono text-gray-500">{{ prereg.user.student_id|default:"-" }}</td>
                                 <td>
+                                    {% if prereg.status == 'APPROVED' %}
+                                        <span class="badge badge-sm border-none bg-green-100 text-green-700 rounded-full px-3 py-2.5 font-medium">Approved</span>
+                                    {% elif prereg.status == 'PENDING' %}
+                                        <span class="badge badge-sm border-none bg-yellow-100 text-yellow-700 rounded-full px-3 py-2.5 font-medium">Pending</span>
+                                    {% elif prereg.status == 'REJECTED' %}
+                                        <span class="badge badge-sm border-none bg-red-100 text-red-700 rounded-full px-3 py-2.5 font-medium">Rejected</span>
+                                    {% endif %}
+                                </td>
+                                {% if event.join_mode == 'FEE' %}
+                                <td>
+                                    {% if prereg.receipt %}
+                                        <a href="{{ prereg.receipt.url }}" target="_blank" class="btn btn-xs btn-outline btn-primary rounded-full">View Receipt</a>
+                                    {% else %}
+                                        <span class="text-xs text-gray-400">No Receipt</span>
+                                    {% endif %}
+                                </td>
+                                {% endif %}
+                                <td>
                                     <a href="{% url 'core:toggle_ready_status' event.id prereg.id %}" 
                                        class="badge badge-sm border-none {% if prereg.is_ready %}bg-green-100 text-green-700{% else %}bg-gray-100 text-gray-400{% endif %} rounded-full px-3 py-2.5 font-medium hover:opacity-70 transition-all">
                                         {% if prereg.is_ready %}Ready{% else %}Unready{% endif %}
@@ -129,6 +155,23 @@
                                        class="badge badge-sm border-none {% if prereg.is_attended %}bg-blue-600 text-white{% else %}bg-gray-100 text-gray-400{% endif %} rounded-full px-3 py-2.5 font-medium hover:opacity-70 transition-all">
                                         {% if prereg.is_attended %}Present{% else %}Absent{% endif %}
                                     </a>
+                                </td>
+                                <td class="pr-8 text-right">
+                                    <div class="dropdown dropdown-end">
+                                        <div tabindex="0" role="button" class="btn btn-ghost btn-xs btn-circle"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path></svg></div>
+                                        <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-44">
+                                            {% if prereg.status != 'APPROVED' %}
+                                            <li><a href="{% url 'core:manage_attendee_status' event.id prereg.id 'approve' %}" class="text-success font-semibold">✓ Approve</a></li>
+                                            {% endif %}
+                                            {% if prereg.status != 'REJECTED' %}
+                                            <li><a href="{% url 'core:manage_attendee_status' event.id prereg.id 'reject' %}" class="text-warning font-semibold">✕ Reject</a></li>
+                                            {% endif %}
+                                            {% if prereg.status != 'PENDING' %}
+                                            <li><a href="{% url 'core:manage_attendee_status' event.id prereg.id 'pending' %}" class="text-info font-semibold">⏳ Pending</a></li>
+                                            {% endif %}
+                                            <li class="border-t border-base-200 mt-1 pt-1"><a href="{% url 'core:manage_attendee_status' event.id prereg.id 'remove' %}" class="text-error font-semibold" onclick="return confirm('Are you sure you want to remove this attendee?')">🗑 Remove</a></li>
+                                        </ul>
+                                    </div>
                                 </td>
                             </tr>
                             {% empty %}
@@ -367,48 +410,67 @@
         let qrGenerator = null;
         let qrInterval = null;
 
-        function generateUniqueQR(eventId) {
+        async function generateUniqueQR(eventId) {
             const qrContainer = document.getElementById('qrcode');
-            qrContainer.innerHTML = '';
+            qrContainer.innerHTML = '<div class="text-gray-400 text-sm py-8">Generating Secure QR...</div>';
             
-            // qr content
-            const timestamp = Date.now();
-            const randomStr = Math.random().toString(36).substring(2, 8).toUpperCase();
-            const uniqueToken = `CH_${eventId}_${timestamp}_${randomStr}`;
-            
-            //generate qr code
-            new QRCode(qrContainer, {
-                text: uniqueToken,
-                width: 200,
-                height: 200,
-                colorDark : "#000000",
-                colorLight : "#ffffff",
-                correctLevel : QRCode.CorrectLevel.H
-            });
-            
-            console.log("Generated New QR:", uniqueToken);
+            try {
+                const response = await fetch(`/event/${eventId}/generate-qr-token/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    body: JSON.stringify({ action: 'generate' })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.status === 'generated' && data.token) {
+                        qrContainer.innerHTML = '';
+                        const checkinUrl = `${window.location.origin}/event/${eventId}/checkin/${data.token}/`;
+                        
+                        new QRCode(qrContainer, {
+                            text: checkinUrl,
+                            width: 200,
+                            height: 200,
+                            colorDark : "#000000",
+                            colorLight : "#ffffff",
+                            correctLevel : QRCode.CorrectLevel.H
+                        });
+                        console.log("Generated New Secure QR:", data.token);
+                    }
+                } else {
+                    qrContainer.innerHTML = '<div class="text-red-500 text-sm py-8">Failed to generate QR. Ensure you have permission.</div>';
+                }
+            } catch (error) {
+                console.error("Error generating QR:", error);
+                qrContainer.innerHTML = '<div class="text-red-500 text-sm py-8">Network error.</div>';
+            }
         }
 
         function openQRModal(eventId, eventTitle) {
+            currentEventId = eventId;
             document.getElementById('qr_event_title').innerText = eventTitle;
             
-            //generate 
+            // generate secure QR
             generateUniqueQR(eventId);
-            
-            //refresh every 10 seconds
-            if (qrInterval) clearInterval(qrInterval);
-            qrInterval = setInterval(() => {
-                generateUniqueQR(eventId);
-            }, 10000);
             
             document.getElementById('qr_modal').showModal();
         }
 
         // Close interval when modal is closed
         document.getElementById('qr_modal').addEventListener('close', () => {
-            if (qrInterval) {
-                clearInterval(qrInterval);
-                qrInterval = null;
+            if (currentEventId) {
+                // Clear the token securely
+                fetch(`/event/${currentEventId}/generate-qr-token/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    body: JSON.stringify({ action: 'clear' })
+                }).catch(err => console.error(err));
             }
         });
 

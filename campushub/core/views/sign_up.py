@@ -21,15 +21,22 @@ def sign_up(request):
             # 2. Build the activation email
             current_site = get_current_site(request)
             subject = 'Activate your CampusHub Account'
-            message = render_to_string('activation_email.html', {
+            html_message = render_to_string('activation_email.html', {
                 'user': user,
                 'domain': current_site.domain,
+                'protocol': request.scheme,
                 'uid': urlsafe_base64_encode(force_bytes(user.pk)),
                 'token': default_token_generator.make_token(user),
             })
             
-            # 3. Send it (this will print to your terminal right now)
-            send_mail(subject, message, 'noreply@campushub.local', [user.email])
+            # 3. Send it 
+            send_mail(
+                subject=subject, 
+                message="Please view this email in an HTML compatible client.", 
+                from_email='noreply@campushub.local', 
+                recipient_list=[user.email],
+                html_message=html_message 
+            )
             
             # 4. Send them to a "Check your email" screen
             return render(request, 'activation_sent.html')

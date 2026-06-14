@@ -1,0 +1,94 @@
+<tr id="post-row-{{ post.id }}" data-club-id="{{ post.club.id }}">
+    <td class="font-semibold">{{ post.club.name }}</td>
+    <td>
+        <div class="text-xs opacity-50 mb-1">ID: {{ post.short_code }}</div>
+        <div class="text-sm line-clamp-3" title="{{ post.caption }}">{{ post.caption|truncatechars:150|default:"No caption provided." }}</div>
+    </td>
+    <td class="whitespace-nowrap">{{ post.timestamp|date:"M d, Y" }}</td>
+    <td>
+        <!-- Display Extracted Details Badges -->
+        <div class="flex flex-wrap gap-1.5 max-w-md">
+            {% if post.extracted_details and post.extracted_details.date or post.extracted_details.venue or post.extracted_details.time or post.extracted_details.link %}
+                {% if post.extracted_details.date %}
+                    <span class="badge badge-sm badge-success gap-1 text-[10px] font-medium" title="{{ post.extracted_details.date }}">
+                        📅 {{ post.extracted_details.date|truncatechars:20 }}
+                    </span>
+                {% endif %}
+                {% if post.extracted_details.time %}
+                    <span class="badge badge-sm badge-info gap-1 text-[10px] font-medium" title="{{ post.extracted_details.time }}">
+                        ⏰ {{ post.extracted_details.time|truncatechars:20 }}
+                    </span>
+                {% endif %}
+                {% if post.extracted_details.venue %}
+                    <span class="badge badge-sm badge-warning gap-1 text-[10px] font-medium" title="{{ post.extracted_details.venue }}">
+                        📍 {{ post.extracted_details.venue|truncatechars:25 }}
+                    </span>
+                {% endif %}
+                {% if post.extracted_details.link %}
+                    <a href="{{ post.extracted_details.link }}" target="_blank" class="badge badge-sm badge-primary gap-1 text-[10px] font-bold hover:underline" title="{{ post.extracted_details.link }}">
+                        🔗 Link
+                    </a>
+                {% endif %}
+            {% else %}
+                <span class="badge badge-sm badge-ghost text-[10px] font-medium opacity-50">Pending Extraction</span>
+            {% endif %}
+        </div>
+    </td>
+    <td>
+        <!-- Integrated Extraction Action Dropdown -->
+        <div class="dropdown dropdown-bottom dropdown-end">
+            <div tabindex="0" role="button" class="btn btn-sm gap-2 border-base-300 bg-base-100 hover:bg-base-200 
+                {% if post.extracted_details and post.extracted_details.date or post.extracted_details.venue or post.extracted_details.time or post.extracted_details.link %}
+                    text-success border-success/20
+                {% else %}
+                    text-base-content/70
+                {% endif %}">
+                
+                <span class="w-2 h-2 rounded-full 
+                    {% if post.extracted_details and post.extracted_details.date or post.extracted_details.venue or post.extracted_details.time or post.extracted_details.link %}
+                        bg-success
+                    {% else %}
+                        bg-base-300
+                    {% endif %}"></span>
+                
+                {% if post.extracted_details and post.extracted_details.date or post.extracted_details.venue or post.extracted_details.time or post.extracted_details.link %}
+                    Extracted
+                {% else %}
+                    Pending
+                {% endif %}
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-down opacity-50"><path d="m6 9 6 6 6-6"/></svg>
+                
+                <!-- Progress Indicator for the whole row -->
+                <span class="htmx-indicator loading loading-spinner loading-xs ml-1" id="row-spinner-{{ post.id }}"></span>
+            </div>
+            <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow-lg bg-base-100 rounded-box w-56 border border-base-200 mt-1">
+                <li class="menu-title">Actions</li>
+                <li>
+                    <a hx-post="{% url 'core:admin_extract_post_details' post.id %}" 
+                       hx-target="#post-row-{{ post.id }}" 
+                       hx-swap="outerHTML"
+                       hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                       hx-indicator="#row-spinner-{{ post.id }}"
+                       class="text-primary font-bold">
+                        Auto-Extract Details
+                    </a>
+                </li>
+                <li>
+                    <a hx-post="{% url 'core:admin_revert_post_extraction' post.id %}" 
+                       hx-target="#post-row-{{ post.id }}" 
+                       hx-swap="outerHTML"
+                       hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                       hx-indicator="#row-spinner-{{ post.id }}"
+                       class="text-error">
+                        Clear Details
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </td>
+    <td>
+        <a href="https://instagram.com/p/{{ post.short_code }}/" target="_blank" class="btn btn-sm btn-square btn-ghost" title="View on Instagram">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-external-link"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+        </a>
+    </td>
+</tr>

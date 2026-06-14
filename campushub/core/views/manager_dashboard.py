@@ -1,9 +1,14 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from core.models import Club, Membership
+from core.models import Club, Membership, Post, User
 from datetime import date
 from django.utils import timezone
+from django.contrib.auth.hashers import make_password
+import csv
+import io
+import random
+import string
 
 @login_required
 def manager_dashboard(request, club_id):
@@ -20,8 +25,11 @@ def manager_dashboard(request, club_id):
     # Get all the students who have applied or joined this club
     memberships = Membership.objects.filter(club=my_club)
 
-    approved_members = memberships.filter(status='APPROVED')
+    approved_members = memberships.filter(status__in=['APPROVED', 'Member'])
     pending_members = memberships.filter(status='PENDING')
+    
+    # Get event posts for metadata editing
+    event_posts = Post.objects.filter(club=my_club, is_event=True).select_related('events').order_by('-timestamp')
     
     context = {
         'club': my_club,
@@ -29,6 +37,7 @@ def manager_dashboard(request, club_id):
         'pending_members': pending_members,
         'total_members': approved_members.count(),
         'pending_requests': pending_members.count(),
+        'event_posts': event_posts,
     }
     
     return render(request, 'manager_dashboard.html', context)
@@ -75,7 +84,115 @@ def extend_club_validity(request, club_id):
         return redirect('core:manager_dashboard', club_id=club.id)
 
     if request.method == 'POST':
+        if not club.can_extend:
+            messages.warning(request, f'Club validity cannot be extended yet — {club.days_remaining} days still remaining (must be 30 or fewer).')
+            return redirect('core:manager_dashboard', club_id=club.id)
         club.extend_validity()
         messages.success(request, f'{club.name} validity extended to {club.valid_till.strftime("%b %d, %Y")}')
 
     return redirect('core:manager_dashboard', club_id=club.id)
+
+
+
+@login_required
+def update_post_extracted_details(request, club_id, post_id):
+    club = get_object_or_404(Club, id=club_id)
+    
+    if not club.managers.filter(user=request.user).exists():
+        messages.error(request, 'You do not have permission to manage this club.')
+        return redirect('core:profile')
+        
+    post = get_object_or_404(Post, id=post_id, club=club)
+    
+    if request.method == 'POST':
+        date_val = request.POST.get('custom_date') or request.POST.get('date_choice')
+        venue_val = request.POST.get('custom_venue') or request.POST.get('venue_choice')
+        link_val = request.POST.get('custom_link') or request.POST.get('link_choice')
+        
+        date_val = (date_val or '').strip()
+        venue_val = (venue_val or '').strip()
+        link_val = (link_val or '').strip()
+        
+        details = post.extracted_details or {}
+        details['date'] = date_val
+        details['venue'] = venue_val
+        details['link'] = link_val
+        post.extracted_details = details
+        post.save(update_fields=['extracted_details'])
+        
+        if hasattr(post, 'events'):
+            event = post.events
+            from core.views.event_detail import parse_date
+            new_date = parse_date(date_val)
+            if new_date:
+                event.event_date = new_date
+            event.location = venue_val
+            event.save()
+            
+        messages.success(request, 'Event details successfully updated!')
+        
+    return redirect('core:manager_dashboard', club_id=club.id)
+
+def import_members(request, club_id):
+    club = get_object_or_404(Club, id=club_id)
+    
+    if request.method == 'POST':
+        csv_file = request.FILES.get('csv_file')
+        
+        # 1. THE BOUNCER: Make sure it's actually a CSV!
+        if not csv_file or not csv_file.name.endswith('.csv'):
+            messages.error(request, "Oops! Please make sure you uploaded a .csv file.")
+            return redirect('core:manager_dashboard', club_id=club.id)
+            
+        # 2. Crack open the file in memory
+        data_set = csv_file.read().decode('UTF-8')
+        io_string = io.StringIO(data_set)
+        
+        # Skip the header row (StudentID, FullName, PhoneNumber, Faculty, Email)
+        next(io_string, None) 
+        
+        success_count = 0
+        ghost_count = 0
+        
+        # 3. Loop through the rows
+        for row in csv.reader(io_string, delimiter=',', quotechar='"'):
+            if len(row) < 2:
+                continue # Skip empty or broken rows
+                
+            student_id_csv = row[0].strip()
+            full_name_csv = row[1].strip()
+
+            email_csv = row[4].strip() if len(row) > 4 else ""
+            if not email_csv:
+                email_csv = f"{student_id_csv}@pending.campushub.local"
+            
+            # Check if user exists. If not, create the Ghost Profile!
+            user, created = User.objects.get_or_create(
+                student_id=student_id_csv,
+                defaults={
+                    'student_name': full_name_csv,
+                    'email': email_csv,
+                    'is_active': False, # So they can't log in yet!
+                }
+            )
+            
+            if created:
+                # Give the ghost a random, unguessable password
+                random_pass = ''.join(random.choices(string.ascii_letters + string.digits, k=16))
+                user.password = make_password(random_pass)
+                user.save()
+                ghost_count += 1
+                
+            # 4. Add them to the club (whether real or ghost)
+            Membership.objects.get_or_create(
+                user=user,
+                club=club,
+                defaults={'status': 'APPROVED'}
+            )
+            success_count += 1
+            
+        messages.success(request, f"Import complete! Added {success_count} members ({ghost_count} are pending registration).")
+        return redirect('core:manager_dashboard', club_id=club.id)
+
+    # If it's a GET request, just show the upload form page
+    return render(request, 'import_members.html', {'club': club})

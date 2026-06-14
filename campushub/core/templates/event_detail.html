@@ -6,13 +6,13 @@
 </style>
 
 <div class="max-w-5xl mx-auto px-4 sm:px-6 py-12 grid grid-cols-1 lg:grid-cols-12 gap-16 relative">
-
+    
     <!-- LEFT COLUMN: The Sticky A4 Poster -->
     <div class="lg:col-span-5 relative">
         <div class="sticky top-28 w-full">
             <div class="w-full aspect-a4 rounded-2xl overflow-hidden shadow-2xl border border-base-200 bg-base-100">
-                {% if event.post.images.first %}
-                <img src="{{ event.post.images.first.image.url }}" alt="{{ event.title }} Poster" class="w-full h-full object-cover">
+                {% if event.post.postimage_set.first %}
+                <img src="{{ event.post.postimage_set.first.image.url }}" alt="{{ event.title }} Poster" class="w-full h-full object-cover">
                 {% else %}
                 <div class="w-full h-full bg-base-200 flex items-center justify-center text-base-content/30">
                     <svg class="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
@@ -56,7 +56,15 @@
                 </div>
                 <div>
                     <p class="font-bold text-base-content text-lg">{{ event.event_date|date:"D, M j" }}</p>
-                    <p class="text-base-content/60 font-medium mt-0.5 text-sm">{{ event.event_date|date:"Y" }}</p>
+                    <p class="text-base-content/60 font-medium mt-0.5 text-sm">
+                        {% if event.start_time %}
+                            {{ event.start_time|time:"g:i A" }} 
+                            {% if event.end_time %}- {{ event.end_time|time:"g:i A" }}{% endif %}
+                            {% if event.timezone %}({{ event.timezone }}){% endif %}
+                        {% else %}
+                            {{ event.event_date|date:"Y" }}
+                        {% endif %}
+                    </p>
                 </div>
             </div>
 
@@ -71,96 +79,125 @@
             </div>
         </div>
 
-        <!-- NEW: The Luma/Partiful RSVP Block -->
+        <!-- The RSVP / Registration Block -->
         <div class="p-6 rounded-[24px] border border-base-200 bg-base-100 shadow-md mt-2 relative overflow-hidden">
-            {% if event.fee > 0 %}
-            <!-- Priced Join Logic -->
-            <div class="mb-5 flex justify-between items-start">
-                <div>
-                    <h3 class="font-bold text-2xl text-base-content tracking-tight">Tickets</h3>
-                    {% if event.capacity %}
-                    <p class="text-base-content/60 text-sm mt-1 font-medium flex items-center gap-2">
-                        <span class="w-2 h-2 rounded-full bg-error animate-pulse"></span>
-                        Capacity: {{ event.capacity }} spots remaining
-                    </p>
-                    {% endif %}
-                </div>
-            </div>
-
-            <div class="p-4 border border-base-200 bg-base-200/30 rounded-xl mb-6 hover:border-base-300 transition group">
-                <div class="flex justify-between items-start mb-1">
-                    <p class="font-bold text-base-content">General Admission</p>
-                    <p class="font-extrabold text-lg text-base-content">RM {{ event.fee }}</p>
-                </div>
-                <p class="text-sm text-base-content/50 font-medium">{% if event.registration_deadline %}Sales end on {{ event.registration_deadline|date:"M d" }}{% else %}Limited availability{% endif %}</p>
-            </div>
-            <button class="w-full btn btn-neutral btn-lg rounded-xl text-[16px] shadow-md flex justify-center items-center gap-2">
-                Get Tickets
-            </button>
-            <p class="text-center text-[12px] text-base-content/40 mt-4 font-medium flex items-center justify-center gap-1">
-                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
-                Secure Checkout
-            </p>
-            
-            {% elif event.requires_approval %}
-            <!-- Free (Requires Approval) Logic -->
-            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-secondary to-accent"></div>
+            {% if event.is_finished %}
+            <!-- Event Finished Logic -->
+            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-base-300 to-base-content/30"></div>
             <div class="mb-5 flex justify-between items-start pt-2">
                 <div>
-                    <h3 class="font-bold text-2xl text-base-content tracking-tight">Join the Guestlist</h3>
-                    {% if event.capacity %}
+                    <h3 class="font-bold text-2xl text-base-content tracking-tight">Event Finished</h3>
                     <p class="text-base-content/60 text-sm mt-1 font-medium flex items-center gap-2">
-                        <span class="w-2 h-2 rounded-full bg-success animate-pulse"></span>
-                        Capacity: {{ event.capacity }} spots remaining
+                        This event has concluded.
                     </p>
-                    {% endif %}
                 </div>
             </div>
+            <button class="w-full btn btn-disabled btn-lg rounded-xl text-[16px] shadow-md flex justify-center items-center gap-2">
+                Event Finished
+            </button>
 
-            <div class="mb-5 bg-base-200/50 p-4 rounded-xl border border-base-200">
-                <label class="block text-sm font-bold text-base-content mb-2">Student ID (Optional)</label>
-                <input type="text" placeholder="e.g. 1211100000" class="input input-bordered w-full bg-base-100 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition">
-            </div>
-
-            <div class="flex flex-col gap-3">
-                <button class="w-full btn btn-neutral btn-lg rounded-xl text-[16px] shadow-md">
-                    Request to Join
-                </button>
-                <div class="flex gap-3">
-                    <button class="flex-1 btn btn-ghost bg-base-200 hover:bg-base-300 rounded-xl text-base-content font-bold shadow-sm text-sm border-base-300">
-                        🤔 Maybe
-                    </button>
-                    <button class="flex-1 btn btn-ghost bg-base-200 hover:bg-base-300 rounded-xl text-base-content font-bold shadow-sm text-sm border-base-300">
-                        🙅♂️ Can't Go
-                    </button>
-                </div>
-            </div>
-            <p class="text-center text-[11px] text-base-content/40 mt-4 uppercase tracking-wider font-semibold">The host must approve your request.</p>
-
-            {% else %}
-            <!-- Straight Free Logic -->
-            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-success to-info"></div>
+            {% elif event.extracted_details.link %}
+            <!-- External Registration Link Logic -->
+            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-secondary"></div>
             <div class="mb-5 flex justify-between items-start pt-2">
                 <div>
                     <h3 class="font-bold text-2xl text-base-content tracking-tight">Registration</h3>
-                    {% if event.capacity %}
-                    <p class="text-base-content/60 text-sm mt-1 font-medium flex items-center gap-2">
-                        <span class="w-2 h-2 rounded-full bg-success animate-pulse"></span>
-                        Capacity: {{ event.capacity }} spots remaining
+                    <p class="text-base-content/60 text-sm mt-1 font-medium">
+                        This event uses an external registration platform.
                     </p>
-                    {% endif %}
                 </div>
             </div>
+            <a href="{{ event.extracted_details.link }}" target="_blank" rel="noopener noreferrer" 
+               class="w-full btn btn-primary btn-lg rounded-xl text-[16px] shadow-md flex justify-center items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                Register / RSVP External Link
+            </a>
+            <p class="text-center text-[11px] text-base-content/40 mt-4 uppercase tracking-wider font-semibold">Will open in a new tab.</p>
 
-            <div class="mb-5 bg-base-200/50 p-4 rounded-xl border border-base-200">
-                <label class="block text-sm font-bold text-base-content mb-2">Student ID (Optional)</label>
-                <input type="text" placeholder="e.g. 1211100000" class="input input-bordered w-full bg-base-100 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition">
-            </div>
+            {% else %}
 
-            <button class="w-full btn btn-neutral btn-lg rounded-xl text-[16px] shadow-md flex justify-center items-center gap-2">
-                Join Event
-            </button>
-            <p class="text-center text-[11px] text-base-content/40 mt-4 uppercase tracking-wider font-semibold">Open to everyone. Reserve your spot!</p>
+                {% if event.fee > 0 %}
+                <!-- Priced Join Logic -->
+                <div class="mb-5 flex justify-between items-start">
+                    <div>
+                        <h3 class="font-bold text-2xl text-base-content tracking-tight">Tickets</h3>
+                        {% if event.capacity %}
+                        <p class="text-base-content/60 text-sm mt-1 font-medium flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-error animate-pulse"></span>
+                            Capacity: {{ event.capacity }} spots remaining
+                        </p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="p-4 border border-base-200 bg-base-200/30 rounded-xl mb-6 hover:border-base-300 transition group">
+                    <div class="flex justify-between items-start mb-1">
+                        <p class="font-bold text-base-content">General Admission</p>
+                        <p class="font-extrabold text-lg text-base-content">RM {{ event.fee }}</p>
+                    </div>
+                    <p class="text-sm text-base-content/50 font-medium">{% if event.registration_deadline %}Sales end on {{ event.registration_deadline|date:"M d" }}{% else %}Limited availability{% endif %}</p>
+                </div>
+                <button class="w-full btn btn-neutral btn-lg rounded-xl text-[16px] shadow-md flex justify-center items-center gap-2">
+                    Get Tickets
+                </button>
+                <p class="text-center text-[12px] text-base-content/40 mt-4 font-medium flex items-center justify-center gap-1">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                    Secure Checkout
+                </p>
+                
+                {% elif event.requires_approval %}
+                <!-- Free (Requires Approval) Logic -->
+                <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-secondary to-accent"></div>
+                <div class="mb-5 flex justify-between items-start pt-2">
+                    <div>
+                        <h3 class="font-bold text-2xl text-base-content tracking-tight">Join the Guestlist</h3>
+                        {% if event.capacity %}
+                        <p class="text-base-content/60 text-sm mt-1 font-medium flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-success animate-pulse"></span>
+                            Capacity: {{ event.capacity }} spots remaining
+                        </p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="mb-5 bg-base-200/50 p-4 rounded-xl border border-base-200">
+                    <label class="block text-sm font-bold text-base-content mb-2">Student ID</label>
+                    <input type="text" value="{{ request.user.student_id|default:'' }}" readonly class="input input-bordered w-full bg-base-100/50 text-base-content/70 rounded-lg cursor-not-allowed">
+                </div>
+
+                <div class="flex flex-col gap-3">
+                    <button class="w-full btn btn-neutral btn-lg rounded-xl text-[16px] shadow-md">
+                        Request to Join
+                    </button>
+                </div>
+                <p class="text-center text-[11px] text-base-content/40 mt-4 uppercase tracking-wider font-semibold">The host must approve your request.</p>
+
+                {% else %}
+                <!-- Straight Free Logic -->
+                <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-success to-info"></div>
+                <div class="mb-5 flex justify-between items-start pt-2">
+                    <div>
+                        <h3 class="font-bold text-2xl text-base-content tracking-tight">Registration</h3>
+                        {% if event.capacity %}
+                        <p class="text-base-content/60 text-sm mt-1 font-medium flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-success animate-pulse"></span>
+                            Capacity: {{ event.capacity }} spots remaining
+                        </p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="mb-5 bg-base-200/50 p-4 rounded-xl border border-base-200">
+                    <label class="block text-sm font-bold text-base-content mb-2">Student ID</label>
+                    <input type="text" value="{{ request.user.student_id|default:'' }}" readonly class="input input-bordered w-full bg-base-100/50 text-base-content/70 rounded-lg cursor-not-allowed">
+                </div>
+
+                <button class="w-full btn btn-neutral btn-lg rounded-xl text-[16px] shadow-md flex justify-center items-center gap-2">
+                    Join Event
+                </button>
+                <p class="text-center text-[11px] text-base-content/40 mt-4 uppercase tracking-wider font-semibold">Open to everyone. Reserve your spot!</p>
+                {% endif %}
+            
             {% endif %}
         </div>
 
@@ -168,13 +205,25 @@
 
         <!-- Social Proof -->
         <div class="flex items-center gap-4">
+            {% if attendance_count > 0 %}
             <div class="flex -space-x-3">
-                <div class="w-10 h-10 rounded-full bg-primary text-primary-content border-2 border-base-100 shadow-sm flex items-center justify-center font-bold text-xs">A</div>
-                <div class="w-10 h-10 rounded-full bg-secondary text-secondary-content border-2 border-base-100 shadow-sm flex items-center justify-center font-bold text-xs">B</div>
-                <div class="w-10 h-10 rounded-full bg-accent text-accent-content border-2 border-base-100 shadow-sm flex items-center justify-center font-bold text-xs">C</div>
-                <div class="w-10 h-10 rounded-full bg-base-200 text-base-content/60 border-2 border-base-100 shadow-sm flex items-center justify-center font-bold text-xs">+{{ attendance_count|default:"0" }}</div>
+                {% for attendee in recent_attendees %}
+                {% if attendee.user.profile_picture %}
+                <img src="{{ attendee.user.profile_picture.url }}" class="w-10 h-10 rounded-full border-2 border-base-100 shadow-sm object-cover" alt="{{ attendee.user.student_name }}">
+                {% else %}
+                <div class="w-10 h-10 rounded-full bg-primary text-primary-content border-2 border-base-100 shadow-sm flex items-center justify-center font-bold text-xs uppercase">
+                    {{ attendee.user.student_name|make_list|first|default:"U" }}
+                </div>
+                {% endif %}
+                {% endfor %}
+                {% if attendance_count > 3 %}
+                <div class="w-10 h-10 rounded-full bg-base-200 text-base-content/60 border-2 border-base-100 shadow-sm flex items-center justify-center font-bold text-xs">+{{ attendance_count|add:"-3" }}</div>
+                {% endif %}
             </div>
-            <p class="text-base-content/70 font-medium">{{ attendance_count|add:"3" }} people are attending</p>
+            {% endif %}
+            <p class="text-base-content/70 font-medium">
+                {{ attendance_count }} {% if attendance_count == 1 %}person is{% else %}people are{% endif %} attending
+            </p>
         </div>
 
         <!-- About Section -->
@@ -182,7 +231,6 @@
             <h2 class="text-2xl font-bold text-base-content mb-4">About this event</h2>
             <p class="whitespace-pre-wrap">{{ event.post.caption }}</p>
         </div>
-
     </div>
 
 </div>
