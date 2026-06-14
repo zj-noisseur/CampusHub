@@ -208,6 +208,12 @@ class ProfileUpdateForm(forms.ModelForm):
 
 
 class ClubSettingsForm(forms.ModelForm):
+    apify_api_key = forms.CharField(
+        required=False,
+        widget=forms.PasswordInput(render_value=True, attrs={'class': 'input input-bordered w-full', 'placeholder': 'Enter your Apify API key...'}),
+        label="Apify API Key"
+    )
+
     class Meta:
         model = Club
         fields = [
@@ -241,6 +247,11 @@ class ClubSettingsForm(forms.ModelForm):
             'renewal_policy': forms.Select(attrs={'class': 'select select-bordered w-full max-w-xs'}),
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk:
+            self.fields['apify_api_key'].initial = self.instance.get_apify_api_key()
+
     def clean(self):
         cleaned_data = super().clean()
         social_fields = [
@@ -254,6 +265,15 @@ class ClubSettingsForm(forms.ModelForm):
                 cleaned_data[field] = 'https://' + value
         
         return cleaned_data
+
+    def save(self, commit=True):
+        club = super().save(commit=False)
+        raw_key = self.cleaned_data.get('apify_api_key')
+        club.set_apify_api_key(raw_key)
+        if commit:
+            club.save()
+        return club
+
 
 
 class EventCreationForm(forms.ModelForm):

@@ -114,12 +114,16 @@ def process_club_dataset(club, dataset, full_sync=False, task=None):
 
 @shared_task(bind=True)
 def run_club_scrape_task(self, club_id, search_limit=20, max_items=50, export_dir=None, full_sync=False, only_posts_newer_than=None):
-    club = Club.objects.filter(id=club_id).only('id', 'ig_handle', 'name').first()
+    club = Club.objects.filter(id=club_id).first()
     if not club:
         raise ValueError('Club not found')
 
     if not club.ig_handle:
         raise ValueError('Club does not have an Instagram handle')
+
+    apify_key = club.get_apify_api_key()
+    if not apify_key:
+        raise ValueError('Apify API Key is not configured for this club.')
 
     if only_posts_newer_than is None:
         latest_timestamp = club.posts.order_by('-timestamp').values_list('timestamp', flat=True).first()
@@ -143,6 +147,7 @@ def run_club_scrape_task(self, club_id, search_limit=20, max_items=50, export_di
         max_items=max_items,
         export_dir=export_dir,
         only_posts_newer_than=only_posts_newer_than,
+        apify_api_key=apify_key,
     )
 
     write_task = persist_club_dataset.apply_async(

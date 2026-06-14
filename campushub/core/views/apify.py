@@ -64,7 +64,7 @@ def run_actor_sync(actorId, input_payload, timeout=300, memory=None, max_items=N
     else:
         raise Exception(f"Failed to run actor: {response.status_code} - {response.text}")
 
-def run_actor_sync_get_dataset_items(actorId, input_payload, timeout=None, memory=None, max_items=None, max_total_charge_usd=None, format="json", clean=False, offset=0, limit=None, fields=None, omit=None):
+def run_actor_sync_get_dataset_items(actorId, input_payload, timeout=None, memory=None, max_items=None, max_total_charge_usd=None, format="json", clean=False, offset=0, limit=None, fields=None, omit=None, apify_api_key=None):
     """
     Run an actor synchronously and retrieve dataset items.
 
@@ -80,11 +80,13 @@ def run_actor_sync_get_dataset_items(actorId, input_payload, timeout=None, memor
     :param limit: Maximum number of items to return (optional).
     :param fields: Comma-separated list of fields to include in the output (optional).
     :param omit: Comma-separated list of fields to omit from the output (optional).
+    :param apify_api_key: Optional custom API key.
     :return: The dataset items from the actor run.
     """
+    token = apify_api_key or os.getenv('APIFY_API_KEY')
     headers = {
         'Accept': 'application/json',
-        'Authorization': f"Bearer {os.getenv('APIFY_API_KEY')}"
+        'Authorization': f"Bearer {token}"
     }
 
     params = {
@@ -122,7 +124,7 @@ def _normalize_date_string(value):
     return str(value)
 
 
-def fetch_instagram_posts_via_apify(ig_handle, search_limit=20, max_items=50, actor_id=IG_ACTOR_ID, export_dir=None, only_posts_newer_than=None):
+def fetch_instagram_posts_via_apify(ig_handle, search_limit=20, max_items=50, actor_id=IG_ACTOR_ID, export_dir=None, only_posts_newer_than=None, apify_api_key=None):
     if not ig_handle:
         raise ValueError('Instagram handle is required')
 
@@ -140,6 +142,7 @@ def fetch_instagram_posts_via_apify(ig_handle, search_limit=20, max_items=50, ac
         payload,
         max_items=max_items,
         limit=max_items,
+        apify_api_key=apify_api_key,
     )
 
     if export_dir is not None:
@@ -148,7 +151,7 @@ def fetch_instagram_posts_via_apify(ig_handle, search_limit=20, max_items=50, ac
     return dataset
 
 
-def fetch_single_instagram_post_via_apify(post_url, actor_id=IG_ACTOR_ID):
+def fetch_single_instagram_post_via_apify(post_url, actor_id=IG_ACTOR_ID, apify_api_key=None):
     if not post_url:
         raise ValueError('Instagram Post URL is required')
 
@@ -162,6 +165,7 @@ def fetch_single_instagram_post_via_apify(post_url, actor_id=IG_ACTOR_ID):
         payload,
         max_items=1,
         limit=1,
+        apify_api_key=apify_api_key,
     )
 
     return dataset

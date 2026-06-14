@@ -223,13 +223,18 @@ def orchestrator_retry_post(club_id, post_url):
 
 @shared_task(bind=True)
 def retrieve_json(self, club_id, search_limit=20, max_items=50, export_dir=None, full_sync=False, only_posts_newer_than=None, *unexpected_args, **unexpected_kwargs):
-    club = Club.objects.filter(id=club_id).only('id', 'ig_handle', 'name').first()
+    club = Club.objects.filter(id=club_id).first()
     
     if not club:
         raise ValueError('Club not found')
 
     if not club.ig_handle:
         raise ValueError('Club does not have an Instagram handle')
+
+    # Ensure manager has provided their key
+    apify_key = club.get_apify_api_key()
+    if not apify_key:
+        raise ValueError('Apify API Key is not configured for this club.')
 
     latest_timestamp = None
     if only_posts_newer_than is None:
@@ -271,7 +276,8 @@ def retrieve_json(self, club_id, search_limit=20, max_items=50, export_dir=None,
         search_limit=search_limit, 
         max_items=max_items,
         export_dir=export_dir,
-        only_posts_newer_than=only_posts_newer_than
+        only_posts_newer_than=only_posts_newer_than,
+        apify_api_key=apify_key
     )
 
     update_scrape_status(
@@ -290,10 +296,15 @@ def retrieve_json(self, club_id, search_limit=20, max_items=50, export_dir=None,
 
 @shared_task(bind=True)
 def retrieve_single_post_json(self, club_id, post_url):
-    club = Club.objects.filter(id=club_id).only('id', 'name').first()
+    club = Club.objects.filter(id=club_id).first()
     
     if not club:
         raise ValueError('Club not found')
+
+    # Ensure manager has provided their key
+    apify_key = club.get_apify_api_key()
+    if not apify_key:
+        raise ValueError('Apify API Key is not configured for this club.')
 
     update_scrape_status(
         club.id,
@@ -309,7 +320,10 @@ def retrieve_single_post_json(self, club_id, post_url):
         'club_id': str(club.id),
     })
 
-    dataset = fetch_single_instagram_post_via_apify(post_url)
+    dataset = fetch_single_instagram_post_via_apify(
+        post_url,
+        apify_api_key=apify_key
+    )
 
     update_scrape_status(
         club.id,
