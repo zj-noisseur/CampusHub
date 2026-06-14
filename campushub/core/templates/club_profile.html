@@ -175,13 +175,22 @@
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" /></svg>
                 </div>
                 <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow-lg bg-white rounded-2xl w-56 border border-gray-100 mt-2">
-                    {% if user_membership and user_membership.status == 'APPROVED' and not is_manager %}
+                    {% if not is_manager %}
+                        {% if club.committee.count == 0 %}
+                        <li>
+                            <a href="{% url 'core:apply_manager' club.id %}" class="text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-xl font-bold text-blue-600">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+                                👑 Claim Club
+                            </a>
+                        </li>
+                        {% elif user_membership and user_membership.status == 'APPROVED' %}
                         <li>
                             <a href="{% url 'core:apply_manager' club.id %}" class="text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-xl">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
                                 👔 Apply for Manager
                             </a>
                         </li>
+                        {% endif %}
                     {% endif %}
                     <li>
                         <button onclick="navigator.clipboard.writeText(window.location.href); alert('Club link copied to clipboard!');" class="text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-xl">
@@ -272,10 +281,11 @@
                                 </div>
 
                                 <div class="flex items-center flex-wrap gap-2">
-                                    <h3 class="text-xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors leading-tight cursor-pointer"
+                                    <h3 class="text-xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors leading-tight cursor-pointer line-clamp-2 break-words"
                                         hx-get="{% url 'core:event_detail' event.id %}" 
                                         hx-target="#event_modal_content" 
-                                        onclick="event_modal.showModal()">
+                                        onclick="event_modal.showModal()"
+                                        title="{{ event.title }}">
                                         {{ event.title }}
                                     </h3>
                                     {% if event.status == 'FINISHED' %}
@@ -396,10 +406,11 @@
                                         </div>
 
                                         <!-- Truncated Caption as Title -->
-                                        <h3 class="text-xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors leading-tight cursor-pointer"
+                                        <h3 class="text-xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors leading-tight cursor-pointer line-clamp-2 break-words"
                                             hx-get="{% url 'core:event_detail_by_post' post.id %}" 
                                             hx-target="#event_modal_content" 
-                                            onclick="event_modal.showModal()">
+                                            onclick="event_modal.showModal()"
+                                            title="{{ post.caption }}">
                                             {{ post.caption|truncatechars:50 }}
                                         </h3>
 
@@ -514,7 +525,7 @@
                         
                         <div class="p-5 space-y-2">
                             <p class="text-xs text-gray-400 font-semibold">{{ post.timestamp|date:"M d, Y" }}</p>
-                            <p class="text-sm text-gray-700 line-clamp-3 leading-relaxed">{{ post.caption }}</p>
+                            <p class="text-sm text-gray-700 line-clamp-3 leading-relaxed break-words">{{ post.caption }}</p>
                         </div>
                     </div>
                     

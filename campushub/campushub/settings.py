@@ -14,7 +14,7 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(override=True)
 USE_S3 = os.environ.get('USE_S3', 'False') == 'True'
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -235,7 +235,8 @@ ML_BACKEND_URL = os.environ['ML_BACKEND_URL']
 if USE_S3 or not HAS_NAOMI:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 else:
-    EMAIL_BACKEND = "naomi.mail.backends.naomi.NaomiBackend"
+    # Use console backend to prevent `.html` files opening in VS Code.
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
     EMAIL_FILE_PATH = os.path.join(BASE_DIR, 'tmp_emails')
 
 DEFAULT_FROM_EMAIL = 'noreply@campushub.local'

@@ -138,7 +138,7 @@
                                 {% if event.join_mode == 'FEE' %}
                                 <td>
                                     {% if prereg.receipt %}
-                                        <a href="{{ prereg.receipt.url }}" target="_blank" class="btn btn-xs btn-outline btn-primary rounded-full">View Receipt</a>
+                                        <button onclick="document.getElementById('receipt_modal_img').src='{{ prereg.receipt.url }}'; receipt_modal.showModal()" class="btn btn-xs btn-outline btn-primary rounded-full">View Receipt</button>
                                     {% else %}
                                         <span class="text-xs text-gray-400">No Receipt</span>
                                     {% endif %}
@@ -362,6 +362,10 @@
             
             <div class="bg-gray-50 p-6 rounded-3xl flex flex-col justify-center items-center mb-8 mx-auto w-fit border-2 border-dashed border-gray-200">
                 <div id="qrcode" class="p-2 bg-white rounded-xl shadow-sm"></div>
+                <div class="w-full mt-4">
+                    <progress id="qr_progress" class="progress progress-primary w-full h-2 rounded-full" value="100" max="100"></progress>
+                    <p id="qr_timer_text" class="text-[10px] text-gray-500 mt-1 font-bold uppercase tracking-widest text-center">Expires in 14s</p>
+                </div>
             </div>
 
             <div class="space-y-3">
@@ -374,10 +378,25 @@
         <form method="dialog" class="modal-backdrop">
             <button>close</button>
         </form>
+    </dialog>    <!-- Receipt Modal -->
+    <dialog id="receipt_modal" class="modal">
+        <div class="modal-box p-0 overflow-hidden bg-white max-w-2xl">
+            <div class="p-4 border-b flex justify-between items-center bg-gray-50">
+                <h3 class="font-bold text-lg">Payment Receipt</h3>
+                <form method="dialog">
+                    <button class="btn btn-sm btn-circle btn-ghost">✕</button>
+                </form>
+            </div>
+            <div class="p-4 flex justify-center bg-gray-100">
+                <img id="receipt_modal_img" src="" alt="Receipt Image" class="max-h-[75vh] object-contain rounded-xl shadow-sm">
+            </div>
+        </div>
+        <form method="dialog" class="modal-backdrop">
+            <button>close</button>
+        </form>
     </dialog>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-
     <script>
         let currentEventId = null;
         const modal = document.getElementById('upload_modal');
@@ -409,10 +428,11 @@
         let imageLoaded = false;
         let qrGenerator = null;
         let qrInterval = null;
+        let progressInterval = null;
+        const QR_LIFESPAN_MS = 14000; // 14 seconds (1 second grace period for 15s signature)
 
         async function generateUniqueQR(eventId) {
             const qrContainer = document.getElementById('qrcode');
-            qrContainer.innerHTML = '<div class="text-gray-400 text-sm py-8">Generating Secure QR...</div>';
             
             try {
                 const response = await fetch(`/event/${eventId}/generate-qr-token/`, {
@@ -439,6 +459,19 @@
                             correctLevel : QRCode.CorrectLevel.H
                         });
                         console.log("Generated New Secure QR:", data.token);
+
+                        // Reset and start progress bar
+                        let startTime = Date.now();
+                        if (progressInterval) clearInterval(progressInterval);
+                        const progressEl = document.getElementById('qr_progress');
+                        const timerEl = document.getElementById('qr_timer_text');
+                        
+                        progressInterval = setInterval(() => {
+                            const elapsed = Date.now() - startTime;
+                            let remaining = Math.max(0, QR_LIFESPAN_MS - elapsed);
+                            progressEl.value = (remaining / QR_LIFESPAN_MS) * 100;
+                            timerEl.innerText = `Expires in ${Math.ceil(remaining / 1000)}s`;
+                        }, 50);
                     }
                 } else {
                     qrContainer.innerHTML = '<div class="text-red-500 text-sm py-8">Failed to generate QR. Ensure you have permission.</div>';
@@ -453,14 +486,31 @@
             currentEventId = eventId;
             document.getElementById('qr_event_title').innerText = eventTitle;
             
-            // generate secure QR
+            const qrContainer = document.getElementById('qrcode');
+            qrContainer.innerHTML = '<div class="text-gray-400 text-sm py-8">Generating Secure QR...</div>';
+            document.getElementById('qr_progress').value = 100;
+            document.getElementById('qr_timer_text').innerText = 'Starting...';
+
+            // clear existing intervals
+            if (qrInterval) clearInterval(qrInterval);
+            if (progressInterval) clearInterval(progressInterval);
+            
+            // generate secure QR immediately
             generateUniqueQR(eventId);
+            
+            // then generate every 14 seconds
+            qrInterval = setInterval(() => {
+                generateUniqueQR(eventId);
+            }, QR_LIFESPAN_MS);
             
             document.getElementById('qr_modal').showModal();
         }
 
         // Close interval when modal is closed
         document.getElementById('qr_modal').addEventListener('close', () => {
+            if (qrInterval) clearInterval(qrInterval);
+            if (progressInterval) clearInterval(progressInterval);
+            
             if (currentEventId) {
                 // Clear the token securely
                 fetch(`/event/${currentEventId}/generate-qr-token/`, {
