@@ -298,9 +298,12 @@ def club_settings(request, club_id):
     else:
         form = ClubSettingsForm(instance=club)
         
+    latest_post = club.posts.order_by('-timestamp').first()
+
     context = {
         'club': club,
         'form': form,
+        'latest_post': latest_post,
     }
     return render(request, 'club_settings.html', context)
     
@@ -403,3 +406,32 @@ def edit_event(request, club_id, event_id):
         'form': form,
         'is_edit': True,
     })
+
+from django.contrib import messages
+
+@login_required
+def trigger_club_scrape(request, club_id):
+    club = get_object_or_404(Club, id=club_id)
+    
+    # Check if the user is a manager
+    is_manager = club.managers.filter(user=request.user, is_active=True).exists()
+    if not is_manager:
+        return redirect('core:club_profile', club_id=club.id)
+        
+    apify_key = club.get_apify_api_key()
+    if not apify_key:
+        messages.error(request, "Please configure your Apify API key in settings before scraping.")
+        return redirect('core:club_settings', club_id=club.id)
+        
+    from core.services.tasks import orchestrator
+    from django.conf import settings
+    
+    try:
+        export_dir = str(settings.JSON_EXPORT_DIR)
+        orchestrator(str(club.id), export_dir=export_dir)
+        messages.success(request, "Scraping task has been successfully triggered! Content will update in a few minutes.")
+    except Exception as e:
+        messages.error(request, f"Failed to trigger scrape task: {e}")
+        
+    return redirect('core:club_settings', club_id=club.id)
+
