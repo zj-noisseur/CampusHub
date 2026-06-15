@@ -225,9 +225,11 @@
             </div>
             
             {% if is_manager %}
-            <a href="{% url 'core:create_event' club.id %}" class="btn btn-sm bg-gray-900 text-white hover:bg-gray-800 rounded-lg border-none shadow-sm">
-                + Create Event
-            </a>
+            <div class="flex gap-2">
+                <a href="{% url 'core:create_event' club.id %}" class="btn btn-sm bg-gray-900 text-white hover:bg-gray-800 rounded-lg border-none shadow-sm">
+                    + Create Event
+                </a>
+            </div>
             {% endif %}
         </div>
 
@@ -243,8 +245,8 @@
                                 hx-target="#event_modal_content" 
                                 onclick="event_modal.showModal()" 
                                 class="bg-gray-100 aspect-[16/10] md:aspect-auto overflow-hidden relative block w-full text-left cursor-pointer">
-                            {% if event.post.postimage_set.first %}
-                                <img src="{{ event.post.postimage_set.first.image.url }}" alt="{{ event.title }}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                            {% if event.primary_post and event.primary_post.postimage_set.first %}
+                                <img src="{{ event.primary_post.postimage_set.first.image.url }}" alt="{{ event.title }}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
                             {% else %}
                                 <!-- Fallback to club banner or gradient -->
                                 {% if club.banner %}
@@ -258,8 +260,18 @@
 
                             <!-- Category Overlay badge -->
                             <div class="absolute top-3 left-3">
-                                <span class="badge badge-sm bg-blue-500 text-white font-bold border-none py-2 px-3 rounded-lg shadow-md">{{ event.post.get_category_display }}</span>
+                                <span class="badge badge-sm bg-blue-500 text-white font-bold border-none py-2 px-3 rounded-lg shadow-md">{{ event.primary_post.get_category_display }}</span>
                             </div>
+
+                            <!-- Multiple Posts Indicator -->
+                            {% if event.posts.count > 1 %}
+                            <div class="absolute bottom-3 right-3 shadow-lg">
+                                <span class="bg-gray-900/80 backdrop-blur-md text-white text-xs font-bold py-1.5 px-3 rounded-xl flex items-center gap-1.5 border border-white/10">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
+                                    {{ event.posts.count }} Linked Posts
+                                </span>
+                            </div>
+                            {% endif %}
                         </button>
 
                         <!-- Content Details Right -->
@@ -360,7 +372,7 @@
 
                 <!-- Render Instagram Posts classified as events that are NOT manually linked as Event model -->
                 {% for post in scraped_events %}
-                    {% if not post.events %}
+                    {% if not post.event %}
                         {% if post.is_event or post.category != 'MISC' %}
                         <div class="event-card card bg-white border border-gray-100 shadow-sm hover:shadow-md transition-all overflow-hidden rounded-2xl group">
                             <div class="grid grid-cols-1 md:grid-cols-[280px_1fr]">
@@ -423,16 +435,16 @@
                                                 </div>
                                                 <div>
                                                     <p class="font-bold text-gray-900 text-sm">
-                                                        {% if post.events %}
-                                                            {{ post.events.event_date|date:"M d, Y" }}
+                                                        {% if post.event %}
+                                                            {{ post.event.event_date|date:"M d, Y" }}
                                                         {% else %}
                                                             {{ post.extracted_details.date|default:"Date TBD" }}
                                                         {% endif %}
                                                     </p>
                                                     <p class="text-gray-500 font-medium mt-0.5 text-xs">
-                                                        {% if post.events %}
-                                                            {% if post.events.start_time %}
-                                                                {{ post.events.start_time|time:"g:i A" }}
+                                                        {% if post.event %}
+                                                            {% if post.event.start_time %}
+                                                                {{ post.event.start_time|time:"g:i A" }}
                                                             {% else %}
                                                                 Time TBD
                                                             {% endif %}
@@ -452,8 +464,8 @@
                                                 </div>
                                                 <div>
                                                     <p class="font-bold text-gray-900 text-sm">
-                                                        {% if post.events %}
-                                                            {{ post.events.location|default:"Location TBD" }}
+                                                        {% if post.event %}
+                                                            {{ post.event.location|default:"Location TBD" }}
                                                         {% else %}
                                                             {{ post.extracted_details.venue|default:"Location TBD" }}
                                                         {% endif %}

@@ -21,6 +21,16 @@
             </div>
         </div>
 
+        {% if messages %}
+            <div class="mb-8">
+                {% for message in messages %}
+                    <div class="alert {% if message.tags == 'error' %}bg-red-600{% else %}bg-black{% endif %} text-white rounded-xl mb-2 border-none">
+                        <span>{{ message }}</span>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
         <div class="flex flex-col gap-10">
             {% for event in events %}
             <div class="luma-card bg-white rounded-3xl overflow-hidden shadow-sm transition-all" id="event-{{ event.id }}">
@@ -42,6 +52,9 @@
                     </div>
 
                     <div class="flex flex-wrap gap-2 w-full md:w-auto">
+                        <button onclick="document.getElementById('link_posts_modal_{{ event.id }}').showModal()" class="btn btn-sm border-none bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-full px-4 font-medium">
+                            📸 Manage Posts
+                        </button>
                         <a href="{% url 'core:edit_event' club.id event.id %}" class="btn btn-sm border-none bg-amber-50 text-amber-600 hover:bg-amber-100 rounded-full px-4 font-medium">
                             ✏️ Edit Event
                         </a>
@@ -184,6 +197,78 @@
                         </tbody>
                     </table>
                 </div>
+                <!-- Link Posts Modal -->
+                <dialog id="link_posts_modal_{{ event.id }}" class="modal">
+                    <div class="modal-box bg-white p-8 rounded-3xl max-w-5xl">
+                        <form method="dialog">
+                            <button class="btn btn-sm btn-circle btn-ghost absolute right-4 top-4 hover:bg-gray-200">✕</button>
+                        </form>
+                        <h3 class="font-bold text-2xl text-black mb-2">Manage Linked Posts</h3>
+                        <p class="text-gray-500 mb-6 text-sm">Select the Instagram posts that you want to associate with <strong>{{ event.title }}</strong>.</p>
+                        
+                        <form method="POST" action="{% url 'core:manage_linked_posts' club.id event.id %}">
+                            {% csrf_token %}
+                            
+                            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 max-h-[60vh] overflow-y-auto p-2">
+                                {% for post in all_club_posts %}
+                                <div class="relative group">
+                                    <input type="checkbox" id="check_{{ event.id }}_{{ post.id }}" name="post_ids" value="{{ post.id }}" class="peer sr-only" {% if post.event_id == event.id %}checked{% endif %} {% if post.event_id and post.event_id != event.id %}disabled{% endif %}>
+                                    
+                                    <label for="check_{{ event.id }}_{{ post.id }}" class="cursor-pointer block rounded-2xl border-2 overflow-hidden transition-all duration-200 peer-checked:border-primary peer-checked:ring-2 peer-checked:ring-primary/20 border-gray-200 hover:border-gray-300 peer-disabled:opacity-60 peer-disabled:cursor-not-allowed peer-disabled:hover:border-gray-200">
+                                        <div class="aspect-square bg-gray-100 relative">
+                                            {% if post.postimage_set.first %}
+                                            <img src="{{ post.postimage_set.first.image.url }}" class="w-full h-full object-cover">
+                                            {% else %}
+                                            <div class="w-full h-full flex items-center justify-center text-gray-400">No Image</div>
+                                            {% endif %}
+                                            
+                                            <!-- Selected Overlay -->
+                                            <div class="absolute inset-0 bg-primary/10 backdrop-blur-[1px] flex items-center justify-center opacity-0 peer-checked:opacity-100 transition-opacity z-10 pointer-events-none">
+                                                <div class="bg-primary text-white font-bold text-[11px] uppercase tracking-wider px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1.5 transform scale-95 peer-checked:scale-100 transition-transform">
+                                                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                                                    Selected
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Status Overlay (if linked to another event) -->
+                                            {% if post.event_id and post.event_id != event.id %}
+                                            <div class="absolute inset-0 bg-white/70 backdrop-blur-sm flex items-center justify-center p-2 text-center z-20 pointer-events-none">
+                                                <span class="text-xs font-bold text-gray-600 bg-white px-2 py-1 rounded-lg shadow-sm border border-gray-100">Linked to another event</span>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                        <div class="p-3 bg-white pb-14"> <!-- extra padding bottom for the absolute radio button -->
+                                            <div class="text-[10px] font-bold text-gray-400 mb-1">{{ post.timestamp|date:"M d, Y" }}</div>
+                                            <p class="text-xs text-gray-700 line-clamp-2 leading-snug">{{ post.caption|default:"No caption" }}</p>
+                                        </div>
+                                    </label>
+                                    
+                                    <!-- Primary Post Radio (Only visible when selected) -->
+                                    <div class="absolute bottom-3 left-3 right-3 bg-white/95 backdrop-blur-sm shadow-md rounded-xl p-2 z-30 opacity-0 pointer-events-none peer-checked:opacity-100 peer-checked:pointer-events-auto transition-opacity duration-200 border border-gray-100">
+                                        <label class="flex items-center justify-center gap-2 cursor-pointer text-xs font-bold text-gray-800">
+                                            <input type="radio" name="primary_post_id" value="{{ post.id }}" class="radio radio-primary radio-xs" {% if post.is_primary_event_post %}checked{% endif %} required>
+                                            <span class="whitespace-nowrap">Primary Post</span>
+                                        </label>
+                                    </div>
+                                </div>
+                                {% empty %}
+                                <div class="col-span-full py-12 text-center text-gray-500 bg-gray-50 rounded-2xl border border-gray-100 border-dashed">
+                                    No posts found for this club. You may need to trigger a scrape first.
+                                </div>
+                                {% endfor %}
+                            </div>
+                            
+                            <div class="mt-8 flex justify-end gap-3 pt-4 border-t border-gray-100">
+                                <button type="button" onclick="document.getElementById('link_posts_modal_{{ event.id }}').close()" class="btn btn-ghost rounded-xl">Cancel</button>
+                                <button type="submit" class="btn bg-gray-900 text-white hover:bg-gray-800 border-none rounded-xl px-8">Save Changes</button>
+                            </div>
+                        </form>
+                    </div>
+                    <form method="dialog" class="modal-backdrop">
+                        <button>close</button>
+                    </form>
+                </dialog>
+
             </div>
             {% empty %}
             <div class="py-20 text-center luma-card bg-white rounded-3xl border-dashed">

@@ -39,7 +39,7 @@ admin.site.register(Post)
 class EventAdmin(admin.ModelAdmin):
     list_display = ('title', 'club', 'event_date', 'status', 'join_mode')
     list_filter = ('status', 'join_mode', 'club')
-    raw_id_fields = ('post', 'club')
+    raw_id_fields = ('club',)
     search_fields = ('title', 'club__name')
 admin.site.register(Attendance)
 

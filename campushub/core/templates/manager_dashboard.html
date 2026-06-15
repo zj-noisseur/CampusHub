@@ -226,8 +226,8 @@
                     <tr class="hover:bg-gray-50 border-b border-gray-50 align-middle">
                         <td class="max-w-md">
                             <div class="font-bold text-black">
-                                {% if post.events %}
-                                    {{ post.events.title }}
+                                {% if post.event %}
+                                    {{ post.event.title }}
                                 {% else %}
                                     Event Post #{{ post.id }}
                                 {% endif %}
@@ -268,7 +268,7 @@
                             </div>
                         </td>
                         <td>
-                            <div class="flex items-center justify-end gap-2">
+                            <div class="flex items-center justify-end gap-2 flex-wrap">
                                 <button type="button" onclick="document.getElementById('edit_modal_{{ post.id }}').showModal()" class="btn btn-sm bg-black hover:bg-gray-800 text-white rounded-full border-none px-4 font-medium transition-transform hover:scale-105 shadow-sm">
                                     📝 Edit
                                 </button>
