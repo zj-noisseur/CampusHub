@@ -331,11 +331,14 @@ def club_settings(request, club_id):
         form = ClubSettingsForm(instance=club)
         
     latest_post = club.posts.order_by('-timestamp').first()
+    from core.models import Post
+    event_posts = Post.objects.filter(club=club, is_event=True).select_related('event').order_by('-timestamp')
 
     context = {
         'club': club,
         'form': form,
         'latest_post': latest_post,
+        'event_posts': event_posts,
     }
     return render(request, 'club_settings.html', context)
     
