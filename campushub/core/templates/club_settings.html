@@ -4,6 +4,10 @@
 {% block title %}Manage {{ club.name }} - CampusHub{% endblock %}
 
 {% block content %}
+<style>
+    .htmx-indicator { display: none !important; }
+    .htmx-request .htmx-indicator, .htmx-indicator.htmx-request { display: inline-block !important; }
+</style>
 <div class="max-w-4xl mx-auto py-10 px-4">
     
     <div class="mb-10">
@@ -189,5 +193,33 @@
         </div>
         
     </form>
+
+    <!-- New Section: Event Posts & Extracted Details -->
+    <div class="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-gray-100 mt-8 animate-fade-in" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+        <h2 class="text-xl font-bold text-black mb-6">Club Events & Extracted Metadata</h2>
+        
+        <div class="overflow-x-auto">
+            <table class="table table-zebra w-full">
+                <thead>
+                    <tr class="text-gray-500 border-b-2 border-gray-100">
+                        <th class="text-xs uppercase opacity-60">Content Detail</th>
+                        <th class="text-xs uppercase opacity-60">Date Scraped</th>
+                        <th class="text-xs uppercase opacity-60">Extracted Details</th>
+                        <th class="text-xs uppercase opacity-60">Extraction Status</th>
+                        <th class="text-xs uppercase opacity-60 text-center">Source</th>
+                    </tr>
+                </thead>
+                <tbody id="posts-table-body">
+                    {% for post in event_posts %}
+                        {% include 'club_data_extraction_row.html' with post=post club=club %}
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center py-8 text-gray-400 italic">No event posts found for this club.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
 {% endblock %}
