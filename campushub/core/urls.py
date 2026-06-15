@@ -3,7 +3,7 @@ from django.contrib.auth import views as auth_views
 from core.views.directory import directory
 from core.views.clubs import clubs
 from core.views.universities import universities
-from core.views.admin_dashboard import admin_dashboard_home, admin_dashboard_action, admin_dashboard_task_queue, admin_dashboard_task_status
+from core.views.admin_dashboard import admin_dashboard_home, admin_dashboard_action, admin_dashboard_task_queue, admin_dashboard_task_status,admin_manager_requests, admin_approve_manager_claim, admin_reject_manager_claim
 from core.views import admin_classification as ac
 from core.views.feed import feed
 from core.views.sign_up import sign_up, activate_account
@@ -54,6 +54,12 @@ urlpatterns = [
     path('admin-site/dashboard/queue/', admin_dashboard_task_queue, name='admin_task_queue'),
     path('admin-site/dashboard/task-status/', admin_dashboard_task_status, name='admin_task_status'),
     path('admin-site/dashboard/action/', admin_dashboard_action, name='admin_action'),
+
+    #--- Club Claiming ---
+    path('admin-site/dashboard/manager-requests/', admin_manager_requests, name='admin_manager_requests'),
+    path('admin-site/dashboard/manager-requests/<int:claim_id>/approve/', admin_approve_manager_claim, name='approve_manager_claim'),
+    path('admin-site/dashboard/manager-requests/<int:claim_id>/reject/', admin_reject_manager_claim, name='reject_manager_claim'),
+    
     
     # --- Caption Processing Workflow ---
     # Step 1: Temporal Classification

@@ -33,7 +33,7 @@ def sign_up(request):
             send_mail(
                 subject=subject, 
                 message="Please view this email in an HTML compatible client.", 
-                from_email='noreply@campushub.local', 
+                from_email=None, 
                 recipient_list=[user.email],
                 html_message=html_message 
             )

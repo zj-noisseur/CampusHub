@@ -1,0 +1,101 @@
+{% extends 'admin_base.html' %}
+
+{% block admin_content %}
+<div class="flex flex-col gap-6">
+    <!-- Header Section -->
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-2xl font-bold text-base-content">Manager Claim Requests</h1>
+            <p class="text-sm text-base-content/60 mt-1">Review and approve requests from students claiming ownership of clubs.</p>
+        </div>
+        <div class="badge badge-primary badge-lg font-bold shadow-sm">
+            {{ pending_claims.count }} Pending
+        </div>
+    </div>
+
+    <!-- Table Card -->
+    <div class="bg-base-100 rounded-2xl shadow-sm border border-base-200 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="table w-full">
+                <!-- Head -->
+                <thead class="bg-base-200/50 text-base-content/70 text-xs uppercase tracking-wider">
+                    <tr>
+                        <th class="px-6 py-4">Student</th>
+                        <th class="px-6 py-4">Target Club</th>
+                        <th class="px-6 py-4">Request Date</th>
+                        <th class="px-6 py-4">Proof / Document</th>
+                        <th class="px-6 py-4 text-right">Actions</th>
+                    </tr>
+                </thead>
+                <!-- Body -->
+                <tbody>
+                    {% for claim in pending_claims %}
+                    <tr class="hover:bg-base-200/30 transition-colors border-b border-base-200 last:border-0">
+                        <td class="px-6 py-4">
+                            <div class="flex items-center gap-3">
+                                <div class="avatar placeholder">
+                                    <div class="bg-neutral text-neutral-content rounded-full w-10">
+                                        <span class="font-bold">{{ claim.user.student_name|make_list|first }}</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="font-bold text-base-content">{{ claim.user.student_name }}</div>
+                                    <div class="text-xs text-base-content/60">{{ claim.user.email }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="font-medium text-base-content">{{ claim.club.name }}</div>
+                            <div class="text-xs text-base-content/60">{{ claim.club.university }}</div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="text-sm text-base-content/80">{{ claim.submitted_at|date:"M d, Y" }}</span>
+                        </td>
+                        <td class="px-6 py-4">
+                            {% if claim.proof_document %}
+                                <a href="{{ claim.proof_document.url }}" target="_blank" class="btn btn-xs btn-outline btn-info rounded-lg">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
+                                    View Proof
+                                </a>
+                            {% else %}
+                                <span class="text-xs text-base-content/40 italic">No document</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-right">
+                            <div class="flex justify-end gap-2">
+                                <!-- Reject Button -->
+                                <form action="{% url 'core:reject_manager_claim' claim.id %}" method="POST" class="inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-ghost text-error hover:bg-error/10 rounded-xl px-2" title="Reject Request">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                                    </button>
+                                </form>
+                                
+                                <!-- Approve Button -->
+                                <form action="{% url 'core:approve_manager_claim' claim.id %}" method="POST" class="inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-success text-success-content rounded-xl shadow-sm hover:scale-105 transition-transform" title="Approve Request">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" /></svg>
+                                        Approve
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="px-6 py-12 text-center">
+                            <div class="flex flex-col items-center justify-center text-base-content/40">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mb-3 opacity-20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                <p class="text-lg font-medium">No pending requests</p>
+                                <p class="text-sm">You're all caught up! There are no manager claims to review.</p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

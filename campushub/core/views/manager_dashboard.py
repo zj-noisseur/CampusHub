@@ -173,8 +173,6 @@ def update_post_extracted_details(request, club_id, post_id):
         
     return redirect('core:manager_dashboard', club_id=club.id)
 
-
-
 def import_members(request, club_id):
     club = get_object_or_404(Club, id=club_id)
     
