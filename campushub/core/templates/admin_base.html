@@ -22,6 +22,12 @@
         <li><a href="#" class="opacity-50 cursor-not-allowed rounded-lg" onclick="event.preventDefault();">New Club</a></li>
         <li><a href="#" class="opacity-50 cursor-not-allowed rounded-lg" onclick="event.preventDefault();">Manager</a></li>
         <li><a href="#" class="opacity-50 cursor-not-allowed rounded-lg" onclick="event.preventDefault();">Renewal</a></li>
+        <li>
+          <a href="{% url 'core:admin_manager_requests' %}" class="rounded-lg {% if request.resolver_match.url_name == 'admin_manager_requests' %}active bg-primary text-primary-content font-bold{% endif %}">
+            Claim Request
+          </a>
+        </li>
+
         
         <li class="menu-title text-base-content/50 uppercase text-[10px] font-bold tracking-wider mt-2">Caption Processing</li>
         <li>
@@ -66,7 +72,12 @@
       <li><a href="#" class="opacity-50 cursor-not-allowed py-2.5 px-4 rounded-xl font-medium" onclick="event.preventDefault();" title="Coming soon">New Club</a></li>
       <li><a href="#" class="opacity-50 cursor-not-allowed py-2.5 px-4 rounded-xl font-medium" onclick="event.preventDefault();" title="Coming soon">Manager</a></li>
       <li><a href="#" class="opacity-50 cursor-not-allowed py-2.5 px-4 rounded-xl font-medium" onclick="event.preventDefault();" title="Coming soon">Renewal</a></li>
-      
+      <li>
+        <a href="{% url 'core:admin_manager_requests' %}" class="py-2.5 px-4 rounded-xl font-medium transition-all {% if request.resolver_match.url_name == 'admin_manager_requests' %}active bg-primary text-primary-content font-bold shadow-md hover:bg-primary/90{% else %}hover:bg-base-300/60{% endif %}">
+          Claim Request
+        </a>
+      </li>
+
       <li class="menu-title text-base-content/50 uppercase text-xs font-bold tracking-wider px-3 pt-6 pb-1">Caption Processing</li>
       <li>
         <a href="{% url 'core:admin_temporal_classification_step1' %}" class="py-2.5 px-4 rounded-xl font-medium transition-all {% if request.resolver_match.url_name == 'admin_temporal_classification_step1' %}active bg-primary text-primary-content font-bold shadow-md hover:bg-primary/90{% else %}hover:bg-base-300/60{% endif %}">
