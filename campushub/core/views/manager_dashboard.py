@@ -201,3 +201,57 @@ def import_members(request, club_id):
 
     # If it's a GET request, just show the upload form page
     return render(request, 'import_members.html', {'club': club})
+
+
+from django.http import HttpResponse
+
+@login_required
+def club_extract_post_details(request, club_id, post_id):
+    club = get_object_or_404(Club, id=club_id)
+    
+    is_manager = club.managers.filter(user=request.user, is_active=True).exists()
+    if not is_manager:
+        return HttpResponse("Unauthorized", status=403)
+        
+    post = get_object_or_404(Post, id=post_id, club=club)
+    
+    if not post.is_event:
+        return HttpResponse("Post is not classified as an event.", status=400)
+        
+    from core.services.post_extraction import extract_details as run_extract
+    post.extracted_details = run_extract(post.caption)
+    post.save(update_fields=['extracted_details'])
+    
+    if post.event:
+        event = post.event
+        from core.views.event_detail import parse_date
+        extracted_date = post.extracted_details.get('date')
+        if extracted_date:
+            new_date = parse_date(extracted_date)
+            if new_date:
+                event.event_date = new_date
+        event.location = post.extracted_details.get('venue') or ""
+        event.save()
+        
+    return render(request, 'club_data_extraction_row.html', {'post': post, 'club': club})
+
+
+@login_required
+def club_revert_post_extraction(request, club_id, post_id):
+    club = get_object_or_404(Club, id=club_id)
+    
+    is_manager = club.managers.filter(user=request.user, is_active=True).exists()
+    if not is_manager:
+        return HttpResponse("Unauthorized", status=403)
+        
+    post = get_object_or_404(Post, id=post_id, club=club)
+    post.extracted_details = {}
+    post.save(update_fields=['extracted_details'])
+    
+    if post.event:
+        event = post.event
+        event.location = ""
+        event.save()
+        
+    return render(request, 'club_data_extraction_row.html', {'post': post, 'club': club})
+

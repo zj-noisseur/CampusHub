@@ -4,6 +4,10 @@
 {% block title %}Manager Dashboard - {{ club.name }}{% endblock %}
 
 {% block content %}
+<style>
+    .htmx-indicator { display: none !important; }
+    .htmx-request .htmx-indicator, .htmx-indicator.htmx-request { display: inline-block !important; }
+</style>
 <div class="max-w-5xl mx-auto py-10 px-4">
     
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
@@ -245,7 +249,7 @@
     </div>
     
     <!-- New Section: Event Posts & Extracted Details -->
-    <div class="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 mt-8 animate-fade-in">
+    <div class="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 mt-8 animate-fade-in" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
         <h2 class="text-2xl font-bold text-black mb-6">Club Events & Extracted Metadata</h2>
         
         <div class="overflow-x-auto">
@@ -255,136 +259,16 @@
                         <th class="text-xs uppercase opacity-60">Content Detail</th>
                         <th class="text-xs uppercase opacity-60">Date Scraped</th>
                         <th class="text-xs uppercase opacity-60">Extracted Details</th>
-                        <th class="text-xs uppercase opacity-60 text-right">Actions</th>
+                        <th class="text-xs uppercase opacity-60">Extraction Status</th>
+                        <th class="text-xs uppercase opacity-60 text-center">Source</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="posts-table-body">
                     {% for post in event_posts %}
-                    <tr class="hover:bg-gray-50 border-b border-gray-50 align-middle">
-                        <td class="max-w-md">
-                            <div class="font-bold text-black">
-                                {% if post.event %}
-                                    {{ post.event.title }}
-                                {% else %}
-                                    Event Post #{{ post.id }}
-                                {% endif %}
-                            </div>
-                            <div class="text-xs opacity-50 mt-1">ID: {{ post.short_code }}</div>
-                            <div class="text-sm text-gray-600 line-clamp-3 mt-1.5" title="{{ post.caption }}">{{ post.caption|truncatechars:150|default:"No caption provided." }}</div>
-                        </td>
-                        <td class="whitespace-nowrap text-gray-600 font-medium">
-                            {{ post.timestamp|date:"M d, Y" }}
-                        </td>
-                        <td>
-                            <!-- Display Extracted Details Badges -->
-                            <div class="flex flex-wrap gap-1.5 max-w-sm">
-                                {% if post.extracted_details and post.extracted_details.date or post.extracted_details.venue or post.extracted_details.time or post.extracted_details.link %}
-                                    {% if post.extracted_details.date %}
-                                        <span class="badge badge-sm badge-success gap-1 text-[10px] font-medium" title="{{ post.extracted_details.date }}">
-                                            📅 {{ post.extracted_details.date|truncatechars:20 }}
-                                        </span>
-                                    {% endif %}
-                                    {% if post.extracted_details.time %}
-                                        <span class="badge badge-sm badge-info gap-1 text-[10px] font-medium" title="{{ post.extracted_details.time }}">
-                                            ⏰ {{ post.extracted_details.time|truncatechars:20 }}
-                                        </span>
-                                    {% endif %}
-                                    {% if post.extracted_details.venue %}
-                                        <span class="badge badge-sm badge-warning gap-1 text-[10px] font-medium" title="{{ post.extracted_details.venue }}">
-                                            📍 {{ post.extracted_details.venue|truncatechars:25 }}
-                                        </span>
-                                    {% endif %}
-                                    {% if post.extracted_details.link %}
-                                        <a href="{{ post.extracted_details.link }}" target="_blank" class="badge badge-sm badge-primary gap-1 text-[10px] font-bold hover:underline" title="{{ post.extracted_details.link }}">
-                                            🔗 Link
-                                        </a>
-                                    {% endif %}
-                                {% else %}
-                                    <span class="badge badge-sm badge-ghost text-[10px] font-medium opacity-50">Pending Extraction</span>
-                                {% endif %}
-                            </div>
-                        </td>
-                        <td>
-                            <div class="flex items-center justify-end gap-2 flex-wrap">
-                                <button type="button" onclick="document.getElementById('edit_modal_{{ post.id }}').showModal()" class="btn btn-sm bg-black hover:bg-gray-800 text-white rounded-full border-none px-4 font-medium transition-transform hover:scale-105 shadow-sm">
-                                    📝 Edit
-                                </button>
-                                <a href="https://instagram.com/p/{{ post.short_code }}/" target="_blank" class="btn btn-sm btn-square btn-ghost hover:bg-gray-100 rounded-full" title="View on Instagram">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-external-link"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
-                                </a>
-                            </div>
-                            
-                            <!-- EDIT MODAL -->
-                            <dialog id="edit_modal_{{ post.id }}" class="modal">
-                                <div class="modal-box bg-white p-8 rounded-3xl max-w-xl relative text-left">
-                                    <form method="dialog">
-                                        <button class="btn btn-sm btn-circle btn-ghost absolute right-4 top-4 hover:bg-gray-200">✕</button>
-                                    </form>
-                                    
-                                    <h3 class="font-bold text-2xl text-black mb-4">Edit Event Metadata</h3>
-                                    
-                                    <div class="mb-6 p-4 bg-gray-50 rounded-2xl max-h-36 overflow-y-auto border border-gray-100 text-xs text-gray-600 leading-relaxed whitespace-pre-wrap"><strong>Caption Context:</strong><br>{{ post.caption }}</div>
-                                    
-                                    <form method="POST" action="{% url 'core:update_post_extracted_details' club_id=club.id post_id=post.id %}" class="space-y-6">
-                                        {% csrf_token %}
-                                        
-                                        <!-- Date Selector -->
-                                        <div>
-                                            <label class="block text-sm font-bold text-gray-700 mb-1.5">Event Date</label>
-                                            {% if post.extracted_details.dates and post.extracted_details.dates|length > 1 %}
-                                                <select name="date_choice" class="select select-bordered w-full bg-white text-gray-800 rounded-xl mb-2 font-medium">
-                                                    {% for dt in post.extracted_details.dates %}
-                                                        <option value="{{ dt }}" {% if post.extracted_details.date == dt %}selected{% endif %}>{{ dt }}</option>
-                                                    {% endfor %}
-                                                </select>
-                                                <p class="text-xs text-gray-400 mb-1">Or enter a custom date value:</p>
-                                            {% endif %}
-                                            <input type="text" name="custom_date" placeholder="e.g. 29th May 2026" value="{% if not post.extracted_details.dates or post.extracted_details.dates|length <= 1 %}{{ post.extracted_details.date|default:'' }}{% endif %}" class="input input-bordered w-full bg-white text-gray-800 rounded-xl font-medium" />
-                                        </div>
-                                        
-                                        <!-- Location Selector -->
-                                        <div>
-                                            <label class="block text-sm font-bold text-gray-700 mb-1.5">Event Location / Venue</label>
-                                            {% if post.extracted_details.venues and post.extracted_details.venues|length > 1 %}
-                                                <select name="venue_choice" class="select select-bordered w-full bg-white text-gray-800 rounded-xl mb-2 font-medium">
-                                                    {% for vn in post.extracted_details.venues %}
-                                                        <option value="{{ vn }}" {% if post.extracted_details.venue == vn %}selected{% endif %}>{{ vn }}</option>
-                                                    {% endfor %}
-                                                </select>
-                                                <p class="text-xs text-gray-400 mb-1">Or enter a custom location value:</p>
-                                            {% endif %}
-                                            <input type="text" name="custom_venue" placeholder="e.g. FAIE AI Design Lab" value="{% if not post.extracted_details.venues or post.extracted_details.venues|length <= 1 %}{{ post.extracted_details.venue|default:'' }}{% endif %}" class="input input-bordered w-full bg-white text-gray-800 rounded-xl font-medium" />
-                                        </div>
-                                        
-                                        <!-- Link Selector -->
-                                        <div>
-                                            <label class="block text-sm font-bold text-gray-700 mb-1.5">Registration / RSVP Link</label>
-                                            {% if post.extracted_details.links and post.extracted_details.links|length > 1 %}
-                                                <select name="link_choice" class="select select-bordered w-full bg-white text-gray-800 rounded-xl mb-2 font-medium">
-                                                    {% for lk in post.extracted_details.links %}
-                                                        <option value="{{ lk }}" {% if post.extracted_details.link == lk %}selected{% endif %}>{{ lk }}</option>
-                                                    {% endfor %}
-                                                </select>
-                                                <p class="text-xs text-gray-400 mb-1">Or enter a custom link value:</p>
-                                            {% endif %}
-                                            <input type="text" name="custom_link" placeholder="e.g. https://forms.gle/..." value="{% if not post.extracted_details.links or post.extracted_details.links|length <= 1 %}{{ post.extracted_details.link|default:'' }}{% endif %}" class="input input-bordered w-full bg-white text-gray-800 rounded-xl font-medium" />
-                                        </div>
-                                        
-                                        <div class="flex gap-3 justify-end pt-4">
-                                            <button type="button" onclick="this.closest('dialog').close()" class="btn btn-ghost rounded-full px-6 font-medium text-gray-500">Cancel</button>
-                                            <button type="submit" class="btn bg-black hover:bg-gray-800 text-white rounded-full px-6 font-medium border-none">Save Changes</button>
-                                        </div>
-                                    </form>
-                                </div>
-                                <form method="dialog" class="modal-backdrop">
-                                    <button>close</button>
-                                </form>
-                            </dialog>
-                        </td>
-                    </tr>
+                        {% include 'club_data_extraction_row.html' with post=post club=club %}
                     {% empty %}
                     <tr>
-                        <td colspan="4" class="text-center py-8 text-gray-400 italic">No event posts found for this club.</td>
+                        <td colspan="5" class="text-center py-8 text-gray-400 italic">No event posts found for this club.</td>
                     </tr>
                     {% endfor %}
                 </tbody>
