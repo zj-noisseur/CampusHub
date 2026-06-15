@@ -242,8 +242,7 @@ if USE_S3 or not HAS_NAOMI:
 
     DEFAULT_FROM_EMAIL = 'CampusHub <noreply@campushub.dev>'
 else:
-    # Use console backend to prevent `.html` files opening in VS Code.
-    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+    EMAIL_BACKEND = 'naomi.mail.backends.naomi.NaomiBackend'
     EMAIL_FILE_PATH = os.path.join(BASE_DIR, 'tmp_emails')
 
     DEFAULT_FROM_EMAIL = 'CampusHub <noreply@campushub.local>'
