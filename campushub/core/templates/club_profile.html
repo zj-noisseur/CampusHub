@@ -175,13 +175,22 @@
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" /></svg>
                 </div>
                 <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow-lg bg-white rounded-2xl w-56 border border-gray-100 mt-2">
-                    {% if user_membership and user_membership.status == 'APPROVED' and not is_manager %}
+                    {% if not is_manager %}
+                        {% if club.committee.count == 0 %}
+                        <li>
+                            <a href="{% url 'core:apply_manager' club.id %}" class="text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-xl font-bold text-blue-600">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+                                👑 Claim Club
+                            </a>
+                        </li>
+                        {% elif user_membership and user_membership.status == 'APPROVED' %}
                         <li>
                             <a href="{% url 'core:apply_manager' club.id %}" class="text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-xl">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
                                 👔 Apply for Manager
                             </a>
                         </li>
+                        {% endif %}
                     {% endif %}
                     <li>
                         <button onclick="navigator.clipboard.writeText(window.location.href); alert('Club link copied to clipboard!');" class="text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-xl">
@@ -216,9 +225,11 @@
             </div>
             
             {% if is_manager %}
-            <a href="{% url 'core:create_event' club.id %}" class="btn btn-sm bg-gray-900 text-white hover:bg-gray-800 rounded-lg border-none shadow-sm">
-                + Create Event
-            </a>
+            <div class="flex gap-2">
+                <a href="{% url 'core:create_event' club.id %}" class="btn btn-sm bg-gray-900 text-white hover:bg-gray-800 rounded-lg border-none shadow-sm">
+                    + Create Event
+                </a>
+            </div>
             {% endif %}
         </div>
 
@@ -234,8 +245,8 @@
                                 hx-target="#event_modal_content" 
                                 onclick="event_modal.showModal()" 
                                 class="bg-gray-100 aspect-[16/10] md:aspect-auto overflow-hidden relative block w-full text-left cursor-pointer">
-                            {% if event.post.postimage_set.first %}
-                                <img src="{{ event.post.postimage_set.first.image.url }}" alt="{{ event.title }}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                            {% if event.primary_post and event.primary_post.postimage_set.first %}
+                                <img src="{{ event.primary_post.postimage_set.first.image.url }}" alt="{{ event.title }}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
                             {% else %}
                                 <!-- Fallback to club banner or gradient -->
                                 {% if club.banner %}
@@ -249,8 +260,18 @@
 
                             <!-- Category Overlay badge -->
                             <div class="absolute top-3 left-3">
-                                <span class="badge badge-sm bg-blue-500 text-white font-bold border-none py-2 px-3 rounded-lg shadow-md">{{ event.post.get_category_display }}</span>
+                                <span class="badge badge-sm bg-blue-500 text-white font-bold border-none py-2 px-3 rounded-lg shadow-md">{{ event.primary_post.get_category_display }}</span>
                             </div>
+
+                            <!-- Multiple Posts Indicator -->
+                            {% if event.posts.count > 1 %}
+                            <div class="absolute bottom-3 right-3 shadow-lg">
+                                <span class="bg-gray-900/80 backdrop-blur-md text-white text-xs font-bold py-1.5 px-3 rounded-xl flex items-center gap-1.5 border border-white/10">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
+                                    {{ event.posts.count }} Linked Posts
+                                </span>
+                            </div>
+                            {% endif %}
                         </button>
 
                         <!-- Content Details Right -->
@@ -272,10 +293,11 @@
                                 </div>
 
                                 <div class="flex items-center flex-wrap gap-2">
-                                    <h3 class="text-xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors leading-tight cursor-pointer"
+                                    <h3 class="text-xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors leading-tight cursor-pointer line-clamp-2 break-words"
                                         hx-get="{% url 'core:event_detail' event.id %}" 
                                         hx-target="#event_modal_content" 
-                                        onclick="event_modal.showModal()">
+                                        onclick="event_modal.showModal()"
+                                        title="{{ event.title }}">
                                         {{ event.title }}
                                     </h3>
                                     {% if event.status == 'FINISHED' %}
@@ -350,7 +372,7 @@
 
                 <!-- Render Instagram Posts classified as events that are NOT manually linked as Event model -->
                 {% for post in scraped_events %}
-                    {% if not post.events %}
+                    {% if not post.event %}
                         {% if post.is_event or post.category != 'MISC' %}
                         <div class="event-card card bg-white border border-gray-100 shadow-sm hover:shadow-md transition-all overflow-hidden rounded-2xl group">
                             <div class="grid grid-cols-1 md:grid-cols-[280px_1fr]">
@@ -396,10 +418,11 @@
                                         </div>
 
                                         <!-- Truncated Caption as Title -->
-                                        <h3 class="text-xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors leading-tight cursor-pointer"
+                                        <h3 class="text-xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors leading-tight cursor-pointer line-clamp-2 break-words"
                                             hx-get="{% url 'core:event_detail_by_post' post.id %}" 
                                             hx-target="#event_modal_content" 
-                                            onclick="event_modal.showModal()">
+                                            onclick="event_modal.showModal()"
+                                            title="{{ post.caption }}">
                                             {{ post.caption|truncatechars:50 }}
                                         </h3>
 
@@ -412,16 +435,16 @@
                                                 </div>
                                                 <div>
                                                     <p class="font-bold text-gray-900 text-sm">
-                                                        {% if post.events %}
-                                                            {{ post.events.event_date|date:"M d, Y" }}
+                                                        {% if post.event %}
+                                                            {{ post.event.event_date|date:"M d, Y" }}
                                                         {% else %}
                                                             {{ post.extracted_details.date|default:"Date TBD" }}
                                                         {% endif %}
                                                     </p>
                                                     <p class="text-gray-500 font-medium mt-0.5 text-xs">
-                                                        {% if post.events %}
-                                                            {% if post.events.start_time %}
-                                                                {{ post.events.start_time|time:"g:i A" }}
+                                                        {% if post.event %}
+                                                            {% if post.event.start_time %}
+                                                                {{ post.event.start_time|time:"g:i A" }}
                                                             {% else %}
                                                                 Time TBD
                                                             {% endif %}
@@ -441,8 +464,8 @@
                                                 </div>
                                                 <div>
                                                     <p class="font-bold text-gray-900 text-sm">
-                                                        {% if post.events %}
-                                                            {{ post.events.location|default:"Location TBD" }}
+                                                        {% if post.event %}
+                                                            {{ post.event.location|default:"Location TBD" }}
                                                         {% else %}
                                                             {{ post.extracted_details.venue|default:"Location TBD" }}
                                                         {% endif %}
@@ -514,7 +537,7 @@
                         
                         <div class="p-5 space-y-2">
                             <p class="text-xs text-gray-400 font-semibold">{{ post.timestamp|date:"M d, Y" }}</p>
-                            <p class="text-sm text-gray-700 line-clamp-3 leading-relaxed">{{ post.caption }}</p>
+                            <p class="text-sm text-gray-700 line-clamp-3 leading-relaxed break-words">{{ post.caption }}</p>
                         </div>
                     </div>
                     

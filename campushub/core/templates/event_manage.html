@@ -21,6 +21,16 @@
             </div>
         </div>
 
+        {% if messages %}
+            <div class="mb-8">
+                {% for message in messages %}
+                    <div class="alert {% if message.tags == 'error' %}bg-red-600{% else %}bg-black{% endif %} text-white rounded-xl mb-2 border-none">
+                        <span>{{ message }}</span>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
         <div class="flex flex-col gap-10">
             {% for event in events %}
             <div class="luma-card bg-white rounded-3xl overflow-hidden shadow-sm transition-all" id="event-{{ event.id }}">
@@ -42,6 +52,9 @@
                     </div>
 
                     <div class="flex flex-wrap gap-2 w-full md:w-auto">
+                        <button onclick="document.getElementById('link_posts_modal_{{ event.id }}').showModal()" class="btn btn-sm border-none bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-full px-4 font-medium">
+                            📸 Manage Posts
+                        </button>
                         <a href="{% url 'core:edit_event' club.id event.id %}" class="btn btn-sm border-none bg-amber-50 text-amber-600 hover:bg-amber-100 rounded-full px-4 font-medium">
                             ✏️ Edit Event
                         </a>
@@ -138,7 +151,7 @@
                                 {% if event.join_mode == 'FEE' %}
                                 <td>
                                     {% if prereg.receipt %}
-                                        <a href="{{ prereg.receipt.url }}" target="_blank" class="btn btn-xs btn-outline btn-primary rounded-full">View Receipt</a>
+                                        <button onclick="document.getElementById('receipt_modal_img').src='{{ prereg.receipt.url }}'; receipt_modal.showModal()" class="btn btn-xs btn-outline btn-primary rounded-full">View Receipt</button>
                                     {% else %}
                                         <span class="text-xs text-gray-400">No Receipt</span>
                                     {% endif %}
@@ -184,6 +197,78 @@
                         </tbody>
                     </table>
                 </div>
+                <!-- Link Posts Modal -->
+                <dialog id="link_posts_modal_{{ event.id }}" class="modal">
+                    <div class="modal-box bg-white p-8 rounded-3xl max-w-5xl">
+                        <form method="dialog">
+                            <button class="btn btn-sm btn-circle btn-ghost absolute right-4 top-4 hover:bg-gray-200">✕</button>
+                        </form>
+                        <h3 class="font-bold text-2xl text-black mb-2">Manage Linked Posts</h3>
+                        <p class="text-gray-500 mb-6 text-sm">Select the Instagram posts that you want to associate with <strong>{{ event.title }}</strong>.</p>
+                        
+                        <form method="POST" action="{% url 'core:manage_linked_posts' club.id event.id %}">
+                            {% csrf_token %}
+                            
+                            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 max-h-[60vh] overflow-y-auto p-2">
+                                {% for post in all_club_posts %}
+                                <div class="relative group">
+                                    <input type="checkbox" id="check_{{ event.id }}_{{ post.id }}" name="post_ids" value="{{ post.id }}" class="peer sr-only" {% if post.event_id == event.id %}checked{% endif %} {% if post.event_id and post.event_id != event.id %}disabled{% endif %}>
+                                    
+                                    <label for="check_{{ event.id }}_{{ post.id }}" class="cursor-pointer block rounded-2xl border-2 overflow-hidden transition-all duration-200 peer-checked:border-primary peer-checked:ring-2 peer-checked:ring-primary/20 border-gray-200 hover:border-gray-300 peer-disabled:opacity-60 peer-disabled:cursor-not-allowed peer-disabled:hover:border-gray-200">
+                                        <div class="aspect-square bg-gray-100 relative">
+                                            {% if post.postimage_set.first %}
+                                            <img src="{{ post.postimage_set.first.image.url }}" class="w-full h-full object-cover">
+                                            {% else %}
+                                            <div class="w-full h-full flex items-center justify-center text-gray-400">No Image</div>
+                                            {% endif %}
+                                            
+                                            <!-- Selected Overlay -->
+                                            <div class="absolute inset-0 bg-primary/10 backdrop-blur-[1px] flex items-center justify-center opacity-0 peer-checked:opacity-100 transition-opacity z-10 pointer-events-none">
+                                                <div class="bg-primary text-white font-bold text-[11px] uppercase tracking-wider px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1.5 transform scale-95 peer-checked:scale-100 transition-transform">
+                                                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                                                    Selected
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Status Overlay (if linked to another event) -->
+                                            {% if post.event_id and post.event_id != event.id %}
+                                            <div class="absolute inset-0 bg-white/70 backdrop-blur-sm flex items-center justify-center p-2 text-center z-20 pointer-events-none">
+                                                <span class="text-xs font-bold text-gray-600 bg-white px-2 py-1 rounded-lg shadow-sm border border-gray-100">Linked to another event</span>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                        <div class="p-3 bg-white pb-14"> <!-- extra padding bottom for the absolute radio button -->
+                                            <div class="text-[10px] font-bold text-gray-400 mb-1">{{ post.timestamp|date:"M d, Y" }}</div>
+                                            <p class="text-xs text-gray-700 line-clamp-2 leading-snug">{{ post.caption|default:"No caption" }}</p>
+                                        </div>
+                                    </label>
+                                    
+                                    <!-- Primary Post Radio (Only visible when selected) -->
+                                    <div class="absolute bottom-3 left-3 right-3 bg-white/95 backdrop-blur-sm shadow-md rounded-xl p-2 z-30 opacity-0 pointer-events-none peer-checked:opacity-100 peer-checked:pointer-events-auto transition-opacity duration-200 border border-gray-100">
+                                        <label class="flex items-center justify-center gap-2 cursor-pointer text-xs font-bold text-gray-800">
+                                            <input type="radio" name="primary_post_id" value="{{ post.id }}" class="radio radio-primary radio-xs" {% if post.is_primary_event_post %}checked{% endif %} required>
+                                            <span class="whitespace-nowrap">Primary Post</span>
+                                        </label>
+                                    </div>
+                                </div>
+                                {% empty %}
+                                <div class="col-span-full py-12 text-center text-gray-500 bg-gray-50 rounded-2xl border border-gray-100 border-dashed">
+                                    No posts found for this club. You may need to trigger a scrape first.
+                                </div>
+                                {% endfor %}
+                            </div>
+                            
+                            <div class="mt-8 flex justify-end gap-3 pt-4 border-t border-gray-100">
+                                <button type="button" onclick="document.getElementById('link_posts_modal_{{ event.id }}').close()" class="btn btn-ghost rounded-xl">Cancel</button>
+                                <button type="submit" class="btn bg-gray-900 text-white hover:bg-gray-800 border-none rounded-xl px-8">Save Changes</button>
+                            </div>
+                        </form>
+                    </div>
+                    <form method="dialog" class="modal-backdrop">
+                        <button>close</button>
+                    </form>
+                </dialog>
+
             </div>
             {% empty %}
             <div class="py-20 text-center luma-card bg-white rounded-3xl border-dashed">
@@ -362,6 +447,10 @@
             
             <div class="bg-gray-50 p-6 rounded-3xl flex flex-col justify-center items-center mb-8 mx-auto w-fit border-2 border-dashed border-gray-200">
                 <div id="qrcode" class="p-2 bg-white rounded-xl shadow-sm"></div>
+                <div class="w-full mt-4">
+                    <progress id="qr_progress" class="progress progress-primary w-full h-2 rounded-full" value="100" max="100"></progress>
+                    <p id="qr_timer_text" class="text-[10px] text-gray-500 mt-1 font-bold uppercase tracking-widest text-center">Expires in 14s</p>
+                </div>
             </div>
 
             <div class="space-y-3">
@@ -374,10 +463,25 @@
         <form method="dialog" class="modal-backdrop">
             <button>close</button>
         </form>
+    </dialog>    <!-- Receipt Modal -->
+    <dialog id="receipt_modal" class="modal">
+        <div class="modal-box p-0 overflow-hidden bg-white max-w-2xl">
+            <div class="p-4 border-b flex justify-between items-center bg-gray-50">
+                <h3 class="font-bold text-lg">Payment Receipt</h3>
+                <form method="dialog">
+                    <button class="btn btn-sm btn-circle btn-ghost">✕</button>
+                </form>
+            </div>
+            <div class="p-4 flex justify-center bg-gray-100">
+                <img id="receipt_modal_img" src="" alt="Receipt Image" class="max-h-[75vh] object-contain rounded-xl shadow-sm">
+            </div>
+        </div>
+        <form method="dialog" class="modal-backdrop">
+            <button>close</button>
+        </form>
     </dialog>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-
     <script>
         let currentEventId = null;
         const modal = document.getElementById('upload_modal');
@@ -409,10 +513,11 @@
         let imageLoaded = false;
         let qrGenerator = null;
         let qrInterval = null;
+        let progressInterval = null;
+        const QR_LIFESPAN_MS = 14000; // 14 seconds (1 second grace period for 15s signature)
 
         async function generateUniqueQR(eventId) {
             const qrContainer = document.getElementById('qrcode');
-            qrContainer.innerHTML = '<div class="text-gray-400 text-sm py-8">Generating Secure QR...</div>';
             
             try {
                 const response = await fetch(`/event/${eventId}/generate-qr-token/`, {
@@ -439,6 +544,19 @@
                             correctLevel : QRCode.CorrectLevel.H
                         });
                         console.log("Generated New Secure QR:", data.token);
+
+                        // Reset and start progress bar
+                        let startTime = Date.now();
+                        if (progressInterval) clearInterval(progressInterval);
+                        const progressEl = document.getElementById('qr_progress');
+                        const timerEl = document.getElementById('qr_timer_text');
+                        
+                        progressInterval = setInterval(() => {
+                            const elapsed = Date.now() - startTime;
+                            let remaining = Math.max(0, QR_LIFESPAN_MS - elapsed);
+                            progressEl.value = (remaining / QR_LIFESPAN_MS) * 100;
+                            timerEl.innerText = `Expires in ${Math.ceil(remaining / 1000)}s`;
+                        }, 50);
                     }
                 } else {
                     qrContainer.innerHTML = '<div class="text-red-500 text-sm py-8">Failed to generate QR. Ensure you have permission.</div>';
@@ -453,14 +571,31 @@
             currentEventId = eventId;
             document.getElementById('qr_event_title').innerText = eventTitle;
             
-            // generate secure QR
+            const qrContainer = document.getElementById('qrcode');
+            qrContainer.innerHTML = '<div class="text-gray-400 text-sm py-8">Generating Secure QR...</div>';
+            document.getElementById('qr_progress').value = 100;
+            document.getElementById('qr_timer_text').innerText = 'Starting...';
+
+            // clear existing intervals
+            if (qrInterval) clearInterval(qrInterval);
+            if (progressInterval) clearInterval(progressInterval);
+            
+            // generate secure QR immediately
             generateUniqueQR(eventId);
+            
+            // then generate every 14 seconds
+            qrInterval = setInterval(() => {
+                generateUniqueQR(eventId);
+            }, QR_LIFESPAN_MS);
             
             document.getElementById('qr_modal').showModal();
         }
 
         // Close interval when modal is closed
         document.getElementById('qr_modal').addEventListener('close', () => {
+            if (qrInterval) clearInterval(qrInterval);
+            if (progressInterval) clearInterval(progressInterval);
+            
             if (currentEventId) {
                 // Clear the token securely
                 fetch(`/event/${currentEventId}/generate-qr-token/`, {

@@ -4,6 +4,7 @@ from django.http import JsonResponse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
+from django.core.signing import TimestampSigner, SignatureExpired, BadSignature
 from core.models import Event, Attendance
 
 @require_POST
@@ -33,17 +34,29 @@ def generate_qr_token(request, event_id):
         return JsonResponse({'status': 'cleared'})
     else:
         # Generate new token
-        token = secrets.token_urlsafe(32)
-        event.qr_token = token
+        raw_token = secrets.token_urlsafe(32)
+        event.qr_token = raw_token
         event.save(update_fields=['qr_token'])
-        return JsonResponse({'status': 'generated', 'token': token})
+        
+        # Cryptographically sign the token with the current timestamp
+        signer = TimestampSigner()
+        signed_token = signer.sign(raw_token)
+        
+        return JsonResponse({'status': 'generated', 'token': signed_token})
 
 @login_required
 def event_qr_checkin(request, event_id, token):
     event = get_object_or_404(Event, id=event_id)
     
-    if not event.qr_token or event.qr_token != token:
-        # Invalid or expired token
+    signer = TimestampSigner()
+    try:
+        # Verify the signature and ensure it is not older than 15 seconds
+        raw_token = signer.unsign(token, max_age=15)
+    except (SignatureExpired, BadSignature):
+        return render(request, 'checkin_error.html', {'event': event})
+    
+    if not event.qr_token or event.qr_token != raw_token:
+        # Invalid token (or it was manually cleared)
         return render(request, 'checkin_error.html', {'event': event})
         
     # Valid token, mark attendance

@@ -25,18 +25,21 @@ def manager_dashboard(request, club_id):
     # Get all the students who have applied or joined this club
     memberships = Membership.objects.filter(club=my_club)
 
-    approved_members = memberships.filter(status__in=['APPROVED', 'Member'])
+    all_official_members = memberships.filter(status__in=['APPROVED', 'Member'])
+    active_members = all_official_members.filter(user__is_active=True)
+    ghost_members = all_official_members.filter(user__is_active=False)
     pending_members = memberships.filter(status='PENDING')
     
     # Get event posts for metadata editing
-    event_posts = Post.objects.filter(club=my_club, is_event=True).select_related('events').order_by('-timestamp')
+    event_posts = Post.objects.filter(club=my_club, is_event=True).select_related('event').order_by('-timestamp')
     
     context = {
         'club': my_club,
-        'approved_members': approved_members,
+        'active_members': active_members,
+        'ghost_members': ghost_members,
         'pending_members': pending_members,
-        'total_members': approved_members.count(),
-        'pending_requests': pending_members.count(),
+        'total_members': all_official_members.count(),
+        'pending_requests': ghost_members.count(),
         'event_posts': event_posts,
     }
     
@@ -120,8 +123,8 @@ def update_post_extracted_details(request, club_id, post_id):
         post.extracted_details = details
         post.save(update_fields=['extracted_details'])
         
-        if hasattr(post, 'events'):
-            event = post.events
+        if post.event:
+            event = post.event
             from core.views.event_detail import parse_date
             new_date = parse_date(date_val)
             if new_date:
@@ -132,6 +135,8 @@ def update_post_extracted_details(request, club_id, post_id):
         messages.success(request, 'Event details successfully updated!')
         
     return redirect('core:manager_dashboard', club_id=club.id)
+
+
 
 def import_members(request, club_id):
     club = get_object_or_404(Club, id=club_id)

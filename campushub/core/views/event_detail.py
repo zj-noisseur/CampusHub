@@ -38,11 +38,24 @@ def event_detail(request, event_id=None, post_id=None):
             post.extracted_details = run_extract(post.caption)
             post.save(update_fields=['extracted_details'])
 
-        # No auto-created dummy Event for scraped posts; if an Event does not exist, we simply skip rendering.
+        if not post.event:
+            # Auto-create an event for scraped posts so users can RSVP
+            from django.utils import timezone
+            event = Event.objects.create(
+                club=post.club,
+                title=f"{post.club.name} Event",
+                event_date=timezone.now()
+            )
+            # Link the post to the new event
+            post.event = event
+            post.is_primary_event_post = True
+            post.save(update_fields=['event', 'is_primary_event_post'])
+        else:
+            event = post.event
 
     else:
         event = get_object_or_404(Event, id=event_id)
-        post = event.post
+        post = event.primary_post
         if post and not post.extracted_details and post.is_event:
             from core.services.post_extraction import extract_details as run_extract
             post.extracted_details = run_extract(post.caption)
@@ -57,6 +70,7 @@ def event_detail(request, event_id=None, post_id=None):
     
     return render(request, template_name, {
         'event': event,
+        'post': post,
         'attendance_count': attendance_count,
         'recent_attendees': recent_attendees,
         'user_prereg': user_prereg,

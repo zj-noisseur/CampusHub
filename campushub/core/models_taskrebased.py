@@ -407,6 +407,8 @@ class Post(models.Model):
     ]
 
     club = models.ForeignKey(Club, on_delete=models.CASCADE, related_name='posts')
+    event = models.ForeignKey('Event', on_delete=models.SET_NULL, null=True, blank=True, related_name='posts')
+    is_primary_event_post = models.BooleanField(default=False)
     short_code = models.CharField(max_length=100)
     caption = models.TextField(blank=True)
     category = models.CharField(
@@ -422,6 +424,7 @@ class Post(models.Model):
         indexes = [
             models.Index(fields=['club', '-timestamp']),
             models.Index(fields=['-timestamp']),
+            models.Index(fields=['event']),
         ]
 
     def classify_category(self):
@@ -448,7 +451,6 @@ class PostImage(models.Model):
 
 class Event(models.Model):
     club = models.ForeignKey(Club, on_delete=models.CASCADE, null=True, blank=True)
-    post = models.OneToOneField(Post, on_delete=models.CASCADE, related_name='events')
     title = models.CharField(max_length=255)
     event_date = models.DateField()
     start_time = models.TimeField(blank=True, null=True)
@@ -457,8 +459,16 @@ class Event(models.Model):
     location = models.CharField(max_length=255)
 
     @property
+    def primary_post(self):
+        primary = self.posts.filter(is_primary_event_post=True).first()
+        if primary:
+            return primary
+        return self.posts.first()
+
+    @property
     def extracted_details(self):
-        return getattr(self.post, 'extracted_details', None)
+        first_post = self.primary_post
+        return getattr(first_post, 'extracted_details', None) if first_post else None
     
     fee = models.DecimalField(max_digits=6, decimal_places=2, default=0.00, help_text="Set to 0 if the event is free.")
     requires_approval = models.BooleanField(default=False, help_text="If true, host must manually approve attendees.")
