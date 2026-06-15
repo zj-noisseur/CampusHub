@@ -261,5 +261,25 @@
         </div>
     </div>
     
+    <!-- New Section: Instagram Scrape Task Status -->
+    <div class="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 mt-8 animate-fade-in">
+        <h2 class="text-2xl font-bold text-black mb-6">Instagram Scrape Task Status</h2>
+        
+        <div class="overflow-x-auto">
+            <table class="table table-fixed w-full table-zebra">
+                <thead>
+                    <tr class="text-gray-500 border-b-2 border-gray-100">
+                        <th class="w-24 text-xs uppercase opacity-60">Date</th>
+                        <th class="w-28 text-xs uppercase opacity-60">Status</th>
+                        <th class="w-72 text-xs uppercase opacity-60">Workflow Progress</th>
+                        <th class="w-28 text-xs uppercase opacity-60">Timeline</th>
+                        <th class="w-48 text-xs uppercase opacity-60">Error Log</th>
+                    </tr>
+                </thead>
+                {% include 'club_dashboard_tasks_fragment.html' with tasks=tasks club=club has_recent_activity=has_recent_activity %}
+            </table>
+        </div>
+    </div>
+    
 </div>
 {% endblock %}

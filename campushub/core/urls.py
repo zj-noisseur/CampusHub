@@ -11,7 +11,7 @@ from core.views.claim_club import claim_club
 from core.views.profile import user_profile, edit_profile
 from core.views.calendar import calendar
 from core.views.club_actions import join_club, apply_manager
-from core.views.manager_dashboard import import_members, manager_dashboard, process_membership, extend_club_validity, update_post_extracted_details, club_extract_post_details, club_revert_post_extraction
+from core.views.manager_dashboard import import_members, manager_dashboard, process_membership, extend_club_validity, update_post_extracted_details, club_extract_post_details, club_revert_post_extraction, club_task_queue
 from core.views.imports import import_attendees_csv
 from core.views.certificates import upload_certificate_template, download_certificates, download_my_certificate
 from core.views.dashboards import club_profile, club_admin_dashboard, club_settings, student_dashboard, toggle_ready_status, toggle_attended_status, set_event_status, create_event, edit_event, my_events, manage_attendee_status, trigger_club_scrape, manage_linked_posts
@@ -94,6 +94,7 @@ urlpatterns = [
     path('club/<int:club_id>/post/<int:post_id>/update-extracted/', update_post_extracted_details, name='update_post_extracted_details'),
     path('club/<int:club_id>/post/<int:post_id>/extract/', club_extract_post_details, name='club_extract_post_details'),
     path('club/<int:club_id>/post/<int:post_id>/revert-extract/', club_revert_post_extraction, name='club_revert_post_extraction'),
+    path('club/<int:club_id>/task-queue/', club_task_queue, name='club_task_queue'),
     path('club/<int:club_id>/import/', import_members, name='import_members'),
 
     # --- Event Operations & Attendance ---
