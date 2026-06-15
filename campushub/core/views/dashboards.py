@@ -326,7 +326,9 @@ def club_settings(request, club_id):
         form = ClubSettingsForm(request.POST, request.FILES, instance=club)
         if form.is_valid():
             form.save()
-            return redirect('core:club_profile', club_id=club.id)
+            from django.contrib import messages
+            messages.success(request, "Club settings successfully updated!")
+            return redirect('core:club_settings', club_id=club.id)
     else:
         form = ClubSettingsForm(instance=club)
         
@@ -481,6 +483,9 @@ def trigger_club_scrape(request, club_id):
     except Exception as e:
         messages.error(request, f"Failed to trigger scrape task: {e}")
         
+    referer = request.META.get('HTTP_REFERER')
+    if referer:
+        return redirect(referer)
     return redirect('core:club_settings', club_id=club.id)
 
 

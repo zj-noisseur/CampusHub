@@ -1,0 +1,83 @@
+<tr id="temporal-row-{{ post.id }}" data-club-id="{{ club.id }}">
+    <td class="max-w-md align-middle">
+        <div class="text-xs opacity-50 mb-1">ID: {{ post.short_code }}</div>
+        <div class="text-sm text-gray-600 line-clamp-3 mt-1.5" title="{{ post.caption }}">{{ post.caption|truncatechars:150|default:"No caption provided." }}</div>
+    </td>
+    <td class="whitespace-nowrap text-gray-600 font-medium align-middle">
+        {{ post.timestamp|date:"M d, Y" }}
+    </td>
+    <td class="align-middle">
+        <div class="dropdown dropdown-bottom dropdown-end">
+            <div tabindex="0" role="button" class="btn btn-sm gap-2 border-base-300 bg-base-100 hover:bg-base-200 
+                {% if post.is_event == True %}text-success border-success/20
+                {% elif post.is_event == False %}text-error border-error/20
+                {% else %}text-base-content/70{% endif %}">
+                
+                <span class="w-2 h-2 rounded-full 
+                    {% if post.is_event == True %}bg-success
+                    {% elif post.is_event == False %}bg-error
+                    {% else %}bg-base-300{% endif %}"></span>
+                
+                {% if post.is_event == True %}Upcoming Event
+                {% elif post.is_event == False %}Non-Event/Recap
+                {% else %}Pending{% endif %}
+                
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-down opacity-50"><path d="m6 9 6 6 6-6"/></svg>
+                
+                <span class="htmx-indicator loading loading-spinner loading-xs ml-1" id="temporal-spinner-{{ post.id }}"></span>
+            </div>
+            <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow-lg bg-base-100 rounded-box w-56 border border-base-200 mt-1">
+                <li class="menu-title">Actions</li>
+                <li>
+                    <a hx-post="{% url 'core:club_classify_post_temporal' club_id=club.id post_id=post.id %}" 
+                       hx-target="#temporal-row-{{ post.id }}" 
+                       hx-swap="outerHTML"
+                       hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                       hx-indicator="#temporal-spinner-{{ post.id }}"
+                       class="text-primary font-bold cursor-pointer">
+                        Auto-Temporal Classify
+                    </a>
+                </li>
+                <div class="divider my-1"></div>
+                <li class="menu-title">Manual Toggle</li>
+                <li>
+                    <a hx-post="{% url 'core:club_update_post_event_status' club_id=club.id post_id=post.id %}?is_event=True"
+                       hx-target="#temporal-row-{{ post.id }}"
+                       hx-swap="outerHTML"
+                       hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                       hx-indicator="#temporal-spinner-{{ post.id }}"
+                       class="{% if post.is_event == True %}active font-semibold{% endif %} cursor-pointer">
+                        Mark as Event
+                    </a>
+                </li>
+                <li>
+                    <a hx-post="{% url 'core:club_update_post_event_status' club_id=club.id post_id=post.id %}?is_event=False"
+                       hx-target="#temporal-row-{{ post.id }}"
+                       hx-swap="outerHTML"
+                       hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                       hx-indicator="#temporal-spinner-{{ post.id }}"
+                       class="{% if post.is_event == False %}active font-semibold{% endif %} cursor-pointer">
+                        Mark as Non-Event
+                    </a>
+                </li>
+                <li>
+                    <a hx-post="{% url 'core:club_update_post_event_status' club_id=club.id post_id=post.id %}?is_event=None"
+                       hx-target="#temporal-row-{{ post.id }}"
+                       hx-swap="outerHTML"
+                       hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                       hx-indicator="#temporal-spinner-{{ post.id }}"
+                       class="{% if post.is_event == None %}active font-semibold{% endif %} cursor-pointer">
+                        Reset to Pending
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </td>
+    <td class="align-middle text-center">
+        <div class="flex items-center justify-center gap-2">
+            <a href="https://instagram.com/p/{{ post.short_code }}/" target="_blank" class="btn btn-sm btn-square btn-ghost hover:bg-gray-100 rounded-full" title="View on Instagram">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-external-link"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+            </a>
+        </div>
+    </td>
+</tr>
