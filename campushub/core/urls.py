@@ -126,7 +126,8 @@ urlpatterns = [
          auth_views.PasswordResetView.as_view(
              template_name='password_reset.html',
              success_url='/password-reset/done/',
-             email_template_name='password_reset_email.html'
+             email_template_name='password_reset_email.html',
+             html_email_template_name='password_reset_email.html'
          ), 
          name='password_reset'),
     # "Success" page 
