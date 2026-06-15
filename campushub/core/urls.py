@@ -47,7 +47,7 @@ urlpatterns = [
     path('profile/edit/', edit_profile, name='edit_profile'),
     path('student/dashboard/', student_dashboard, name='student_dashboard'),
     path('dashboard/', student_dashboard, name='dashboard_shortcut'),
-
+    path('profile/manager/<int:club_id>/', manager_dashboard, name='manager_dashboard'),
 
     # --- Platform Admin Site ---
     path('admin-site/dashboard/', admin_dashboard_home, name='admin_dashboard'),
