@@ -1,39 +1,19 @@
-{% extends 'base.html' %}
+{% extends 'manager_base.html' %}
 {% load static %}
 
 {% block title %}Manager Dashboard - {{ club.name }}{% endblock %}
 
-{% block content %}
+{% block manager_content %}
 <style>
     .htmx-indicator { display: none !important; }
     .htmx-request .htmx-indicator, .htmx-indicator.htmx-request { display: inline-block !important; }
 </style>
-<div class="max-w-5xl mx-auto py-10 px-4">
+<div class="w-full">
     
-    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
-        <div>
-            <h1 class="text-4xl font-bold tracking-tight text-black">Manager Dashboard</h1>
-            <p class="text-gray-500 mt-2 text-lg">Manage members and membership requests for <span class="font-bold text-gray-900">{{ club.name }}</span></p>
-        </div>
-        <div class="flex gap-3">
-            <a href="{% url 'core:club_settings' club.id %}" class="btn border-none bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-full px-6 font-medium shadow-sm transition-transform hover:scale-105">
-                ⚙️ Settings
-            </a>
-            <a href="{% url 'core:club_profile' club.id %}" class="btn border-none bg-gray-900 text-white hover:bg-gray-800 rounded-full px-6 font-medium shadow-sm transition-transform hover:scale-105">
-                Back to Club Profile
-            </a>
-        </div>
+    <div class="mb-10">
+        <h1 class="text-4xl font-bold tracking-tight text-black">Manager Dashboard</h1>
+        <p class="text-gray-500 mt-2 text-lg">Manage members and membership requests for <span class="font-bold text-gray-900">{{ club.name }}</span></p>
     </div>
-
-    {% if messages %}
-        <div class="mb-6">
-            {% for message in messages %}
-                <div class="alert bg-black text-white rounded-xl mb-2 border-none">
-                    <span>{{ message }}</span>
-                </div>
-            {% endfor %}
-        </div>
-    {% endif %}
 
     <div class="stats shadow-sm border border-gray-100 w-full mb-10 bg-white rounded-3xl">
         <div class="stat place-items-center">
@@ -233,33 +213,137 @@
         </div>
     </div>
     
-    <!-- New Section: Event Posts & Extracted Details -->
+    <!-- Redesigned 3-Step Caption Processing Section -->
     <div class="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 mt-8 animate-fade-in" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
-        <h2 class="text-2xl font-bold text-black mb-6">Club Events & Extracted Metadata</h2>
-        
-        <div class="overflow-x-auto">
-            <table class="table table-zebra w-full">
-                <thead>
-                    <tr class="text-gray-500 border-b-2 border-gray-100">
-                        <th class="text-xs uppercase opacity-60">Content Detail</th>
-                        <th class="text-xs uppercase opacity-60">Date Scraped</th>
-                        <th class="text-xs uppercase opacity-60">Extracted Details</th>
-                        <th class="text-xs uppercase opacity-60">Extraction Status</th>
-                        <th class="text-xs uppercase opacity-60 text-center">Source</th>
-                    </tr>
-                </thead>
-                <tbody id="posts-table-body">
-                    {% for post in event_posts %}
-                        {% include 'club_data_extraction_row.html' with post=post club=club %}
-                    {% empty %}
-                    <tr>
-                        <td colspan="5" class="text-center py-8 text-gray-400 italic">No event posts found for this club.</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+        <div class="border-b border-gray-100 pb-4 mb-6">
+            <h2 class="text-2xl font-extrabold text-black">Instagram Post & Event Processing</h2>
+            <p class="text-sm text-gray-500 mt-1">Review, classify, and extract event details from your club's scraped Instagram posts using our 3-step pipeline.</p>
+        </div>
+
+        <!-- Tab Headers -->
+        <div class="tabs tabs-boxed bg-gray-50 p-1.5 rounded-2xl mb-8 flex flex-wrap gap-1">
+            <button type="button" class="tab tab-active rounded-xl font-bold transition-all px-6 py-2.5 text-sm" onclick="switchProcessingTab(event, 'step1-temporal')">
+                1. Temporal Status
+            </button>
+            <button type="button" class="tab rounded-xl font-medium transition-all px-6 py-2.5 text-sm" onclick="switchProcessingTab(event, 'step2-category')">
+                2. Event Category
+            </button>
+            <button type="button" class="tab rounded-xl font-medium transition-all px-6 py-2.5 text-sm" onclick="switchProcessingTab(event, 'step3-extraction')">
+                3. Metadata Extract
+            </button>
+        </div>
+
+        <!-- Tab Contents -->
+        <!-- Step 1: Temporal Classification -->
+        <div id="step1-temporal" class="processing-tab-content">
+            <div class="mb-4">
+                <p class="text-xs font-bold uppercase tracking-wider text-gray-400">Step 1 Goal</p>
+                <p class="text-sm text-gray-600">Determine whether a post contains an upcoming event (Event) or is just an announcement/recap/misc post (Non-Event).</p>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="table table-zebra w-full">
+                    <thead>
+                        <tr class="text-gray-500 border-b border-gray-100">
+                            <th class="text-xs uppercase opacity-60">Content Detail</th>
+                            <th class="text-xs uppercase opacity-60">Date Scraped</th>
+                            <th class="text-xs uppercase opacity-60">Temporal Status</th>
+                            <th class="text-xs uppercase opacity-60 text-center">Source</th>
+                        </tr>
+                    </thead>
+                    <tbody id="temporal-posts-tbody">
+                        {% for post in temporal_posts %}
+                            {% include 'club_temporal_classification_row.html' with post=post club=club %}
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center py-8 text-gray-400 italic">No posts found to classify. Try scraping content first.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Step 2: Event Type Classification -->
+        <div id="step2-category" class="processing-tab-content hidden">
+            <div class="mb-4">
+                <p class="text-xs font-bold uppercase tracking-wider text-gray-400">Step 2 Goal</p>
+                <p class="text-sm text-gray-600">Categorize your verified event posts into categories (Workshops, Competitions, etc.). Only posts marked as "Event" in Step 1 appear here.</p>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="table table-zebra w-full">
+                    <thead>
+                        <tr class="text-gray-500 border-b border-gray-100">
+                            <th class="text-xs uppercase opacity-60">Content Detail</th>
+                            <th class="text-xs uppercase opacity-60">Date Scraped</th>
+                            <th class="text-xs uppercase opacity-60">Event Category</th>
+                            <th class="text-xs uppercase opacity-60 text-center">Source</th>
+                        </tr>
+                    </thead>
+                    <tbody id="category-posts-tbody">
+                        {% for post in event_type_posts %}
+                            {% include 'club_event_classification_row.html' with post=post club=club %}
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center py-8 text-gray-400 italic">No verified event posts found. First mark posts as "Event" in Step 1.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Step 3: Metadata Extraction -->
+        <div id="step3-extraction" class="processing-tab-content hidden">
+            <div class="mb-4">
+                <p class="text-xs font-bold uppercase tracking-wider text-gray-400">Step 3 Goal</p>
+                <p class="text-sm text-gray-600">Extract structured data (Date, Time, Venue, RSVP Link) from post captions to automatically populate your events database. Only verified event posts appear here.</p>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="table table-zebra w-full">
+                    <thead>
+                        <tr class="text-gray-500 border-b-2 border-gray-100">
+                            <th class="text-xs uppercase opacity-60">Content Detail</th>
+                            <th class="text-xs uppercase opacity-60">Date Scraped</th>
+                            <th class="text-xs uppercase opacity-60">Extracted Details</th>
+                            <th class="text-xs uppercase opacity-60">Extraction Status</th>
+                            <th class="text-xs uppercase opacity-60 text-center">Source</th>
+                        </tr>
+                    </thead>
+                    <tbody id="posts-table-body">
+                        {% for post in extraction_posts %}
+                            {% include 'club_data_extraction_row.html' with post=post club=club %}
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center py-8 text-gray-400 italic">No verified event posts found. First mark posts as "Event" in Step 1.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
+
+    <!-- JS helper for tab switching -->
+    <script>
+        function switchProcessingTab(event, tabId) {
+            // Hide all tab content
+            document.querySelectorAll('.processing-tab-content').forEach(content => {
+                content.classList.add('hidden');
+            });
+            // Show target content
+            document.getElementById(tabId).classList.remove('hidden');
+            
+            // Remove active style from all tab buttons
+            const tabs = event.target.parentElement.querySelectorAll('.tab');
+            tabs.forEach(tab => {
+                tab.classList.remove('tab-active', 'font-bold');
+                tab.classList.add('font-medium');
+            });
+            // Add active style to clicked tab button
+            event.target.classList.add('tab-active', 'font-bold');
+            event.target.classList.remove('font-medium');
+        }
+    </script>
     
     <!-- New Section: Instagram Scrape Task Status -->
     <div class="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 mt-8 animate-fade-in">

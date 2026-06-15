@@ -30,8 +30,11 @@ def manager_dashboard(request, club_id):
     ghost_members = all_official_members.filter(user__is_active=False)
     pending_members = memberships.filter(status='PENDING')
     
-    # Get event posts for metadata editing
-    event_posts = Post.objects.filter(club=my_club, is_event=True).select_related('event').order_by('-timestamp')
+    # Get all post lists for 3-step caption processing
+    all_club_posts = Post.objects.filter(club=my_club).order_by('-timestamp')
+    temporal_posts = all_club_posts
+    event_type_posts = all_club_posts.filter(is_event=True)
+    extraction_posts = all_club_posts.filter(is_event=True).select_related('event')
     
     from core.models import ClubScrapeStatus
     from datetime import timedelta
@@ -75,7 +78,10 @@ def manager_dashboard(request, club_id):
         'pending_members': pending_members,
         'total_members': all_official_members.count(),
         'pending_requests': ghost_members.count(),
-        'event_posts': event_posts,
+        'event_posts': extraction_posts,
+        'temporal_posts': temporal_posts,
+        'event_type_posts': event_type_posts,
+        'extraction_posts': extraction_posts,
         'tasks': tasks_data,
         'has_recent_activity': has_recent_activity,
     }
@@ -171,6 +177,9 @@ def update_post_extracted_details(request, club_id, post_id):
             
         messages.success(request, 'Event details successfully updated!')
         
+    referer = request.META.get('HTTP_REFERER')
+    if referer:
+        return redirect(referer)
     return redirect('core:manager_dashboard', club_id=club.id)
 
 def import_members(request, club_id):
@@ -338,5 +347,87 @@ def club_task_queue(request, club_id):
         'history_task_count': len(tasks_data),
         'club': club,
     })
+
+
+@login_required
+def club_classify_post_temporal(request, club_id, post_id):
+    club = get_object_or_404(Club, id=club_id)
+    
+    # Check if the user is a manager
+    is_manager = club.managers.filter(user=request.user, is_active=True).exists()
+    if not is_manager:
+        return HttpResponse("Unauthorized", status=403)
+        
+    post = get_object_or_404(Post, id=post_id, club=club)
+    
+    if request.method == 'POST':
+        from core.services.post_categorization import assign_event_status_to_post
+        assign_event_status_to_post(post)
+        return render(request, 'club_temporal_classification_row.html', {'post': post, 'club': club})
+    return HttpResponse('Invalid request', status=400)
+
+
+@login_required
+def club_update_post_event_status(request, club_id, post_id):
+    club = get_object_or_404(Club, id=club_id)
+    
+    # Check if the user is a manager
+    is_manager = club.managers.filter(user=request.user, is_active=True).exists()
+    if not is_manager:
+        return HttpResponse("Unauthorized", status=403)
+        
+    post = get_object_or_404(Post, id=post_id, club=club)
+    
+    if request.method == 'POST':
+        val = request.POST.get('is_event') or request.GET.get('is_event')
+        if val == 'True':
+            post.is_event = True
+        elif val == 'False':
+            post.is_event = False
+        elif val == 'None':
+            post.is_event = None
+        post.save(update_fields=['is_event'])
+        return render(request, 'club_temporal_classification_row.html', {'post': post, 'club': club})
+    return HttpResponse('Invalid request', status=400)
+
+
+@login_required
+def club_classify_post_event(request, club_id, post_id):
+    club = get_object_or_404(Club, id=club_id)
+    
+    # Check if the user is a manager
+    is_manager = club.managers.filter(user=request.user, is_active=True).exists()
+    if not is_manager:
+        return HttpResponse("Unauthorized", status=403)
+        
+    post = get_object_or_404(Post, id=post_id, club=club)
+    
+    if request.method == 'POST':
+        from core.services.post_categorization import assign_category_to_post
+        assign_category_to_post(post)
+        return render(request, 'club_event_classification_row.html', {'post': post, 'club': club})
+    return HttpResponse('Invalid request', status=400)
+
+
+@login_required
+def club_update_post_event_category(request, club_id, post_id):
+    club = get_object_or_404(Club, id=club_id)
+    
+    # Check if the user is a manager
+    is_manager = club.managers.filter(user=request.user, is_active=True).exists()
+    if not is_manager:
+        return HttpResponse("Unauthorized", status=403)
+        
+    post = get_object_or_404(Post, id=post_id, club=club)
+    
+    if request.method == 'POST':
+        category_val = request.POST.get('category') or request.GET.get('category')
+        valid_keys = [k for k, v in Post.CATEGORY_CHOICES]
+        if category_val in valid_keys:
+            post.category = category_val
+            post.save(update_fields=['category'])
+        return render(request, 'club_event_classification_row.html', {'post': post, 'club': club})
+    return HttpResponse('Invalid request', status=400)
+
 
 
