@@ -6,7 +6,7 @@ from core.views.universities import universities
 from core.views.admin_dashboard import admin_dashboard_home, admin_dashboard_action, admin_dashboard_task_queue, admin_dashboard_task_status,admin_manager_requests, admin_approve_manager_claim, admin_reject_manager_claim
 from core.views import admin_classification as ac
 from core.views.feed import feed
-from core.views.sign_up import sign_up, activate_account
+from core.views.sign_up import sign_up, activate_account,resend_activation
 from core.views.claim_club import claim_club
 from core.views.profile import user_profile, edit_profile
 from core.views.calendar import calendar
@@ -148,4 +148,5 @@ urlpatterns = [
 
     # --- Account Activation Flow ---
     path('activate/<uidb64>/<token>/', activate_account, name='activate'),
+    path('resend-activation/', resend_activation, name='resend_activation'),
 ]
