@@ -18,7 +18,7 @@ def extract_details(text: str, raise_on_error: bool = False) -> dict:
 
     try:
         payload = {"text": caption_text}
-        response = requests.post(endpoint, json=payload, timeout=60)
+        response = requests.post(endpoint, json=payload, timeout=(2.0, 15.0))
         response.raise_for_status()
         return response.json()
     except RequestException as e:

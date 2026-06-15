@@ -31,7 +31,7 @@ def manager_dashboard(request, club_id):
     pending_members = memberships.filter(status='PENDING')
     
     # Get event posts for metadata editing
-    event_posts = Post.objects.filter(club=my_club, is_event=True).select_related('events').order_by('-timestamp')
+    event_posts = Post.objects.filter(club=my_club, is_event=True).select_related('event').order_by('-timestamp')
     
     context = {
         'club': my_club,
@@ -123,8 +123,8 @@ def update_post_extracted_details(request, club_id, post_id):
         post.extracted_details = details
         post.save(update_fields=['extracted_details'])
         
-        if hasattr(post, 'events'):
-            event = post.events
+        if post.event:
+            event = post.event
             from core.views.event_detail import parse_date
             new_date = parse_date(date_val)
             if new_date:

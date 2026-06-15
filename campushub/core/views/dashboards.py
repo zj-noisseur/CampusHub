@@ -18,11 +18,44 @@ def club_admin_dashboard(request, club_id, event_id=None):
             events = []
     else:
         events = Event.objects.filter(club=club, id=event_id)
+    from core.models import Post
+    all_club_posts = Post.objects.filter(club=club).prefetch_related('postimage_set').order_by('-timestamp')
     
     return render(request, 'event_manage.html', {
         'club': club,
         'events': events,
+        'all_club_posts': all_club_posts,
     })
+
+@login_required
+def manage_linked_posts(request, event_id):
+    from core.models import Post
+    event = get_object_or_404(Event, id=event_id)
+    club = event.club
+    
+    if request.method == 'POST':
+        selected_post_ids = request.POST.getlist('posts')
+        primary_post_id = request.POST.get('primary_post')
+        
+        Post.objects.filter(club=club, event=event).update(
+            event=None, 
+            is_primary_event_post=False,
+            is_event=False,
+            category='MISC'
+        )
+        
+        if selected_post_ids:
+            Post.objects.filter(club=club, id__in=selected_post_ids).update(
+                event=event, 
+                is_primary_event_post=False,
+                is_event=True
+            )
+            if primary_post_id and primary_post_id in selected_post_ids:
+                Post.objects.filter(club=club, id=primary_post_id).update(is_primary_event_post=True)
+            elif selected_post_ids:
+                Post.objects.filter(club=club, id=selected_post_ids[0]).update(is_primary_event_post=True)
+                
+    return redirect('core:event_admin_dashboard', club_id=club.id, event_id=event.id)
 
 @login_required
 def toggle_ready_status(request, event_id, prereg_id):
@@ -194,8 +227,7 @@ def club_profile(request, club_id):
     # 1. Fetch and prefetch events (with their linked post and post's images)
     events = (
         Event.objects.filter(club=club)
-        .select_related('post')
-        .prefetch_related('post__postimage_set')
+        .prefetch_related('posts__postimage_set')
         .order_by('event_date')
     )
     
@@ -209,7 +241,7 @@ def club_profile(request, club_id):
 
     from django.db.models import Q
     scraped_events = (
-        Post.objects.filter(club=club, events__isnull=True)
+        Post.objects.filter(club=club, event__isnull=True)
         .filter(Q(is_event=True) | ~Q(category='MISC'))
         .prefetch_related('postimage_set')
         .order_by('-timestamp')[:120]
@@ -256,7 +288,7 @@ def club_profile(request, club_id):
     manual_events_count = events.count()
     scraped_events_count = Post.objects.filter(
         club=club,
-        events__isnull=True
+        event__isnull=True
     ).filter(
         Q(is_event=True) | ~Q(category='MISC')
     ).count()
@@ -319,40 +351,53 @@ def create_event(request, club_id):
     from ..models import Post
     
     if request.method == 'POST':
-        form = EventCreationForm(request.POST, request.FILES)
+        form = EventCreationForm(request.POST, request.FILES, club=club)
         if form.is_valid():
             event = form.save(commit=False)
             event.club = club
-            
-            # Since Event requires a Post (OneToOne), we create a mock Post record 
-            # to bypass the Instagram scraper requirement for manual events.
-            desc = form.cleaned_data.get('description') or f"Manually created event: {event.title}"
-            category = form.cleaned_data.get('category') or 'WORKSHOP'
-            mock_post = Post.objects.create(
-                club=club,
-                short_code=f"manual_{timezone.now().timestamp()}",
-                caption=desc,
-                category=category,
-                timestamp=timezone.now()
-            )
-            event.post = mock_post
             event.save()
             
-            banner_image = form.cleaned_data.get('banner_image')
-            if banner_image:
-                from ..models import PostImage
-                PostImage.objects.create(
-                    post=mock_post,
-                    image=banner_image,
-                    order=1
+            existing_post = form.cleaned_data.get('existing_post')
+            if existing_post:
+                # Link to existing post
+                existing_post.event = event
+                existing_post.is_primary_event_post = True
+                existing_post.is_event = True
+                existing_post.save()
+            else:
+                # Since Event requires a Post (OneToOne), we create a mock Post record 
+                # to bypass the Instagram scraper requirement for manual events.
+                desc = form.cleaned_data.get('description') or f"Manually created event: {event.title}"
+                category = form.cleaned_data.get('category') or 'WORKSHOP'
+                mock_post = Post.objects.create(
+                    club=club,
+                    short_code=f"manual_{timezone.now().timestamp()}",
+                    caption=desc,
+                    category=category,
+                    timestamp=timezone.now()
                 )
+                mock_post.is_primary_event_post = True
+                mock_post.is_event = True
+                mock_post.event = event
+                mock_post.save()
+                
+                banner_image = form.cleaned_data.get('banner_image')
+                if banner_image:
+                    from ..models import PostImage
+                    PostImage.objects.create(
+                        post=mock_post,
+                        image=banner_image,
+                        order=1
+                    )
             return redirect('core:event_admin_dashboard', club_id=club.id, event_id=event.id)
     else:
-        form = EventCreationForm()
+        form = EventCreationForm(club=club)
         
+    available_posts = Post.objects.filter(club=club, event__isnull=True).prefetch_related('postimage_set').order_by('-timestamp')
     return render(request, 'create_event.html', {
         'club': club,
         'form': form,
+        'available_posts': available_posts,
     })
 
 
@@ -435,3 +480,105 @@ def trigger_club_scrape(request, club_id):
         
     return redirect('core:club_settings', club_id=club.id)
 
+
+@login_required
+def create_event(request, club_id):
+    from django.shortcuts import get_object_or_404, render, redirect
+    from core.models import Club
+    club = get_object_or_404(Club, id=club_id)
+    
+    if not club.managers.filter(user=request.user, is_active=True).exists():
+        return redirect('core:club_profile', club_id=club.id)
+    
+    from ..forms import EventCreationForm
+    from ..models import Post
+    from django.utils import timezone
+    
+    if request.method == 'POST':
+        form = EventCreationForm(request.POST, request.FILES, club=club)
+        if form.is_valid():
+            event = form.save(commit=False)
+            event.club = club
+            event.save()
+            
+            existing_post = form.cleaned_data.get('existing_post')
+            if existing_post:
+                existing_post.event = event
+                existing_post.is_primary_event_post = True
+                existing_post.is_event = True
+                existing_post.save()
+            else:
+                desc = form.cleaned_data.get('description') or f"Manually created event: {event.title}"
+                category = form.cleaned_data.get('category') or 'WORKSHOP'
+                mock_post = Post.objects.create(
+                    club=club,
+                    short_code=f"manual_{timezone.now().timestamp()}",
+                    caption=desc,
+                    category=category,
+                    timestamp=timezone.now(),
+                    is_primary_event_post=True,
+                    is_event=True,
+                    event=event
+                )
+                
+                banner_image = form.cleaned_data.get('banner_image')
+                if banner_image:
+                    from ..models import PostImage
+                    PostImage.objects.create(
+                        post=mock_post,
+                        image=banner_image,
+                        order=1
+                    )
+                    
+            return redirect('core:event_admin_dashboard', club_id=club.id, event_id=event.id)
+    else:
+        form = EventCreationForm(club=club)
+        
+    all_club_posts = Post.objects.filter(club=club).prefetch_related('postimage_set').order_by('-timestamp')
+    return render(request, 'create_event.html', {
+        'club': club,
+        'form': form,
+        'all_club_posts': all_club_posts,
+    })
+
+
+@login_required
+def manage_linked_posts(request, club_id, event_id):
+    from django.shortcuts import get_object_or_404, redirect
+    from core.models import Club, Event
+    club = get_object_or_404(Club, id=club_id)
+    event = get_object_or_404(Event, id=event_id, club=club)
+    
+    if not club.managers.filter(user=request.user).exists():
+        messages.error(request, 'You do not have permission to manage this club.')
+        return redirect('core:profile')
+        
+    if request.method == 'POST':
+        selected_post_ids = request.POST.getlist('post_ids')
+        primary_post_id = request.POST.get('primary_post_id')
+        
+        from core.models import Post
+        
+        Post.objects.filter(club=club, event=event).update(
+            event=None, 
+            is_primary_event_post=False,
+            is_event=False,
+            category='MISC'
+        )
+        
+        if selected_post_ids:
+            Post.objects.filter(club=club, id__in=selected_post_ids).update(
+                event=event, 
+                is_primary_event_post=False,
+                is_event=True
+            )
+            if primary_post_id and primary_post_id in selected_post_ids:
+                Post.objects.filter(club=club, id=primary_post_id).update(is_primary_event_post=True)
+            elif selected_post_ids:
+                Post.objects.filter(club=club, id=selected_post_ids[0]).update(is_primary_event_post=True)
+                
+            messages.success(request, f'Successfully linked {len(selected_post_ids)} post(s) to the event.')
+        else:
+            messages.success(request, 'Successfully unlinked all posts from the event.')
+            
+    return redirect('core:event_admin_dashboard', club_id=club.id, event_id=event.id)

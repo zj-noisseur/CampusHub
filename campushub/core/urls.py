@@ -14,7 +14,7 @@ from core.views.club_actions import join_club, apply_manager
 from core.views.manager_dashboard import import_members, manager_dashboard, process_membership, extend_club_validity, update_post_extracted_details
 from core.views.imports import import_attendees_csv
 from core.views.certificates import upload_certificate_template, download_certificates, download_my_certificate
-from core.views.dashboards import club_profile, club_admin_dashboard, club_settings, student_dashboard, toggle_ready_status, toggle_attended_status, set_event_status, create_event, edit_event, my_events, manage_attendee_status, trigger_club_scrape
+from core.views.dashboards import club_profile, club_admin_dashboard, club_settings, student_dashboard, toggle_ready_status, toggle_attended_status, set_event_status, create_event, edit_event, my_events, manage_attendee_status, trigger_club_scrape, manage_linked_posts
 from core.views.event_detail import event_detail, join_event
 from core.views.post_detail import post_detail
 from core.views.event_checkin import generate_qr_token, event_qr_checkin
@@ -90,6 +90,7 @@ urlpatterns = [
     path('club/<int:club_id>/apply-manager/', apply_manager, name='apply_manager'),
     path('club/<int:club_id>/admin/', club_admin_dashboard, name='club_admin_dashboard'),
     path('club/<int:club_id>/admin/<int:event_id>/', club_admin_dashboard, name='event_admin_dashboard'),
+    path('club/<int:club_id>/admin/<int:event_id>/link-posts/', manage_linked_posts, name='manage_linked_posts'),
     path('club/<int:club_id>/create-event/', create_event, name='create_event'),
     path('club/<int:club_id>/event/<int:event_id>/edit/', edit_event, name='edit_event'),
     path('club/<int:club_id>/settings/', club_settings, name='club_settings'),

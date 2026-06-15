@@ -277,6 +277,14 @@ class ClubSettingsForm(forms.ModelForm):
 
 
 class EventCreationForm(forms.ModelForm):
+    existing_post = forms.ModelChoiceField(
+        queryset=None, # Set dynamically in __init__
+        required=False,
+        empty_label="-- Create New Post --",
+        widget=forms.Select(attrs={'class': 'select select-bordered w-full focus:border-primary transition-all rounded-xl'}),
+        help_text="Optionally, link this event to an existing Instagram post."
+    )
+    
     description = forms.CharField(
         required=False,
         widget=forms.Textarea(attrs={'class': 'textarea textarea-bordered w-full h-28 focus:border-primary transition-all rounded-xl', 'placeholder': 'e.g. Schedule, RSVP info, requirements, and exciting highlights...'}),
@@ -318,17 +326,31 @@ class EventCreationForm(forms.ModelForm):
             'payment_qr': forms.FileInput(attrs={'class': 'file-input file-input-bordered w-full focus:border-primary transition-all rounded-xl'}),
         }
 
+    def __init__(self, *args, **kwargs):
+        club = kwargs.pop('club', None)
+        super().__init__(*args, **kwargs)
+        from core.models import Post
+        if club:
+            # Only show posts that belong to the club and are NOT already linked to an event
+            self.fields['existing_post'].queryset = Post.objects.filter(club=club, event__isnull=True).order_by('-timestamp')
+            
+            # Format the display of the post choices
+            self.fields['existing_post'].label_from_instance = lambda obj: f"[{obj.get_category_display()}] {obj.caption[:40]}..." if obj.caption else f"[{obj.get_category_display()}] Post {obj.short_code}"
+        else:
+            self.fields['existing_post'].queryset = Post.objects.none()
+
     def clean(self):
         cleaned_data = super().clean()
         join_mode = cleaned_data.get('join_mode')
         fee = cleaned_data.get('fee')
         rsvp_link = cleaned_data.get('rsvp_link')
+        existing_post = cleaned_data.get('existing_post')
 
         if join_mode == 'FEE' and (fee is None or fee <= 0):
             self.add_error('fee', 'You must set a fee greater than 0 for Pay to Join events.')
         if join_mode == 'RSVP' and not rsvp_link:
             self.add_error('rsvp_link', 'You must provide an RSVP link for External RSVP events.')
-
+            
         return cleaned_data
 
 

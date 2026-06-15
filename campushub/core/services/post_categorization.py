@@ -176,6 +176,19 @@ def assign_event_status_to_post(post, raise_on_error: bool = False) -> Optional[
     is_event = predict_is_event(post.caption, raise_on_error=raise_on_error)
     post.is_event = is_event
     post.save(update_fields=['is_event'])
+
+    if is_event and not post.event:
+        from core.models import Event
+        from django.utils import timezone
+        event = Event.objects.create(
+            club=post.club,
+            title=f"{post.club.name} Event",
+            event_date=timezone.now()  # Provide a default to satisfy NOT NULL constraint
+        )
+        post.event = event
+        post.is_primary_event_post = True
+        post.save(update_fields=['event', 'is_primary_event_post'])
+
     return is_event
 
 
