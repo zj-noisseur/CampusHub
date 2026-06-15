@@ -44,7 +44,7 @@ def sign_up(request):
                     )
 
                 messages.success(request, 'Registration successful! Please check your email to activate your account.')
-                return redirect('core:login')
+                return redirect('core:activation_sent') 
             
             except Exception as e:
                 messages.error(request, 'We could not send the activation email. Please try registering again later.')
