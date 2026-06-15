@@ -8,40 +8,48 @@ from django.utils.encoding import force_bytes, force_str
 from django.contrib.auth.tokens import default_token_generator
 from django.template.loader import render_to_string
 from django.core.mail import send_mail
+from django.db import transaction
 
 def sign_up(request):
     if request.method == 'POST':
         form = StudentRegistrationForm(request.POST) # Use whatever your form name is!
         if form.is_valid():
-            # 1. Pause the save to lock the account!
-            user = form.save(commit=False)
-            user.is_active = False 
-            user.save()
+            try:
+                with transaction.atomic():
+                    # 1. Pause the save to lock the account!
+                    user = form.save(commit=False)
+                    user.is_active = False 
+                    user.save()
+                    
+                    # 2. Build the activation email
+                    current_site = get_current_site(request)
+                    subject = 'Activate your CampusHub Account'
+                    html_message = render_to_string('activation_email.html', {
+                        'user': user,
+                        'domain': current_site.domain,
+                        'protocol': request.scheme,
+                        'uid': urlsafe_base64_encode(force_bytes(user.pk)),
+                        'token': default_token_generator.make_token(user),
+                    })
             
-            # 2. Build the activation email
-            current_site = get_current_site(request)
-            subject = 'Activate your CampusHub Account'
-            html_message = render_to_string('activation_email.html', {
-                'user': user,
-                'domain': current_site.domain,
-                'protocol': request.scheme,
-                'uid': urlsafe_base64_encode(force_bytes(user.pk)),
-                'token': default_token_generator.make_token(user),
-            })
+                    # 3. Send it 
+                    send_mail(
+                        subject=subject, 
+                        message="Please view this email in an HTML compatible client.", 
+                        from_email=None, 
+                        recipient_list=[user.email],
+                        html_message=html_message 
+                    )
+
+                messages.success(request, 'Registration successful! Please check your email to activate your account.')
+                return redirect('core:login')
             
-            # 3. Send it 
-            send_mail(
-                subject=subject, 
-                message="Please view this email in an HTML compatible client.", 
-                from_email=None, 
-                recipient_list=[user.email],
-                html_message=html_message 
-            )
+            except Exception as e:
+                messages.error(request, 'We could not send the activation email. Please try registering again later.')
             
-            # 4. Send them to a "Check your email" screen
-            return render(request, 'activation_sent.html')
     else:
         form = StudentRegistrationForm()
+
     return render(request, 'sign_up.html', {'form': form})
 
 def activate_account(request, uidb64, token):
