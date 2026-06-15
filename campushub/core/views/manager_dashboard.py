@@ -25,7 +25,9 @@ def manager_dashboard(request, club_id):
     # Get all the students who have applied or joined this club
     memberships = Membership.objects.filter(club=my_club)
 
-    approved_members = memberships.filter(status__in=['APPROVED', 'Member'])
+    all_official_members = memberships.filter(status__in=['APPROVED', 'Member'])
+    active_members = all_official_members.filter(user__is_active=True)
+    ghost_members = all_official_members.filter(user__is_active=False)
     pending_members = memberships.filter(status='PENDING')
     
     # Get event posts for metadata editing
@@ -33,10 +35,11 @@ def manager_dashboard(request, club_id):
     
     context = {
         'club': my_club,
-        'approved_members': approved_members,
+        'active_members': active_members,
+        'ghost_members': ghost_members,
         'pending_members': pending_members,
-        'total_members': approved_members.count(),
-        'pending_requests': pending_members.count(),
+        'total_members': all_official_members.count(),
+        'pending_requests': ghost_members.count(),
         'event_posts': event_posts,
     }
     
