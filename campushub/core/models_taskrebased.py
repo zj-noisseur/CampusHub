@@ -466,6 +466,10 @@ class Event(models.Model):
         return self.posts.first()
 
     @property
+    def post(self):
+        return self.primary_post
+
+    @property
     def extracted_details(self):
         first_post = self.primary_post
         return getattr(first_post, 'extracted_details', None) if first_post else None

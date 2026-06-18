@@ -122,7 +122,7 @@ def my_events(request):
 
     my_registrations = PreRegisteredAttendee.objects.filter(
         Q(user=user) | Q(guest_email=user.email)
-    ).select_related('event', 'event__club', 'event__post').order_by('-event__event_date')
+    ).select_related('event', 'event__club').order_by('-event__event_date')
 
     upcoming_events = []
     ongoing_events = []
