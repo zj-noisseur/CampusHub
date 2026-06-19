@@ -77,7 +77,7 @@ def manager_dashboard(request, club_id):
         'ghost_members': ghost_members,
         'pending_members': pending_members,
         'total_members': all_official_members.count(),
-        'pending_requests': ghost_members.count(),
+        'pending_requests': pending_members.count(),
         'event_posts': extraction_posts,
         'temporal_posts': temporal_posts,
         'event_type_posts': event_type_posts,
