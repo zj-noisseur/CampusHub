@@ -168,7 +168,10 @@ if USE_S3:
     AWS_S3_SIGNATURE_VERSION = 's3v4'
     AWS_S3_FILE_OVERWRITE = False
     AWS_DEFAULT_ACL = None
-    AWS_QUERYSTRING_AUTH = True
+    AWS_QUERYSTRING_AUTH = False
+    # https://{namespace}.compat.objectstorage.ap-kulai-2.oci.customer-oci.com/campushub-bucket
+    # strips away the https and http and the trailing slash
+    AWS_S3_CUSTOM_DOMAIN = AWS_S3_ENDPOINT_URL.replace("https://", "").replace("http://", "").strip("/")
 
     STORAGES = {
         "default": {
