@@ -173,6 +173,13 @@ if USE_S3:
     # strips away the https and http and the trailing slash
     AWS_S3_CUSTOM_DOMAIN = AWS_S3_ENDPOINT_URL.replace("https://", "").replace("http://", "").strip("/")
 
+    import botocore.config
+    AWS_S3_CLIENT_CONFIG = botocore.config.Config(
+        signature_version='s3v4',
+        request_checksum_calculation='when_required',
+        response_checksum_validation='when_required'
+    )
+
     STORAGES = {
         "default": {
             "BACKEND": "storages.backends.s3.S3Storage",
