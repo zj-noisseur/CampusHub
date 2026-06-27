@@ -1,11 +1,11 @@
 from django.core.paginator import Paginator
 from django.shortcuts import render
-from django.db.models import Prefetch
+from django.db.models import Prefetch, Q
 from core.models import Club, Post, PostImage, Institution
 
 def feed(request):
     selected_clubs = request.GET.getlist("club") or request.GET.getlist("club_ids")
-    selected_category = request.GET.get("category")
+    selected_category = request.GET.get("category", "all_events")
     search_query = request.GET.get("search", "")
 
     posts = Post.objects.select_related(
@@ -25,7 +25,16 @@ def feed(request):
     if clean_club_ids:
         posts = posts.filter(club_id__in=clean_club_ids)
     
-    if selected_category:
+    if selected_category == "all_events":
+        posts = posts.filter(
+            Q(is_event=True) | 
+            Q(event__isnull=False) | 
+            Q(category__in=['RECRUITMENT', 'COMPETITION', 'WORKSHOP', 'INDUSTRIAL_VISIT'])
+        ).exclude(is_event=False)
+    elif selected_category == "all":
+        # Show all posts, no category filtering
+        pass
+    elif selected_category:
         posts = posts.filter(category=selected_category)
         
     if search_query:
