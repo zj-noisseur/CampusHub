@@ -403,7 +403,6 @@ class Post(models.Model):
         ('COMPETITION', 'Competition'),
         ('WORKSHOP', 'Workshop'),
         ('INDUSTRIAL_VISIT', 'Industrial Visit'),
-        ('ANNOUNCEMENT', 'Announcement')
     ]
 
     club = models.ForeignKey(Club, on_delete=models.CASCADE, related_name='posts')
