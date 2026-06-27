@@ -382,10 +382,20 @@ def club_update_post_event_status(request, club_id, post_id):
         val = request.POST.get('is_event') or request.GET.get('is_event')
         if val == 'True':
             post.is_event = True
-        elif val == 'False':
-            post.is_event = False
-        elif val == 'None':
-            post.is_event = None
+        else:
+            if val in ['False', 'None'] and post.event:
+                if post.event.pre_registered.exists() or post.event.attendances.exists():
+                    html = render(request, 'club_temporal_classification_row.html', {'post': post, 'club': club}).content.decode('utf-8')
+                    alert_script = "<script>alert('Cannot revert event status: students are already registered or attended this event.');</script>"
+                    return HttpResponse(html + alert_script)
+
+            if val == 'False':
+                post.is_event = False
+            elif val == 'None':
+                post.is_event = None
+            if post.event:
+                post.event.delete()
+
         post.save(update_fields=['is_event'])
         return render(request, 'club_temporal_classification_row.html', {'post': post, 'club': club})
     return HttpResponse('Invalid request', status=400)
