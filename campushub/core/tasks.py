@@ -113,7 +113,7 @@ def process_club_dataset(club, dataset, full_sync=False, task=None):
     # return created_count
 
 @shared_task(bind=True)
-def run_club_scrape_task(self, club_id, search_limit=20, max_items=50, export_dir=None, full_sync=False, only_posts_newer_than=None):
+def run_club_scrape_task(self, club_id, search_limit=20, max_items=50, export_dir=None, full_sync=False, only_posts_newer_than=None, user_email=None):
     club = Club.objects.filter(id=club_id).first()
     if not club:
         raise ValueError('Club not found')
@@ -151,7 +151,7 @@ def run_club_scrape_task(self, club_id, search_limit=20, max_items=50, export_di
     )
 
     write_task = persist_club_dataset.apply_async(
-        (str(club.id), dataset, full_sync),
+        (str(club.id), dataset, full_sync, user_email),
         queue='db_write'
     )
 
@@ -165,7 +165,7 @@ def run_club_scrape_task(self, club_id, search_limit=20, max_items=50, export_di
 
 
 @shared_task(bind=True)
-def persist_club_dataset(self, club_id, dataset, full_sync=False):
+def persist_club_dataset(self, club_id, dataset, full_sync=False, user_email=None):
     club = Club.objects.filter(id=club_id).only('id', 'ig_handle', 'name').first()
     if not club:
         raise ValueError('Club not found')
@@ -198,16 +198,16 @@ def persist_club_dataset(self, club_id, dataset, full_sync=False):
     })
 
     try:
-        import resend
-        resend.api_key = getattr(settings, 'RESEND', os.environ.get('RESEND', ''))
-        params = {
-            "from": "CampusHub <onboarding@resend.dev>",
-            "to": ["delivered@resend.dev"],
-            "subject": f"CampusHub Scrape Completed - {club.name}",
-            "html": f"<p>The database write task for <strong>{club.name}</strong> was successful.</p>",
-        }
-        res = resend.Emails.send(params)
-        print(f"Successfully sent completion email for {club.name}. Resend response: {res}")
+        from django.core.mail import send_mail
+        recipient = user_email or "delivered@resend.dev"
+        send_mail(
+            subject=f"CampusHub Scrape Completed - {club.name}",
+            message=f"The database write task for {club.name} was successful.",
+            from_email=None,
+            recipient_list=[recipient],
+            html_message=f"<p>The database write task for <strong>{club.name}</strong> was successful.</p>"
+        )
+        print(f"Successfully sent completion email for {club.name} to {recipient}.")
     except Exception as e:
         print(f"Failed to send completion email for {club.name}: {e}")
 
