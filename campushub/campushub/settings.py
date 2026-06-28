@@ -164,14 +164,17 @@ if USE_S3:
     AWS_STORAGE_BUCKET_NAME = os.environ.get('AWS_STORAGE_BUCKET_NAME')
     AWS_S3_ENDPOINT_URL = os.environ.get('AWS_S3_ENDPOINT_URL')
     AWS_S3_REGION_NAME = os.environ.get('AWS_S3_REGION_NAME')
+
+    # If the endpoint URL contains the bucket name at the end, strip it for S3 API calls
+    if AWS_S3_ENDPOINT_URL and AWS_STORAGE_BUCKET_NAME and AWS_S3_ENDPOINT_URL.endswith(AWS_STORAGE_BUCKET_NAME):
+        AWS_S3_ENDPOINT_URL = AWS_S3_ENDPOINT_URL[:-len(AWS_STORAGE_BUCKET_NAME)].rstrip('/')
     
     AWS_S3_SIGNATURE_VERSION = 's3v4'
     AWS_S3_FILE_OVERWRITE = False
     AWS_DEFAULT_ACL = None
     AWS_QUERYSTRING_AUTH = False
-    # https://{namespace}.compat.objectstorage.ap-kulai-2.oci.customer-oci.com/campushub-bucket
-    # strips away the https and http and the trailing slash
-    AWS_S3_CUSTOM_DOMAIN = AWS_S3_ENDPOINT_URL.replace("https://", "").replace("http://", "").strip("/")
+    # For serving files, ensure the custom domain includes the bucket name path prefix
+    AWS_S3_CUSTOM_DOMAIN = f"{AWS_S3_ENDPOINT_URL.replace('https://', '').replace('http://', '').strip('/')}/{AWS_STORAGE_BUCKET_NAME}"
 
     import botocore.config
     AWS_S3_CLIENT_CONFIG = botocore.config.Config(
