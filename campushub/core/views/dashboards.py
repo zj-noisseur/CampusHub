@@ -590,3 +590,47 @@ def manage_linked_posts(request, club_id, event_id):
             messages.success(request, 'Successfully unlinked all posts from the event.')
             
     return redirect('core:event_admin_dashboard', club_id=club.id, event_id=event.id)
+
+
+@login_required
+def club_onboarding(request, club_id):
+    club = get_object_or_404(Club, id=club_id)
+    
+    # Check if the user is a manager
+    is_manager = club.managers.filter(user=request.user, is_active=True).exists()
+    if not is_manager:
+        return redirect('core:club_profile', club_id=club.id)
+        
+    from ..forms import ClubOnboardingForm
+    
+    if request.method == 'POST':
+        form = ClubOnboardingForm(request.POST, request.FILES, instance=club)
+        if form.is_valid():
+            form.save()
+            from django.contrib import messages
+            messages.success(request, "Onboarding steps successfully updated!")
+            return redirect('core:club_onboarding', club_id=club.id)
+    else:
+        form = ClubOnboardingForm(instance=club)
+        
+    # Track completion for steps
+    branding_completed = bool(club.logo) and bool(club.banner)
+    membership_completed = bool(club.renewal_policy) and club.membership_fee is not None
+    socials_completed = bool(club.social_instagram)
+    apify_completed = bool(club.encrypted_apify_api_key)
+    
+    completed_count = sum([branding_completed, membership_completed, socials_completed, apify_completed])
+    progress_percentage = int((completed_count / 4) * 100)
+    
+    context = {
+        'club': club,
+        'form': form,
+        'branding_completed': branding_completed,
+        'membership_completed': membership_completed,
+        'socials_completed': socials_completed,
+        'apify_completed': apify_completed,
+        'completed_count': completed_count,
+        'progress_percentage': progress_percentage,
+    }
+    return render(request, 'club_onboarding.html', context)
+
