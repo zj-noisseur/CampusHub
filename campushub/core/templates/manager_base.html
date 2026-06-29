@@ -13,10 +13,10 @@
         to { opacity: 1; transform: translateY(0); }
     }
 </style>
-<div class="flex flex-col lg:flex-row w-full flex-grow min-h-[calc(100vh-5rem)] bg-base-100">
+<div class="flex flex-col xl:flex-row w-full flex-grow min-h-[calc(100vh-5rem)] min-h-[calc(100dvh-5rem)] bg-base-100">
   
   <!-- Mobile Manager Navigation Bar -->
-  <div class="lg:hidden w-full bg-base-200 border-b border-base-300 p-4 flex flex-col gap-2">
+  <div class="xl:hidden w-full bg-base-200 border-b border-base-300 p-4 flex flex-col gap-2">
     <button type="button" onclick="document.getElementById('mobile-manager-menu').classList.toggle('hidden')" class="btn btn-outline btn-sm w-full flex items-center justify-between font-bold rounded-xl">
       <span class="flex items-center gap-2">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
@@ -60,7 +60,7 @@
   </div>
 
   <!-- Desktop Sidebar Navigation -->
-  <aside class="hidden lg:flex flex-col w-64 bg-base-200/60 border-r border-base-300 flex-shrink-0 p-4 select-none">
+  <aside class="hidden xl:flex flex-col w-64 bg-base-200/60 border-r border-base-300 flex-shrink-0 p-4 select-none">
     <div class="px-3 py-2 mb-4 border-b border-base-300 pb-4">
       <div class="flex items-center gap-3">
         <div class="w-10 h-10 rounded-xl bg-primary text-primary-content flex items-center justify-center font-bold text-lg overflow-hidden shrink-0 shadow-inner">
@@ -126,7 +126,7 @@
   </aside>
 
   <!-- Main Content Container -->
-  <main class="flex-1 p-4 lg:p-8 w-full max-w-full overflow-x-hidden bg-base-100">
+  <main class="flex-1 p-4 xl:p-8 w-full max-w-full overflow-x-hidden bg-base-100">
     <div class="max-w-7xl mx-auto w-full space-y-8 animate-fade-in">
       
       {% if messages %}

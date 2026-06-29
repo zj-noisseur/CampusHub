@@ -21,6 +21,60 @@
             --glass-border: rgba(255, 255, 255, 0.2);
         }
         
+        /* Fallback for older browsers (older macOS Safari/iOS/Android) that do not support OKLCH colors */
+        @supports not (color: oklch(0 0 0)) {
+            :root {
+                --p: 262 80% 50%;
+                --pc: 0 0% 100%;
+                --s: 316 70% 50%;
+                --sc: 0 0% 100%;
+                --a: 183 80% 40%;
+                --ac: 0 0% 100%;
+                --n: 247 10% 30%;
+                --nc: 0 0% 100%;
+                --b1: 0 0% 100%;
+                --b2: 240 5% 96%;
+                --b3: 240 5% 90%;
+                --bc: 240 10% 10%;
+            }
+            .btn-primary, .bg-primary, .badge-primary {
+                background-color: #000000 !important;
+                color: #ffffff !important;
+            }
+            .text-primary {
+                color: #000000 !important;
+            }
+            .btn-secondary {
+                background-color: #4f46e5 !important;
+                color: #ffffff !important;
+            }
+            .bg-base-100 {
+                background-color: #ffffff !important;
+            }
+            .bg-base-200, .bg-base-200\/60 {
+                background-color: #f3f4f6 !important;
+            }
+            .bg-base-300 {
+                background-color: #e5e7eb !important;
+            }
+            .text-base-content {
+                color: #1f2937 !important;
+            }
+            .border-base-300 {
+                border-color: #e5e7eb !important;
+            }
+            .progress-primary::-webkit-progress-value {
+                background-color: #000000 !important;
+            }
+            .progress-primary::-moz-progress-bar {
+                background-color: #000000 !important;
+            }
+            .progress-primary {
+                color: #000000 !important;
+                background-color: #f3f4f6 !important;
+            }
+        }
+        
         body {
             font-family: 'Outfit', sans-serif;
             background: #FAFAFA;
