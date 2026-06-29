@@ -44,7 +44,6 @@ def generate_qr_token(request, event_id):
         
         return JsonResponse({'status': 'generated', 'token': signed_token})
 
-@login_required
 def event_qr_checkin(request, event_id, token):
     event = get_object_or_404(Event, id=event_id)
     
@@ -59,7 +58,13 @@ def event_qr_checkin(request, event_id, token):
         # Invalid token (or it was manually cleared)
         return render(request, 'checkin_error.html', {'event': event})
         
-    # Valid token, mark attendance
+    # At this point the token is valid. If the user is not logged in, redirect them to login first.
+    if not request.user.is_authenticated:
+        from django.contrib.auth.views import redirect_to_login
+        from django.conf import settings
+        return redirect_to_login(request.get_full_path(), login_url=settings.LOGIN_URL)
+        
+    # Valid token and logged in, mark attendance
     attendance, created = Attendance.objects.get_or_create(
         event=event,
         user=request.user,

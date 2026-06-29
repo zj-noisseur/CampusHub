@@ -28,7 +28,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = f'{os.environ.get("DJANGO_KEY")}'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '*').split(',')
 
@@ -64,6 +64,7 @@ if not USE_S3 and HAS_NAOMI:
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -164,11 +165,24 @@ if USE_S3:
     AWS_STORAGE_BUCKET_NAME = os.environ.get('AWS_STORAGE_BUCKET_NAME')
     AWS_S3_ENDPOINT_URL = os.environ.get('AWS_S3_ENDPOINT_URL')
     AWS_S3_REGION_NAME = os.environ.get('AWS_S3_REGION_NAME')
+
+    # If the endpoint URL contains the bucket name at the end, strip it for S3 API calls
+    if AWS_S3_ENDPOINT_URL and AWS_STORAGE_BUCKET_NAME and AWS_S3_ENDPOINT_URL.endswith(AWS_STORAGE_BUCKET_NAME):
+        AWS_S3_ENDPOINT_URL = AWS_S3_ENDPOINT_URL[:-len(AWS_STORAGE_BUCKET_NAME)].rstrip('/')
     
     AWS_S3_SIGNATURE_VERSION = 's3v4'
     AWS_S3_FILE_OVERWRITE = False
     AWS_DEFAULT_ACL = None
-    AWS_QUERYSTRING_AUTH = True
+    AWS_QUERYSTRING_AUTH = False
+    # For serving files, ensure the custom domain includes the bucket name path prefix
+    AWS_S3_CUSTOM_DOMAIN = f"{AWS_S3_ENDPOINT_URL.replace('https://', '').replace('http://', '').strip('/')}/{AWS_STORAGE_BUCKET_NAME}"
+
+    import botocore.config
+    AWS_S3_CLIENT_CONFIG = botocore.config.Config(
+        signature_version='s3v4',
+        request_checksum_calculation='when_required',
+        response_checksum_validation='when_required'
+    )
 
     STORAGES = {
         "default": {
@@ -190,6 +204,15 @@ else:
     
     MEDIA_URL = '/media/'
     MEDIA_ROOT = BASE_DIR / 'media'
+
+    STORAGES = {
+        "default": {
+            "BACKEND": "django.core.files.storage.FileSystemStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        },
+    }
 AUTH_USER_MODEL = 'core.User'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -242,8 +265,7 @@ if USE_S3 or not HAS_NAOMI:
 
     DEFAULT_FROM_EMAIL = 'CampusHub <noreply@campushub.dev>'
 else:
-    # Use console backend to prevent `.html` files opening in VS Code.
-    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+    EMAIL_BACKEND = 'naomi.mail.backends.naomi.NaomiBackend'
     EMAIL_FILE_PATH = os.path.join(BASE_DIR, 'tmp_emails')
 
     DEFAULT_FROM_EMAIL = 'CampusHub <noreply@campushub.local>'

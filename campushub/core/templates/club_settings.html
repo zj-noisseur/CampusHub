@@ -1,10 +1,14 @@
-{% extends 'base.html' %}
+{% extends 'manager_base.html' %}
 {% load static %}
 
 {% block title %}Manage {{ club.name }} - CampusHub{% endblock %}
 
-{% block content %}
-<div class="max-w-4xl mx-auto py-10 px-4">
+{% block manager_content %}
+<style>
+    .htmx-indicator { display: none !important; }
+    .htmx-request .htmx-indicator, .htmx-indicator.htmx-request { display: inline-block !important; }
+</style>
+<div class="w-full">
     
     <div class="mb-10">
         <h1 class="text-3xl font-bold tracking-tight text-gray-900">Manage {{ club.name }}</h1>
@@ -18,9 +22,6 @@
         <div class="bg-white rounded-2xl p-6 md:p-8 border border-gray-100 shadow-sm">
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-xl font-semibold">Club Details</h2>
-                <a href="{% url 'core:manager_dashboard' club.id %}" class="btn btn-sm border-none bg-gray-900 text-white hover:bg-gray-800 rounded-full px-6 font-medium shadow-sm transition-transform hover:scale-105">
-                    👥 Manage Members
-                </a>
             </div>
             
             <div class="space-y-5">
@@ -189,5 +190,33 @@
         </div>
         
     </form>
+
+    <!-- New Section: Event Posts & Extracted Details -->
+    <div class="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-gray-100 mt-8 animate-fade-in" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+        <h2 class="text-xl font-bold text-black mb-6">Club Events & Extracted Metadata</h2>
+        
+        <div class="overflow-x-auto">
+            <table class="table table-zebra w-full">
+                <thead>
+                    <tr class="text-gray-500 border-b-2 border-gray-100">
+                        <th class="text-xs uppercase opacity-60">Content Detail</th>
+                        <th class="text-xs uppercase opacity-60">Date Scraped</th>
+                        <th class="text-xs uppercase opacity-60">Extracted Details</th>
+                        <th class="text-xs uppercase opacity-60">Extraction Status</th>
+                        <th class="text-xs uppercase opacity-60 text-center">Source</th>
+                    </tr>
+                </thead>
+                <tbody id="posts-table-body">
+                    {% for post in event_posts %}
+                        {% include 'club_data_extraction_row.html' with post=post club=club %}
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center py-8 text-gray-400 italic">No event posts found for this club.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
 {% endblock %}

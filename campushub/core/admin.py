@@ -31,7 +31,12 @@ class ClubAdmin(admin.ModelAdmin):
 
 admin.site.register(Club, ClubAdmin)
 admin.site.register(ClubManager)
-admin.site.register(Membership)
+@admin.register(Membership)
+class MembershipAdmin(admin.ModelAdmin):
+    list_display = ('user', 'club', 'membership_type', 'status', 'joined_at')
+    list_filter = ('status', 'membership_type', 'club')
+    search_fields = ('user__student_name', 'user__email', 'club__name')
+    readonly_fields = ('joined_at',)
 
 # --- Post & Event Admins ---
 admin.site.register(Post)

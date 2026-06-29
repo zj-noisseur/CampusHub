@@ -78,9 +78,9 @@
 
         <!-- Integrated Category Toolbar -->
         <div class="flex flex-wrap items-center justify-center gap-2">
-            <a href="?{% if search_query %}search={{ search_query }}{% endif %}" 
-               class="btn btn-sm rounded-full px-6 {% if not selected_category %}btn-primary shadow-md{% else %}btn-ghost bg-base-200/50{% endif %}">
-                All Posts
+            <a href="?category=all_events{% if search_query %}&search={{ search_query }}{% endif %}{% for cid in selected_clubs %}&club_ids={{ cid }}{% endfor %}" 
+               class="btn btn-sm rounded-full px-6 {% if selected_category == 'all_events' %}btn-primary shadow-md{% else %}btn-ghost bg-base-200/50 hover:bg-base-300{% endif %}">
+                All Events
             </a>
             {% for key, label in categories %}
             <a href="?category={{ key }}{% if search_query %}&search={{ search_query }}{% endif %}{% for cid in selected_clubs %}&club_ids={{ cid }}{% endfor %}" 
@@ -88,8 +88,12 @@
                 {{ label }}
             </a>
             {% endfor %}
+            <a href="?category=all{% if search_query %}&search={{ search_query }}{% endif %}{% for cid in selected_clubs %}&club_ids={{ cid }}{% endfor %}" 
+               class="btn btn-sm rounded-full px-6 {% if selected_category == 'all' %}btn-primary shadow-md{% else %}btn-ghost bg-base-200/50 hover:bg-base-300{% endif %}">
+                All Posts
+            </a>
             
-            {% if selected_category or selected_clubs or search_query %}
+            {% if selected_category != 'all_events' or selected_clubs or search_query %}
             <div class="divider divider-horizontal mx-1 h-6 self-center opacity-20"></div>
             <a href="?" class="btn btn-ghost btn-sm btn-circle text-error" title="Clear all filters">
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
@@ -125,7 +129,7 @@
                         <span class="badge badge-primary font-bold shadow-lg py-3 px-4 border-none">{{ post.get_category_display }}</span>
                         {% endif %}
                         
-                        {% if post.is_event or post.category != 'MISC' or post.event %}
+                        {% if post.is_event or post.event %}
                         <span class="badge bg-base-100/90 text-base-content font-bold shadow-lg py-3 px-4 border-none backdrop-blur-sm">
                             {% if post.event %}
                                 {% if post.event.join_mode == 'FREE' %}

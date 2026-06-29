@@ -47,8 +47,7 @@ CATEGORIES = {
     "RECRUITMENT": "Recruitment",
     "COMPETITION": "Competition",
     "WORKSHOP": "Workshop",
-    "INDUSTRIAL_VISIT": "Industrial Visit",
-    "ANNOUNCEMENT": "Announcement"
+    "INDUSTRIAL_VISIT": "Industrial Visit"
 }
 
 class ClassificationRequest(BaseModel):

@@ -359,4 +359,101 @@ class RetrieveJsonTestCase(TestCase):
         mock_fetch.assert_called_once()
 
 
+class ClubOnboardingTestCase(TestCase):
+    def setUp(self):
+        self.state = State.objects.create(name="Selangor")
+        self.inst = Institution.objects.create(university_name="MMU", state=self.state)
+        self.club = Club.objects.create(
+            institution=self.inst, 
+            name="Test Club", 
+            ig_handle="test_club",
+            renewal_policy="ROLLING",
+            membership_fee=0.00
+        )
+        self.manager_user = User.objects.create_user(
+            email="manager@mmu.edu.my", 
+            student_name="Onboarding Manager", 
+            student_id="1211100005", 
+            password="pass"
+        )
+        self.other_user = User.objects.create_user(
+            email="other@mmu.edu.my", 
+            student_name="Other Student", 
+            student_id="1211100006", 
+            password="pass"
+        )
+        
+        from core.models import ClubManager
+        ClubManager.objects.create(
+            club=self.club,
+            user=self.manager_user,
+            role="ROOT",
+            is_active=True
+        )
+
+    def test_onboarding_form_validation_and_clean(self):
+        from core.forms import ClubOnboardingForm
+        # Test clean URL formatting
+        form_data = {
+            'renewal_policy': 'ROLLING',
+            'membership_fee': 5.00,
+            'social_instagram': 'instagram.com/myclub',
+            'social_website': 'http://myclub.org',
+            'apify_api_key': 'testkey123'
+        }
+        form = ClubOnboardingForm(data=form_data, instance=self.club)
+        self.assertTrue(form.is_valid())
+        saved_club = form.save()
+        self.assertEqual(saved_club.social_instagram, 'https://instagram.com/myclub')
+        self.assertEqual(saved_club.social_website, 'http://myclub.org')
+        self.assertEqual(saved_club.get_apify_api_key(), 'testkey123')
+
+    def test_onboarding_view_access_protection(self):
+        url = reverse('core:club_onboarding', kwargs={'club_id': self.club.id})
+        
+        # Unauthenticated redirects to login
+        response = self.client.get(url)
+        self.assertRedirects(response, f"/login/?next={url}")
+        
+        # Unauthorized redirects to club profile
+        self.client.force_login(self.other_user)
+        response = self.client.get(url)
+        self.assertRedirects(response, reverse('core:club_profile', kwargs={'club_id': self.club.id}))
+
+    def test_onboarding_view_get_context(self):
+        url = reverse('core:club_onboarding', kwargs={'club_id': self.club.id})
+        self.client.force_login(self.manager_user)
+        
+        # Initially, branding is not set, socials are not set, key is not set.
+        # renewal_policy and membership_fee are set in setup (so 1/4 completed).
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['branding_completed'], False)
+        self.assertEqual(response.context['membership_completed'], True)
+        self.assertEqual(response.context['socials_completed'], False)
+        self.assertEqual(response.context['apify_completed'], False)
+        self.assertEqual(response.context['completed_count'], 1)
+        self.assertEqual(response.context['progress_percentage'], 25)
+
+    def test_onboarding_view_post_updates(self):
+        url = reverse('core:club_onboarding', kwargs={'club_id': self.club.id})
+        self.client.force_login(self.manager_user)
+        
+        post_data = {
+            'renewal_policy': 'CALENDAR',
+            'membership_fee': 10.00,
+            'social_instagram': 'instagram.com/updated_club',
+            'apify_api_key': 'newapifykey'
+        }
+        response = self.client.post(url, post_data)
+        self.assertRedirects(response, url)
+        
+        self.club.refresh_from_db()
+        self.assertEqual(self.club.renewal_policy, 'CALENDAR')
+        self.assertEqual(self.club.membership_fee, 10.00)
+        self.assertEqual(self.club.social_instagram, 'https://instagram.com/updated_club')
+        self.assertEqual(self.club.get_apify_api_key(), 'newapifykey')
+
+
+
 

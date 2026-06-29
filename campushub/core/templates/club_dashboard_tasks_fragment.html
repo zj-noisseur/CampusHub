@@ -1,0 +1,132 @@
+<tbody id="queue-tbody"
+       hx-get="{% url 'core:club_task_queue' club_id=club.id %}"
+       hx-trigger="{% if has_recent_activity %}every 3s, {% endif %}customStartPoll from:body"
+       hx-swap="outerHTML">
+    {% for task in tasks %}
+        <tr class="task-row scrape-ui-row" data-task-id="{{ task.task_id }}" data-club-id="{{ task.club_id }}" data-state="{{ task.state }}" data-phase="{{ task.phase|default:'apify' }}" data-current-item="{{ task.current_item|default:0 }}" data-total-items="{{ task.total_items|default:0 }}" data-current-image="{{ task.current_image|default:0 }}" data-total-images="{{ task.total_images|default:0 }}" data-status-text="{{ task.status_text|default:'' }}" data-date-created="{% if task.date_created %}{{ task.date_created.isoformat }}{% endif %}" data-date-done="{% if task.date_done %}{{ task.date_done.isoformat }}{% endif %}">
+            <td class="align-top font-bold whitespace-nowrap bg-base-200/50 border-r border-base-300 py-4 text-xs">
+                {{ task.date_created|date:"M d, Y"|default:"Unknown Date" }}
+            </td>
+            <td>
+                {% if task.state == 'PROGRESS' %}
+                    <span class="loading loading-spinner loading-sm"></span>
+                    <span class="text-xs text-primary">Running</span>
+                {% elif task.state == 'SUCCESS' %}
+                    <span class="badge badge-success status-label">Completed</span>
+                {% elif task.state == 'FAILURE' %}
+                    <span class="badge badge-error status-label">Failed</span>
+                {% elif task.state == 'PENDING' %}
+                    <span class="badge badge-ghost status-label">Queued</span>
+                {% else %}
+                    <span class="badge badge-ghost status-label">{{ task.state }}</span>
+                {% endif %}
+                {% if task.status_text %}
+                    <div class="text-[10px] text-base-content/70 mt-1">{{ task.status_text }}</div>
+                {% endif %}
+                <div class="text-[10px] text-base-content/50">
+                    {% if task.state == 'PROGRESS' %}
+                        {% if task.eta %}ETA: {{ task.eta }}s{% endif %}
+                        {% if task.elapsed %} &bull; Elapsed: {{ task.elapsed|floatformat:0 }}s{% endif %}
+                    {% elif task.state == 'PENDING' %}
+                        Queued recently
+                    {% else %}
+                        {% if task.date_done %}
+                            {{ task.date_done|time:"H:i:s" }}
+                        {% else %}
+                            Not started yet
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </td>
+            <td class="w-1/2">
+                {% if task.is_scrape_task %}
+                    <div class="scrape-task-ui"
+                    data-task-id="{{ task.task_id }}"
+                    data-state="{{ task.state }}"
+                    data-phase="{{ task.phase|default:'apify'}}"
+                    >
+                        <ul class="steps steps-vertical text-xs w-full task-steps">
+                            <li class="step task-step-apify {% if task.phase != 'apify' or task.state == 'SUCCESS' %}step-primary{% endif %}"
+                                data-content="{% if task.phase != 'apify' or task.state == 'SUCCESS' %}✓{% else %}●{% endif %}">
+                                <div class="text-left flex flex-col">
+                                    <span>Retrieve JSON dataset</span>
+                                </div>
+                            </li>
+
+                            <li class="step task-step-process {% if task.phase == 'processing_posts' or task.phase == 'downloading' or task.phase == 'db_write' or task.state == 'SUCCESS' %}step-primary{% endif %}"
+                                data-content="{% if task.phase == 'downloading' or task.phase == 'db_write' or task.state == 'SUCCESS' %}✓{% else %}●{% endif %}">
+                                <div class="text-left flex flex-col">
+                                    <span>Process posts</span>
+                                    <span class="text-xs text-base-content/60 post-counters {% if not task.total_items %}hidden{% endif %}"><span class="cur">{{ task.current_item|default:0 }}</span> / <span class="tot">{{ task.total_items|default:0 }}</span></span>
+                                </div>
+                            </li>
+
+                            <li class="step task-step-download {% if task.phase == 'downloading' or task.phase == 'db_write' or task.state == 'SUCCESS' %}step-primary{% endif %}"
+                                data-content="{% if task.phase == 'db_write' or task.state == 'SUCCESS' %}✓{% else %}●{% endif %}">
+                                <div class="text-left flex flex-col">
+                                    <span>Download images</span>
+                                    <span class="text-xs text-base-content/60 image-counters {% if not task.total_images %}hidden{% endif %}"><span class="cur">{{ task.current_image|default:0 }}</span> / <span class="tot">{{ task.total_images|default:0 }}</span></span>
+                                </div>
+                            </li>
+
+                            <li class="step task-step-db {% if task.phase == 'db_write' or task.state == 'SUCCESS' %}step-primary{% endif %}"
+                                data-content="{% if task.state == 'SUCCESS' %}✓{% else %}●{% endif %}">
+                                <div class="text-left flex flex-col">
+                                    <span>Writing to database</span>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                {% else %}
+                    <span class="badge badge-ghost">{{ task.status}}</span>
+                {% endif %}
+            </td>
+            <td class="text-xs status-detail">
+                {% if task.state == 'PROGRESS' %}
+                    {% if task.date_created %}
+                        Started {{ task.date_created|time:"H:i:s" }}
+                    {% else %}
+                        Running now
+                    {% endif %}
+                {% elif task.state == 'PENDING' %}
+                    {% if task.date_created %}
+                        Queued {{ task.date_created|time:"H:i:s" }}
+                    {% else %}
+                        Queued recently
+                    {% endif %}
+                {% else %}
+                    <div class="flex flex-col gap-1">
+                        {% if task.date_created %}
+                            <span class="text-base-content/70">Started {{ task.date_created|time:"H:i:s" }}</span>
+                        {% endif %}
+                        {% if task.date_done %}
+                            <span class="font-medium">Finished {{ task.date_done|time:"H:i:s" }}</span>
+                        {% else %}
+                            <span>Not finished yet</span>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </td>
+            <td class="text-xs max-w-xs break-words align-top py-4">
+                {% if task.failed_items %}
+                    <ul class="list-disc list-inside">
+                    {% for err in task.failed_items %}
+                        <li class="mb-2">
+                            <div class="flex items-center gap-2">
+                                <a href="{{ err.post_url }}" target="_blank" class="link link-primary hover:underline font-mono" title="View on Instagram">...{{ err.short_code }}</a>
+                            </div>
+                            <span class="text-error block mt-1">{{ err.error|truncatechars:60 }}</span>
+                        </li>
+                    {% endfor %}
+                    </ul>
+                {% else %}
+                    <span class="text-base-content/50">None</span>
+                {% endif %}
+            </td>
+        </tr>
+    {% empty %}
+    <tr>
+        <td colspan="5" class="text-center py-4 opacity-50 italic">No scrape tasks found in history.</td>
+    </tr>
+    {% endfor %}
+</tbody>

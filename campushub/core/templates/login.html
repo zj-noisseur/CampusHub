@@ -36,6 +36,10 @@
             <a href="{% url 'core:password_reset' %}" class="hover:text-black font-medium transition-colors whitespace-nowrap">Forgot password?</a>
             
             <span class="hidden sm:inline text-gray-300">|</span>
+
+            <a href="{% url 'core:resend_activation' %}" class="hover:text-black font-medium transition-colors whitespace-nowrap">Resend activation?</a>
+            
+            <span class="hidden sm:inline text-gray-300">|</span>
             
             <span>Don't have an account? <a href="{% url 'core:signup' %}" class="text-black font-bold hover:underline">Register here</a>.</span>
         </div>

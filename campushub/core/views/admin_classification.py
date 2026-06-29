@@ -134,10 +134,19 @@ def admin_update_post_event_status(request, post_id):
         val = request.POST.get('is_event') or request.GET.get('is_event')
         if val == 'True':
             post.is_event = True
-        elif val == 'False':
-            post.is_event = False
-        elif val == 'None':
-            post.is_event = None
+        else:
+            if val in ['False', 'None'] and post.event:
+                if post.event.pre_registered.exists() or post.event.attendances.exists():
+                    html = render(request, 'admin_temporal_classification_step1_row.html', {'post': post}).content.decode('utf-8')
+                    alert_script = "<script>alert('Cannot revert event status: students are already registered or attended this event.');</script>"
+                    return HttpResponse(html + alert_script)
+            
+            if val == 'False':
+                post.is_event = False
+            elif val == 'None':
+                post.is_event = None
+            if post.event:
+                post.event.delete()
         post.save(update_fields=['is_event'])
         return render(request, 'admin_temporal_classification_step1_row.html', {'post': post})
     return HttpResponse('Invalid request', status=400)
@@ -296,11 +305,29 @@ def admin_bulk_revert_classification(request):
         club_ids = request.POST.getlist('club_ids[]') or request.POST.getlist('club_ids')
 
         if step == 'temporal':
-            posts = Post.objects.all()
             if scope == 'all':
-                posts.update(is_event=None)
+                posts = Post.objects.all()
             else:
-                posts.filter(club_id__in=club_ids).update(is_event=None)
+                posts = Post.objects.filter(club_id__in=club_ids)
+            
+            # Find associated events
+            from django.db.models import Q
+            from core.models import Event
+            events_to_check = Event.objects.filter(posts__in=posts).distinct()
+            
+            # Filter events that have registered members or attendances
+            events_with_regs = events_to_check.filter(
+                Q(pre_registered__isnull=False) | Q(attendances__isnull=False)
+            ).distinct()
+            events_with_regs_ids = set(events_with_regs.values_list('id', flat=True))
+            
+            # Delete only events WITHOUT registrations
+            events_to_delete = events_to_check.exclude(id__in=events_with_regs_ids)
+            events_to_delete.delete()
+            
+            # Only reset is_event flag for posts not linked to events with registrations
+            posts_to_revert = posts.exclude(event_id__in=events_with_regs_ids)
+            posts_to_revert.update(is_event=None)
         else:
             posts = Post.objects.filter(is_event=True)
             if scope == 'all':

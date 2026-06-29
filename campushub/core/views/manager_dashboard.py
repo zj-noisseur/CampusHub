@@ -30,17 +30,60 @@ def manager_dashboard(request, club_id):
     ghost_members = all_official_members.filter(user__is_active=False)
     pending_members = memberships.filter(status='PENDING')
     
-    # Get event posts for metadata editing
-    event_posts = Post.objects.filter(club=my_club, is_event=True).select_related('event').order_by('-timestamp')
+    # Get all post lists for 3-step caption processing
+    all_club_posts = Post.objects.filter(club=my_club).order_by('-timestamp')
+    temporal_posts = all_club_posts
+    event_type_posts = all_club_posts.filter(is_event=True)
+    extraction_posts = all_club_posts.filter(is_event=True).select_related('event')
     
+    from core.models import ClubScrapeStatus
+    from datetime import timedelta
+    
+    status = ClubScrapeStatus.objects.filter(club=my_club).first()
+    tasks_data = []
+    if status:
+        tasks_data.append({
+            'task_id': status.task_id,
+            'task_name': status.latest_task_name,
+            'display_name': status.latest_task_name.split('.')[-1] if status.latest_task_name else 'Task',
+            'club_id': str(status.club.id) if status.club else None,
+            'club_name': status.club.name if status.club else 'Unknown Club',
+            'is_scrape_task': True,
+            'phase': status.phase,
+            'progress': 100 if status.state == 'SUCCESS' else 0,
+            'current_item': status.current_item,
+            'total_items': status.total_items,
+            'current_image': status.current_image,
+            'total_images': status.total_images,
+            'status': status.state or 'PENDING',
+            'status_text': status.status,
+            'eta': None,
+            'elapsed': (status.finished_at - status.started_at).total_seconds() if status.finished_at and status.started_at else ((status.last_updated_at - status.started_at).total_seconds() if status.last_updated_at and status.started_at else None),
+            'state': status.state or 'PENDING',
+            'date_done': status.finished_at,
+            'date_created': status.started_at,
+            'date_group': (status.finished_at or status.started_at).date() if (status.finished_at or status.started_at) else None,
+            'summary': status.extra,
+            'failed_items': status.failed_items,
+        })
+        
+    has_recent_activity = False
+    if status and status.last_updated_at and timezone.now() - status.last_updated_at < timedelta(seconds=30):
+        has_recent_activity = True
+        
     context = {
         'club': my_club,
         'active_members': active_members,
         'ghost_members': ghost_members,
         'pending_members': pending_members,
         'total_members': all_official_members.count(),
-        'pending_requests': ghost_members.count(),
-        'event_posts': event_posts,
+        'pending_requests': pending_members.count(),
+        'event_posts': extraction_posts,
+        'temporal_posts': temporal_posts,
+        'event_type_posts': event_type_posts,
+        'extraction_posts': extraction_posts,
+        'tasks': tasks_data,
+        'has_recent_activity': has_recent_activity,
     }
     
     return render(request, 'manager_dashboard.html', context)
@@ -134,9 +177,10 @@ def update_post_extracted_details(request, club_id, post_id):
             
         messages.success(request, 'Event details successfully updated!')
         
+    referer = request.META.get('HTTP_REFERER')
+    if referer:
+        return redirect(referer)
     return redirect('core:manager_dashboard', club_id=club.id)
-
-
 
 def import_members(request, club_id):
     club = get_object_or_404(Club, id=club_id)
@@ -201,3 +245,199 @@ def import_members(request, club_id):
 
     # If it's a GET request, just show the upload form page
     return render(request, 'import_members.html', {'club': club})
+
+
+from django.http import HttpResponse
+
+@login_required
+def club_extract_post_details(request, club_id, post_id):
+    club = get_object_or_404(Club, id=club_id)
+    
+    is_manager = club.managers.filter(user=request.user, is_active=True).exists()
+    if not is_manager:
+        return HttpResponse("Unauthorized", status=403)
+        
+    post = get_object_or_404(Post, id=post_id, club=club)
+    
+    if not post.is_event:
+        return HttpResponse("Post is not classified as an event.", status=400)
+        
+    from core.services.post_extraction import extract_details as run_extract
+    post.extracted_details = run_extract(post.caption)
+    post.save(update_fields=['extracted_details'])
+    
+    if post.event:
+        event = post.event
+        from core.views.event_detail import parse_date
+        extracted_date = post.extracted_details.get('date')
+        if extracted_date:
+            new_date = parse_date(extracted_date)
+            if new_date:
+                event.event_date = new_date
+        event.location = post.extracted_details.get('venue') or ""
+        event.save()
+        
+    return render(request, 'club_data_extraction_row.html', {'post': post, 'club': club})
+
+
+@login_required
+def club_revert_post_extraction(request, club_id, post_id):
+    club = get_object_or_404(Club, id=club_id)
+    
+    is_manager = club.managers.filter(user=request.user, is_active=True).exists()
+    if not is_manager:
+        return HttpResponse("Unauthorized", status=403)
+        
+    post = get_object_or_404(Post, id=post_id, club=club)
+    post.extracted_details = {}
+    post.save(update_fields=['extracted_details'])
+    
+    if post.event:
+        event = post.event
+        event.location = ""
+        event.save()
+        
+    return render(request, 'club_data_extraction_row.html', {'post': post, 'club': club})
+
+
+@login_required
+def club_task_queue(request, club_id):
+    club = get_object_or_404(Club, id=club_id)
+    is_manager = club.managers.filter(user=request.user, is_active=True).exists()
+    if not is_manager:
+        return HttpResponse("Unauthorized", status=403)
+        
+    from core.models import ClubScrapeStatus
+    from datetime import timedelta
+    status = ClubScrapeStatus.objects.filter(club=club).first()
+    tasks_data = []
+    if status:
+        tasks_data.append({
+            'task_id': status.task_id,
+            'task_name': status.latest_task_name,
+            'display_name': status.latest_task_name.split('.')[-1] if status.latest_task_name else 'Task',
+            'club_id': str(status.club.id) if status.club else None,
+            'club_name': status.club.name if status.club else 'Unknown Club',
+            'is_scrape_task': True,
+            'phase': status.phase,
+            'progress': 100 if status.state == 'SUCCESS' else 0,
+            'current_item': status.current_item,
+            'total_items': status.total_items,
+            'current_image': status.current_image,
+            'total_images': status.total_images,
+            'status': status.state or 'PENDING',
+            'status_text': status.status,
+            'eta': None,
+            'elapsed': (status.finished_at - status.started_at).total_seconds() if status.finished_at and status.started_at else ((status.last_updated_at - status.started_at).total_seconds() if status.last_updated_at and status.started_at else None),
+            'state': status.state or 'PENDING',
+            'date_done': status.finished_at,
+            'date_created': status.started_at,
+            'date_group': (status.finished_at or status.started_at).date() if (status.finished_at or status.started_at) else None,
+            'summary': status.extra,
+            'failed_items': status.failed_items,
+        })
+        
+    has_recent_activity = False
+    if status and status.last_updated_at and timezone.now() - status.last_updated_at < timedelta(seconds=30):
+        has_recent_activity = True
+        
+    return render(request, 'club_dashboard_tasks_fragment.html', {
+        'tasks': tasks_data,
+        'has_recent_activity': has_recent_activity,
+        'history_task_count': len(tasks_data),
+        'club': club,
+    })
+
+
+@login_required
+def club_classify_post_temporal(request, club_id, post_id):
+    club = get_object_or_404(Club, id=club_id)
+    
+    # Check if the user is a manager
+    is_manager = club.managers.filter(user=request.user, is_active=True).exists()
+    if not is_manager:
+        return HttpResponse("Unauthorized", status=403)
+        
+    post = get_object_or_404(Post, id=post_id, club=club)
+    
+    if request.method == 'POST':
+        from core.services.post_categorization import assign_event_status_to_post
+        assign_event_status_to_post(post)
+        return render(request, 'club_temporal_classification_row.html', {'post': post, 'club': club})
+    return HttpResponse('Invalid request', status=400)
+
+
+@login_required
+def club_update_post_event_status(request, club_id, post_id):
+    club = get_object_or_404(Club, id=club_id)
+    
+    # Check if the user is a manager
+    is_manager = club.managers.filter(user=request.user, is_active=True).exists()
+    if not is_manager:
+        return HttpResponse("Unauthorized", status=403)
+        
+    post = get_object_or_404(Post, id=post_id, club=club)
+    
+    if request.method == 'POST':
+        val = request.POST.get('is_event') or request.GET.get('is_event')
+        if val == 'True':
+            post.is_event = True
+        else:
+            if val in ['False', 'None'] and post.event:
+                if post.event.pre_registered.exists() or post.event.attendances.exists():
+                    html = render(request, 'club_temporal_classification_row.html', {'post': post, 'club': club}).content.decode('utf-8')
+                    alert_script = "<script>alert('Cannot revert event status: students are already registered or attended this event.');</script>"
+                    return HttpResponse(html + alert_script)
+
+            if val == 'False':
+                post.is_event = False
+            elif val == 'None':
+                post.is_event = None
+            if post.event:
+                post.event.delete()
+
+        post.save(update_fields=['is_event'])
+        return render(request, 'club_temporal_classification_row.html', {'post': post, 'club': club})
+    return HttpResponse('Invalid request', status=400)
+
+
+@login_required
+def club_classify_post_event(request, club_id, post_id):
+    club = get_object_or_404(Club, id=club_id)
+    
+    # Check if the user is a manager
+    is_manager = club.managers.filter(user=request.user, is_active=True).exists()
+    if not is_manager:
+        return HttpResponse("Unauthorized", status=403)
+        
+    post = get_object_or_404(Post, id=post_id, club=club)
+    
+    if request.method == 'POST':
+        from core.services.post_categorization import assign_category_to_post
+        assign_category_to_post(post)
+        return render(request, 'club_event_classification_row.html', {'post': post, 'club': club})
+    return HttpResponse('Invalid request', status=400)
+
+
+@login_required
+def club_update_post_event_category(request, club_id, post_id):
+    club = get_object_or_404(Club, id=club_id)
+    
+    # Check if the user is a manager
+    is_manager = club.managers.filter(user=request.user, is_active=True).exists()
+    if not is_manager:
+        return HttpResponse("Unauthorized", status=403)
+        
+    post = get_object_or_404(Post, id=post_id, club=club)
+    
+    if request.method == 'POST':
+        category_val = request.POST.get('category') or request.GET.get('category')
+        valid_keys = [k for k, v in Post.CATEGORY_CHOICES]
+        if category_val in valid_keys:
+            post.category = category_val
+            post.save(update_fields=['category'])
+        return render(request, 'club_event_classification_row.html', {'post': post, 'club': club})
+    return HttpResponse('Invalid request', status=400)
+
+
+

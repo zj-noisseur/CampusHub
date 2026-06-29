@@ -5,13 +5,15 @@ from datetime import timedelta
 from django.conf import settings
 from django.db.models import Max, Count, Q, F
 from django.http import JsonResponse
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib.admin.views.decorators import staff_member_required
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import user_passes_test
 
-from core.models import Institution, Club, ClubScrapeStatus
+from core.models import Institution, Club, ClubScrapeStatus, ClaimRequest
+from django.contrib import messages
 from core.services.tasks import orchestrator, orchestrator_retry_post
 
 logger = logging.getLogger(__name__)
@@ -214,3 +216,42 @@ def admin_dashboard_action(request):
         })
 
     return JsonResponse({'error': 'Unknown action'}, status=400)
+
+@staff_member_required
+def admin_manager_requests(request):
+    """Displays the table of pending manager claims."""
+    pending_claims = ClaimRequest.objects.filter(status='PENDING').order_by('-submitted_at')
+    
+    context = {
+        'pending_claims': pending_claims,
+    }
+    return render(request, 'admin_manager_requests.html', context)
+
+
+@staff_member_required
+def admin_approve_manager_claim(request, claim_id):
+    """Handles the green Approve button."""
+    if request.method == 'POST':
+        claim = get_object_or_404(ClaimRequest, id=claim_id)
+        
+        claim.status = 'APPROVED'
+        claim.save()
+         
+        messages.success(request, f"Successfully approved {claim.user.student_name} as a manager!")
+        
+    return redirect('core:admin_manager_requests')
+
+
+@staff_member_required
+def admin_reject_manager_claim(request, claim_id):
+    """Handles the red Reject button."""
+    if request.method == 'POST':
+        claim = get_object_or_404(ClaimRequest, id=claim_id)
+        
+        # Just update the status and save
+        claim.status = 'REJECTED'
+        claim.save()
+        
+        messages.error(request, "The manager claim request was rejected.")
+        
+    return redirect('core:admin_manager_requests')

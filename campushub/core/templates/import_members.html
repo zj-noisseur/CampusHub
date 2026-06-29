@@ -1,15 +1,12 @@
-{% extends 'base.html' %}
+{% extends 'manager_base.html' %}
 {% load static %}
 
 {% block title %}Import Roster - {{ club.name }}{% endblock %}
 
-{% block content %}
-<div class="max-w-3xl mx-auto py-10 px-4">
+{% block manager_content %}
+<div class="w-full">
     
     <div class="mb-8">
-        <a href="{% url 'core:manager_dashboard' club.id %}" class="text-sm text-gray-500 hover:text-black mb-4 inline-block">
-            ← Back to Dashboard
-        </a>
         <h1 class="text-3xl font-bold tracking-tight text-black">Import Member Roster</h1>
         <p class="text-gray-500 mt-2">Bulk upload your existing club members for <span class="font-bold">{{ club.name }}</span>.</p>
     </div>

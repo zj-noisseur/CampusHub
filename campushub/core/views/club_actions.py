@@ -5,34 +5,38 @@ from django.contrib import messages
 
 @login_required
 def join_club(request, club_id):
-    if request.method == 'POST':
-        # 1. Grab the club and keep the variable name consistently as 'club'
-        club = get_object_or_404(Club, id=club_id)
+    if request.method != 'POST':
 
-        # 2. SAFETY CHECK: Did they already apply? Check this BEFORE saving anything!
-        if Membership.objects.filter(user=request.user, club=club).exists():
-            messages.warning(request, f"You have already applied to {club.name}.")
-            return redirect(request.META.get('HTTP_REFERER', 'core:profile'))
+        messages.error(request, "Oops! The form submission broke. Please try clicking 'Join' again.")
+        return redirect('core:club_profile', club_id=club_id)
+    
+    # 1. Grab the club and keep the variable name consistently as 'club'
+    club = get_object_or_404(Club, id=club_id)
+    
+    # 2. SAFETY CHECK: Did they already apply? Check this BEFORE saving anything!
+    if Membership.objects.filter(user=request.user, club=club).exists():
+        messages.warning(request, f"You have already applied to {club.name}.")
+        return redirect(request.META.get('HTTP_REFERER', 'core:profile'))
 
-        # 3. Decide the type based on the fee
-        mem_type = 'UNLIMITED' if club.membership_fee > 0 else 'LIMITED'
+    # 3. Decide the type based on the fee
+    mem_type = 'UNLIMITED' if club.membership_fee > 0 else 'LIMITED'
 
-        # 4. Create the new membership instance
-        membership = Membership(
-            user=request.user,
-            club=club,
-            membership_type=mem_type,
-            status='PENDING'
-        )
+    # 4. Create the new membership instance
+    membership = Membership(
+        user=request.user,
+        club=club,
+        membership_type=mem_type,
+        status='PENDING'
+    )
 
-        # 5. If it's a paid club, grab the uploaded image using your exact field name
-        if club.membership_fee > 0:
-            membership.payment_proof = request.FILES.get('payment_proof')
+    # 5. If it's a paid club, grab the uploaded image using your exact field name
+    if club.membership_fee > 0:
+        membership.payment_proof = request.FILES.get('payment_proof')
             
-        # 6. Finally, save it!
-        membership.save() 
+    # 6. Finally, save it!
+    membership.save() 
         
-        messages.success(request, f"Your request to join {club.name} has been sent!")
+    messages.success(request, f"Your request to join {club.name} has been sent!")
 
     # Redirect them back to wherever they came from
     return redirect(request.META.get('HTTP_REFERER', 'core:home'))

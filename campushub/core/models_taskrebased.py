@@ -395,6 +395,27 @@ class ClaimRequest(models.Model):
 
     def __str__(self):
         return f"Claim Request: {self.club.name} by {self.user.student_name} ({self.status})"
+    
+    def save(self, *args, **kwargs):
+        is_newly_approved = False
+        
+        if self.pk and self.status == 'APPROVED':
+            old_record = ClaimRequest.objects.get(pk=self.pk)
+            if old_record.status != 'APPROVED':
+                is_newly_approved = True
+
+        super().save(*args, **kwargs)
+
+        if is_newly_approved:
+            ClubManager.objects.get_or_create(
+                club=self.club,
+                user=self.user,
+                defaults={
+                    'role': 'Root Admin', 
+                    'designation': self.claimer_designation,
+                    'is_active': True
+                }
+            )
 
 
 class Post(models.Model):
@@ -403,7 +424,6 @@ class Post(models.Model):
         ('COMPETITION', 'Competition'),
         ('WORKSHOP', 'Workshop'),
         ('INDUSTRIAL_VISIT', 'Industrial Visit'),
-        ('ANNOUNCEMENT', 'Announcement')
     ]
 
     club = models.ForeignKey(Club, on_delete=models.CASCADE, related_name='posts')
@@ -464,6 +484,10 @@ class Event(models.Model):
         if primary:
             return primary
         return self.posts.first()
+
+    @property
+    def post(self):
+        return self.primary_post
 
     @property
     def extracted_details(self):
