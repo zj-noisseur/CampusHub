@@ -1,5 +1,6 @@
 from django.urls import path
 from django.contrib.auth import views as auth_views
+from django.views.generic import TemplateView
 from core.views.directory import directory
 from core.views.clubs import clubs
 from core.views.universities import universities
@@ -32,6 +33,8 @@ urlpatterns = [
     path('event/<int:event_id>/join/', join_event, name='join_event'),
     path('event/post/<int:post_id>/', event_detail, name='event_detail_by_post'),
     path('post/<int:post_id>/', post_detail, name='post_detail'),
+    path('privacy-policy/', TemplateView.as_view(template_name='privacy_policy.html'), name='privacy_policy'),
+    path('terms-of-use/', TemplateView.as_view(template_name='terms_of_use.html'), name='terms_of_use'),
     
     # --- Location & Institutional Discovery ---
     path('state/<int:state_id>/universities/', universities, name='universities'),
