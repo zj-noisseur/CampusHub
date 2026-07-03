@@ -7,21 +7,8 @@
 <div class="w-full max-w-4xl mx-auto">
     <!-- Header with Progress -->
     <div class="bg-white rounded-2xl p-6 md:p-8 border border-gray-100 shadow-sm mb-8">
-        <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-            <div>
-                <h1 class="text-3xl font-extrabold tracking-tight text-gray-900">Onboarding Checklist</h1>
-                <p class="text-gray-500 mt-2">Complete these four key steps to get your club profile fully setup and ready for students.</p>
-            </div>
-            <div class="shrink-0">
-                <button type="button" onclick="Supademo.open('cmqyz0qwg2dhdqmecngp2ueqp')" class="btn border-none bg-indigo-600 hover:bg-indigo-700 text-white rounded-full px-6 font-semibold shadow-sm transition-all hover:scale-[1.02] flex items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    Follow the steps
-                </button>
-            </div>
-        </div>
+        <h1 class="text-3xl font-extrabold tracking-tight text-gray-900">Onboarding Checklist</h1>
+        <p class="text-gray-500 mt-2">Complete these four key steps to get your club profile fully setup and ready for students.</p>
         
         <div class="mt-6">
             <div class="flex justify-between items-center mb-2">
@@ -255,7 +242,16 @@
 
                 <div class="mt-8 border-t border-gray-100 pt-6 space-y-6">
                     <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">Apify API Key</label>
+                        <div class="flex items-center justify-between mb-2">
+                            <label class="block text-sm font-semibold text-gray-700">Apify API Key</label>
+                            <button type="button" onclick="Supademo.open('cmqyz0qwg2dhdqmecngp2ueqp')" class="btn btn-xs border-none bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-full px-3 py-1 font-semibold flex items-center gap-1.5 transition-all hover:scale-[1.02]">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                How to get Apify key
+                            </button>
+                        </div>
                         {{ form.apify_api_key }}
                         <p class="text-xs text-gray-400 mt-2">Personal Apify API token used securely to pull post feed data.</p>
                         {% if form.apify_api_key.errors %}

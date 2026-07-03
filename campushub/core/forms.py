@@ -251,6 +251,8 @@ class ClubSettingsForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         if self.instance and self.instance.pk:
             self.fields['apify_api_key'].initial = self.instance.get_apify_api_key()
+            if self.instance.ig_handle and not self.instance.social_instagram:
+                self.fields['social_instagram'].initial = f"https://instagram.com/{self.instance.ig_handle}/"
 
     def clean(self):
         cleaned_data = super().clean()
@@ -270,6 +272,15 @@ class ClubSettingsForm(forms.ModelForm):
         club = super().save(commit=False)
         raw_key = self.cleaned_data.get('apify_api_key')
         club.set_apify_api_key(raw_key)
+        
+        # Populate/extract ig_handle from social_instagram to prevent mismatch/overwrite issues
+        instagram_url = self.cleaned_data.get('social_instagram')
+        if instagram_url:
+            from core.utils import extract_ig_handle
+            club.ig_handle = extract_ig_handle(instagram_url)
+        else:
+            club.ig_handle = ""
+            
         if commit:
             club.save()
         return club
@@ -407,6 +418,8 @@ class ClubOnboardingForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         if self.instance and self.instance.pk:
             self.fields['apify_api_key'].initial = self.instance.get_apify_api_key()
+            if self.instance.ig_handle and not self.instance.social_instagram:
+                self.fields['social_instagram'].initial = f"https://instagram.com/{self.instance.ig_handle}/"
 
     def clean(self):
         cleaned_data = super().clean()
@@ -426,6 +439,15 @@ class ClubOnboardingForm(forms.ModelForm):
         club = super().save(commit=False)
         raw_key = self.cleaned_data.get('apify_api_key')
         club.set_apify_api_key(raw_key)
+        
+        # Populate/extract ig_handle from social_instagram to prevent mismatch/overwrite issues
+        instagram_url = self.cleaned_data.get('social_instagram')
+        if instagram_url:
+            from core.utils import extract_ig_handle
+            club.ig_handle = extract_ig_handle(instagram_url)
+        else:
+            club.ig_handle = ""
+            
         if commit:
             club.save()
         return club
