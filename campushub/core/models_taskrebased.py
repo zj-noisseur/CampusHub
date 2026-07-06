@@ -341,6 +341,61 @@ class ClubManager(models.Model):
     def __str__(self):
         return f"{self.user.student_name} - {self.get_role_display()} of {self.club.name}"
 
+class NewClubRequest(models.Model):
+    STATUS_CHOICES = [
+        ('PENDING', 'Pending'),
+        ('APPROVED', 'Approved'),
+        ('REJECTED', 'Rejected'),
+    ]
+
+    requester = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    institution = models.ForeignKey(Institution, on_delete=models.CASCADE)
+    club_name = models.CharField(max_length=255)
+    category = models.PositiveSmallIntegerField(
+        choices=Club.CategoryChoices.choices, 
+        default=Club.CategoryChoices.OTHER
+    )
+    description = models.TextField()
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='PENDING')
+    submitted_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"New Club: {self.club_name} by {self.requester.student_name} ({self.status})"
+
+    def save(self, *args, **kwargs):
+        is_newly_approved = False
+        
+        # 1. Check if the admin just flipped the switch to APPROVED
+        if self.pk and self.status == 'APPROVED':
+            old_record = NewClubRequest.objects.get(pk=self.pk)
+            if old_record.status != 'APPROVED':
+                is_newly_approved = True
+
+        # 2. Save the request normally
+        super().save(*args, **kwargs)
+
+        # 3. The Automation: Spawn the club and give them the keys!
+        if is_newly_approved:
+            with transaction.atomic():
+                # A. Create the brand new club under their specific campus
+                new_club = Club.objects.create(
+                    name=self.club_name,
+                    institution=self.institution,
+                    description=self.description,
+                    club_category=self.category,
+                    # Give it 1 year of validity so it's instantly active
+                    valid_till=timezone.now() + timedelta(days=365) 
+                )
+                
+                # B. Make the founder the Root Admin automatically
+                ClubManager.objects.create(
+                    club=new_club,
+                    user=self.requester,
+                    role='ROOT',
+                    designation='President / Founder',
+                    is_active=True
+                )
+
 
 class ClubScrapeStatus(models.Model):
     club = models.OneToOneField('Club', on_delete=models.CASCADE, related_name='scrape_status')

@@ -1,6 +1,6 @@
 from django.shortcuts import redirect, get_object_or_404,render
 from django.contrib.auth.decorators import login_required
-from core.models import Club, Membership, ClaimRequest
+from core.models import Club, Membership, ClaimRequest, NewClubRequest, Institution
 from django.contrib import messages
 
 @login_required
@@ -64,3 +64,44 @@ def apply_manager(request, club_id):
             messages.error(request, "Please provide both your designation and proof document.")
 
     return render(request, 'apply_manager.html', {'club': target_club})
+
+@login_required
+def propose_club(request):
+    # 1. Block GET requests
+    if request.method != 'POST':
+        messages.error(request, "Oops! The form submission broke. Please try again.")
+        return redirect(request.META.get('HTTP_REFERER', 'core:directory'))
+
+    # 2. Extract data from the form
+    institution_id = request.POST.get('institution')
+    club_name = request.POST.get('club_name', '').strip()
+    category = request.POST.get('category')
+    description = request.POST.get('description', '').strip()
+
+    if not all([institution_id, club_name, category, description]):
+        messages.error(request, "Please fill in all required fields.")
+        return redirect(request.META.get('HTTP_REFERER', 'core:directory'))
+
+    institution = get_object_or_404(Institution, id=institution_id)
+
+    # 3. SAFETY CHECK: Does this club already exist?
+    if Club.objects.filter(institution=institution, name__iexact=club_name).exists():
+        messages.warning(request, f"A club named '{club_name}' already exists at {institution.university_name}.")
+        return redirect(request.META.get('HTTP_REFERER', 'core:directory'))
+
+    # 4. SAFETY CHECK: Is someone else already proposing this exact club?
+    if NewClubRequest.objects.filter(institution=institution, club_name__iexact=club_name, status='PENDING').exists():
+        messages.warning(request, f"A proposal for '{club_name}' at {institution.university_name} is already under review.")
+        return redirect(request.META.get('HTTP_REFERER', 'core:directory'))
+
+    # 5. Create the proposal in the waiting room!
+    NewClubRequest.objects.create(
+        requester=request.user,
+        institution=institution,
+        club_name=club_name,
+        category=category,
+        description=description
+    )
+
+    messages.success(request, f"Your proposal for '{club_name}' has been submitted! You will be granted Root Admin access upon approval.")
+    return redirect(request.META.get('HTTP_REFERER', 'core:directory'))

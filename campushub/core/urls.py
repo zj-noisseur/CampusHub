@@ -10,7 +10,7 @@ from core.views.sign_up import sign_up, activate_account,resend_activation
 from core.views.claim_club import claim_club
 from core.views.profile import user_profile, edit_profile
 from core.views.calendar import calendar
-from core.views.club_actions import join_club, apply_manager
+from core.views.club_actions import join_club, apply_manager, propose_club
 from core.views.manager_dashboard import import_members, manager_dashboard, process_membership, extend_club_validity, update_post_extracted_details, club_extract_post_details, club_revert_post_extraction, club_task_queue, club_classify_post_temporal, club_update_post_event_status, club_classify_post_event, club_update_post_event_category
 from core.views.imports import import_attendees_csv
 from core.views.certificates import upload_certificate_template, download_certificates, download_my_certificate
@@ -18,6 +18,7 @@ from core.views.dashboards import club_profile, club_admin_dashboard, club_setti
 from core.views.event_detail import event_detail, join_event
 from core.views.post_detail import post_detail
 from core.views.event_checkin import generate_qr_token, event_qr_checkin
+from core.views.admin_dashboard import admin_new_club_requests, process_new_club_request
 
 app_name = 'core'
 
@@ -60,6 +61,10 @@ urlpatterns = [
     path('admin-site/dashboard/manager-requests/<int:claim_id>/approve/', admin_approve_manager_claim, name='approve_manager_claim'),
     path('admin-site/dashboard/manager-requests/<int:claim_id>/reject/', admin_reject_manager_claim, name='reject_manager_claim'),
     
+     # --- New Club Proposal ---
+    path('propose-club/', propose_club, name='propose_club'),
+    path('admin-site/new-club-requests/',admin_new_club_requests, name='admin_new_club_requests'),
+    path('admin-site/new-club-requests/<int:req_id>/<str:action>/',process_new_club_request, name='process_new_club_request'),
     
     # --- Caption Processing Workflow ---
     # Step 1: Temporal Classification

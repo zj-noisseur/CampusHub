@@ -10,11 +10,14 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
-from django.contrib.auth.decorators import user_passes_test
+from django.contrib.auth.decorators import user_passes_test, login_required 
 
 from core.models import Institution, Club, ClubScrapeStatus, ClaimRequest
 from django.contrib import messages
 from core.services.tasks import orchestrator, orchestrator_retry_post
+from core.models import NewClubRequest
+from django.http import JsonResponse, HttpResponse
+
 
 logger = logging.getLogger(__name__)
 
@@ -255,3 +258,34 @@ def admin_reject_manager_claim(request, claim_id):
         messages.error(request, "The manager claim request was rejected.")
         
     return redirect('core:admin_manager_requests')
+
+@login_required
+def admin_new_club_requests(request):
+    # Security check: Ensure they are an admin
+    if not request.user.is_staff: 
+        messages.error(request, "Unauthorized access.")
+        return redirect('core:home')
+    
+    # Grab all pending requests
+    pending_requests = NewClubRequest.objects.filter(status='PENDING').order_by('-submitted_at')
+    
+    return render(request, 'admin_new_club_requests.html', {'pending_requests': pending_requests})
+
+@login_required
+def process_new_club_request(request, req_id, action):
+    if not request.user.is_staff:
+        return HttpResponse("Unauthorized", status=403)
+        
+    club_req = get_object_or_404(NewClubRequest, id=req_id)
+    
+    if request.method == 'POST':
+        if action == 'approve':
+            club_req.status = 'APPROVED'
+            club_req.save() # <-- This triggers your model automation!
+            messages.success(request, f"Approved! The club '{club_req.club_name}' has been officially created.")
+        elif action == 'reject':
+            club_req.status = 'REJECTED'
+            club_req.save()
+            messages.success(request, f"Rejected the proposal for '{club_req.club_name}'.")
+            
+    return redirect('core:admin_new_club_requests')
