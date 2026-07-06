@@ -4,10 +4,10 @@
 {% block container_class %}w-full max-w-full flex flex-grow{% endblock %}
 
 {% block content %}
-<div class="flex flex-col lg:flex-row w-full flex-grow min-h-[calc(100vh-5rem)] bg-base-100">
+<div class="flex flex-col xl:flex-row w-full flex-grow min-h-[calc(100vh-5rem)] min-h-[calc(100dvh-5rem)] bg-base-100">
   
   <!-- Mobile Admin Navigation Bar -->
-  <div class="lg:hidden w-full bg-base-200 border-b border-base-300 p-4 flex flex-col gap-2">
+  <div class="xl:hidden w-full bg-base-200 border-b border-base-300 p-4 flex flex-col gap-2">
     <button type="button" onclick="document.getElementById('mobile-admin-menu').classList.toggle('hidden')" class="btn btn-outline btn-sm w-full flex items-center justify-between font-bold rounded-xl">
       <span class="flex items-center gap-2">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
@@ -67,7 +67,7 @@
   </div>
 
   <!-- Desktop Sidebar Navigation -->
-  <aside class="hidden lg:flex flex-col w-64 bg-base-200/60 border-r border-base-300 flex-shrink-0 p-4 select-none">
+  <aside class="hidden xl:flex flex-col w-64 bg-base-200/60 border-r border-base-300 flex-shrink-0 p-4 select-none">
     <ul class="menu p-0 w-full gap-1.5 text-base-content">
       
       <li class="menu-title text-base-content/50 uppercase text-xs font-bold tracking-wider px-3 pt-2 pb-1">Approval</li>
@@ -135,7 +135,7 @@
   </aside>
 
   <!-- Main Content Container -->
-  <main class="flex-1 p-4 lg:p-8 w-full max-w-full overflow-x-hidden">
+  <main class="flex-1 p-4 xl:p-8 w-full max-w-full overflow-x-hidden">
     <div class="max-w-7xl mx-auto w-full space-y-8">
       {% block admin_content %}
       {% endblock %}

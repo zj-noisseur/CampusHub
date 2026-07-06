@@ -251,6 +251,8 @@ class ClubSettingsForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         if self.instance and self.instance.pk:
             self.fields['apify_api_key'].initial = self.instance.get_apify_api_key()
+            if self.instance.ig_handle and not self.instance.social_instagram:
+                self.fields['social_instagram'].initial = f"https://instagram.com/{self.instance.ig_handle}/"
 
     def clean(self):
         cleaned_data = super().clean()
@@ -270,6 +272,15 @@ class ClubSettingsForm(forms.ModelForm):
         club = super().save(commit=False)
         raw_key = self.cleaned_data.get('apify_api_key')
         club.set_apify_api_key(raw_key)
+        
+        # Populate/extract ig_handle from social_instagram to prevent mismatch/overwrite issues
+        instagram_url = self.cleaned_data.get('social_instagram')
+        if instagram_url:
+            from core.utils import extract_ig_handle
+            club.ig_handle = extract_ig_handle(instagram_url)
+        else:
+            club.ig_handle = ""
+            
         if commit:
             club.save()
         return club
@@ -365,3 +376,79 @@ class CertificateUploadForm(forms.ModelForm):
         # (it will keep the old one if not provided).
         if self.instance and self.instance.pk:
             self.fields['template_image'].required = False
+
+
+class ClubOnboardingForm(forms.ModelForm):
+    apify_api_key = forms.CharField(
+        required=False,
+        widget=forms.PasswordInput(render_value=True, attrs={'class': 'input input-bordered w-full', 'placeholder': 'Enter your Apify API key...'}),
+        label="Apify API Key"
+    )
+
+    class Meta:
+        model = Club
+        fields = [
+            'logo',
+            'banner',
+            'renewal_policy',
+            'membership_fee',
+            'payment_qr_code',
+            'social_instagram',
+            'social_linkedin',
+            'social_twitter',
+            'social_facebook',
+            'social_discord',
+            'social_website',
+        ]
+        widgets = {
+            'logo': forms.FileInput(attrs={'class': 'file-input file-input-bordered w-full max-w-xs'}),
+            'banner': forms.FileInput(attrs={'class': 'file-input file-input-bordered w-full max-w-xs'}),
+            'renewal_policy': forms.Select(attrs={'class': 'select select-bordered w-full max-w-xs'}),
+            'membership_fee': forms.NumberInput(attrs={'class': 'input input-bordered w-full max-w-xs', 'step': '0.01'}),
+            'payment_qr_code': forms.FileInput(attrs={'class': 'file-input file-input-bordered w-full max-w-xs'}),
+            'social_instagram': forms.URLInput(attrs={'class': 'input input-bordered w-full', 'placeholder': 'https://instagram.com/...'}),
+            'social_linkedin': forms.URLInput(attrs={'class': 'input input-bordered w-full', 'placeholder': 'https://linkedin.com/...'}),
+            'social_twitter': forms.URLInput(attrs={'class': 'input input-bordered w-full', 'placeholder': 'https://twitter.com/...'}),
+            'social_facebook': forms.URLInput(attrs={'class': 'input input-bordered w-full', 'placeholder': 'https://facebook.com/...'}),
+            'social_discord': forms.URLInput(attrs={'class': 'input input-bordered w-full', 'placeholder': 'https://discord.gg/...'}),
+            'social_website': forms.URLInput(attrs={'class': 'input input-bordered w-full', 'placeholder': 'https://...'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk:
+            self.fields['apify_api_key'].initial = self.instance.get_apify_api_key()
+            if self.instance.ig_handle and not self.instance.social_instagram:
+                self.fields['social_instagram'].initial = f"https://instagram.com/{self.instance.ig_handle}/"
+
+    def clean(self):
+        cleaned_data = super().clean()
+        social_fields = [
+            'social_instagram', 'social_linkedin', 'social_twitter', 
+            'social_facebook', 'social_discord', 'social_website'
+        ]
+        
+        for field in social_fields:
+            value = cleaned_data.get(field)
+            if value and not value.startswith(('http://', 'https://')):
+                cleaned_data[field] = 'https://' + value
+        
+        return cleaned_data
+
+    def save(self, commit=True):
+        club = super().save(commit=False)
+        raw_key = self.cleaned_data.get('apify_api_key')
+        club.set_apify_api_key(raw_key)
+        
+        # Populate/extract ig_handle from social_instagram to prevent mismatch/overwrite issues
+        instagram_url = self.cleaned_data.get('social_instagram')
+        if instagram_url:
+            from core.utils import extract_ig_handle
+            club.ig_handle = extract_ig_handle(instagram_url)
+        else:
+            club.ig_handle = ""
+            
+        if commit:
+            club.save()
+        return club
+

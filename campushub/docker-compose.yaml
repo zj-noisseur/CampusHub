@@ -5,7 +5,9 @@ services:
     build:
       context: .
       dockerfile: ./Dockerfile
-    command: gunicorn campushub.wsgi:application --bind 0.0.0.0:8000
+    command: >
+      sh -c "python manage.py collectstatic --noinput &&
+             gunicorn campushub.wsgi:application --bind 0.0.0.0:8000"
     expose:
       - 8000
     environment:

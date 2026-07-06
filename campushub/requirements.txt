@@ -11,3 +11,4 @@ django-storages[s3]
 psycopg2-binary
 boto3
 sqlalchemy
+whitenoise

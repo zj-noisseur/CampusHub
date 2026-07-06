@@ -80,3 +80,18 @@ def decrypt_val(val):
         return base64.b64decode(val.encode()).decode()
     except Exception:
         return val
+
+
+def extract_ig_handle(url):
+    if not url:
+        return ""
+    # Remove query parameters (e.g. ?igsh=...)
+    url = url.split('?')[0]
+    # Remove trailing slashes
+    url = url.rstrip('/')
+    # Split by slashes
+    parts = url.split('/')
+    if parts:
+        # The last non-empty segment should be the handle
+        return parts[-1]
+    return ""
