@@ -3,20 +3,22 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.colors import HexColor
 from PIL import Image
 
-def generate_certificate_pdf(student_name, background_path, custom_x, custom_y, font_size=24, font_color="#000000", font_name="Helvetica-Bold", 
+def generate_certificate_pdf(student_name, background_bytes, custom_x, custom_y, font_size=24, font_color="#000000", font_name="Helvetica-Bold", 
                              extra_text=None, extra_x=None, extra_y=None, extra_size=20, extra_color="#000000"):
     # 1. Create a "virtual file" in memory
     buffer = io.BytesIO()
     
     # 2. Get the ACTUAL width and height of the uploaded image
-    with Image.open(background_path) as img:
+    img_buffer = io.BytesIO(background_bytes)
+    with Image.open(img_buffer) as img:
         img_width, img_height = img.size
     
     # 3. Set the canvas to match the exact image size
     p = canvas.Canvas(buffer, pagesize=(img_width, img_height))
     
-    # 4. Stamp the background
-    p.drawImage(background_path, 0, 0, width=img_width, height=img_height)
+    # 4. Stamp the background (seek back so ReportLab can re-read the bytes)
+    img_buffer.seek(0)
+    p.drawImage(img_buffer, 0, 0, width=img_width, height=img_height)
     
     # 5. Draw Student Name
     p.setFont(font_name, font_size)

@@ -47,6 +47,9 @@ def download_certificates(request, event_id):
 
     zip_buffer = io.BytesIO()
     
+    # Read the background image once (don't call .read() inside the loop — FieldFile caches the handle)
+    background_bytes = template.template_image.read()
+    
     with zipfile.ZipFile(zip_buffer, 'w') as zip_file:
         for person in attendees:
             
@@ -69,7 +72,7 @@ def download_certificates(request, event_id):
             # 2. Generate PDF
             pdf_buffer = generate_certificate_pdf(
                 student_name=student_name, 
-                background_path=template.template_image.path,
+                background_bytes=background_bytes,
                 custom_x=template.name_center_x,
                 custom_y=template.name_center_y,
                 font_size=template.font_size,
@@ -115,7 +118,7 @@ def download_my_certificate(request, event_id):
         
     pdf_buffer = generate_certificate_pdf(
         student_name=student_name,
-        background_path=template.template_image.path,
+        background_bytes=template.template_image.read(),
         custom_x=template.name_center_x,
         custom_y=template.name_center_y,
         font_size=template.font_size,
