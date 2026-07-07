@@ -4,10 +4,15 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 import zipfile
 import io
+import re
 
 from core.models import Event, EventCertificate, Attendance, PreRegisteredAttendee
 from core.utils import generate_certificate_pdf
 from core.forms import CertificateUploadForm
+
+def sanitize_filename(filename):
+    # Remove any characters that aren't alphanumeric, space, dash, or underscore
+    return re.sub(r'[^\w\s-]', '', filename).strip()
 
 @login_required
 def upload_certificate_template(request, event_id):
@@ -36,7 +41,7 @@ def download_certificates(request, event_id):
     event = Event.objects.get(id=event_id)
     template = EventCertificate.objects.filter(event=event).first()
     
-    if not template:
+    if not template or not template.template_image:
         return HttpResponse(f"No certificate template uploaded for {event.title} yet!")
     
     # STRICTLY READS FROM THE ATTENDANCE TABLE
@@ -47,8 +52,10 @@ def download_certificates(request, event_id):
 
     zip_buffer = io.BytesIO()
     
-    # Read the background image once (don't call .read() inside the loop — FieldFile caches the handle)
-    background_bytes = template.template_image.read()
+    try:
+        background_bytes = template.template_image.read()
+    except Exception as e:
+        return HttpResponse(f"Error reading template image: {str(e)}", status=500)
     
     with zipfile.ZipFile(zip_buffer, 'w') as zip_file:
         for person in attendees:
@@ -69,27 +76,38 @@ def download_certificates(request, event_id):
             if prereg and not prereg.is_ready:
                 continue
 
+            # Default safe name
+            if not student_name:
+                student_name = "Attendee"
+
             # 2. Generate PDF
-            pdf_buffer = generate_certificate_pdf(
-                student_name=student_name, 
-                background_bytes=background_bytes,
-                custom_x=template.name_center_x,
-                custom_y=template.name_center_y,
-                font_size=template.font_size,
-                font_color=template.font_color,
-                font_name=template.font_name,
-                extra_text=template.custom_text,
-                extra_x=template.custom_x,
-                extra_y=template.custom_y,
-                extra_size=template.custom_font_size,
-                extra_color=template.custom_font_color
-            )
-            
-            filename = f"{student_name}_Certificate.pdf"
-            zip_file.writestr(filename, pdf_buffer.getvalue())
+            try:
+                pdf_buffer = generate_certificate_pdf(
+                    student_name=student_name, 
+                    background_bytes=background_bytes,
+                    custom_x=template.name_center_x,
+                    custom_y=template.name_center_y,
+                    font_size=template.font_size or 24,
+                    font_color=template.font_color or "#000000",
+                    font_name=template.font_name or "Helvetica-Bold",
+                    extra_text=template.custom_text,
+                    extra_x=template.custom_x,
+                    extra_y=template.custom_y,
+                    extra_size=template.custom_font_size or 20,
+                    extra_color=template.custom_font_color or "#000000"
+                )
+                
+                safe_name = sanitize_filename(student_name)
+                filename = f"{safe_name}_Certificate.pdf"
+                zip_file.writestr(filename, pdf_buffer.getvalue())
+            except Exception as e:
+                # Log error and skip this attendee to allow the rest to download
+                print(f"Error generating cert for {student_name}: {e}")
+                continue
 
     zip_buffer.seek(0)
-    zip_filename = f"{event.title}_Certificates.zip"
+    safe_event_title = sanitize_filename(event.title)
+    zip_filename = f"{safe_event_title}_Certificates.zip"
     return FileResponse(zip_buffer, as_attachment=True, filename=zip_filename)
 
 @login_required
@@ -110,28 +128,40 @@ def download_my_certificate(request, event_id):
         return HttpResponse("Certificates are not yet available for this event.", status=403)
     
     template = EventCertificate.objects.filter(event=event).first()
-    if not template:
+    if not template or not template.template_image:
         return HttpResponse(f"No certificate template uploaded for {event.title} yet!")
         
     # Determine the name to print on the certificate
     student_name = attendance.guest_name if attendance.guest_name else (user.first_name if user.first_name else user.username)
+    if not student_name:
+        student_name = "Attendee"
         
-    pdf_buffer = generate_certificate_pdf(
-        student_name=student_name,
-        background_bytes=template.template_image.read(),
-        custom_x=template.name_center_x,
-        custom_y=template.name_center_y,
-        font_size=template.font_size,
-        font_color=template.font_color,
-        font_name=template.font_name,
-        extra_text=template.custom_text,
-        extra_x=template.custom_x,
-        extra_y=template.custom_y,
-        extra_size=template.custom_font_size,
-        extra_color=template.custom_font_color
-    )
+    try:
+        background_bytes = template.template_image.read()
+    except Exception as e:
+        return HttpResponse(f"Error reading certificate template file: {str(e)}", status=500)
+
+    try:
+        pdf_buffer = generate_certificate_pdf(
+            student_name=student_name,
+            background_bytes=background_bytes,
+            custom_x=template.name_center_x,
+            custom_y=template.name_center_y,
+            font_size=template.font_size or 24,
+            font_color=template.font_color or "#000000",
+            font_name=template.font_name or "Helvetica-Bold",
+            extra_text=template.custom_text,
+            extra_x=template.custom_x,
+            extra_y=template.custom_y,
+            extra_size=template.custom_font_size or 20,
+            extra_color=template.custom_font_color or "#000000"
+        )
+    except Exception as e:
+        return HttpResponse(f"Error generating certificate: {str(e)}", status=500)
     
     pdf_buffer.seek(0)
-    filename = f"{student_name}_{event.title}_Certificate.pdf"
+    safe_name = sanitize_filename(student_name)
+    safe_event_title = sanitize_filename(event.title)
+    filename = f"{safe_name}_{safe_event_title}_Certificate.pdf"
     
     return FileResponse(pdf_buffer, as_attachment=True, filename=filename)
