@@ -1,4 +1,5 @@
 from django.contrib import admin
+from .models import NewClubRequest
 
 from core.models import (
     Attendance,
@@ -87,3 +88,10 @@ class ClaimRequestAdmin(admin.ModelAdmin):
                 obj.user.save()
 
         super().save_model(request, obj, form, change)
+
+@admin.register(NewClubRequest)
+class NewClubRequestAdmin(admin.ModelAdmin):
+    list_display = ('club_name', 'institution', 'requester', 'status', 'submitted_at')
+    list_filter = ('status', 'institution', 'category')
+    search_fields = ('club_name', 'requester__student_name', 'requester__email')
+    readonly_fields = ('submitted_at',)

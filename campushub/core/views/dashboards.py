@@ -468,7 +468,8 @@ def trigger_club_scrape(request, club_id):
     if not is_manager:
         return redirect('core:club_profile', club_id=club.id)
         
-    apify_key = club.get_apify_api_key()
+    import os
+    apify_key = club.get_apify_api_key() or os.getenv('APIFY_API_KEY')
     if not apify_key:
         messages.error(request, "Please configure your Apify API key in settings before scraping.")
         return redirect('core:club_settings', club_id=club.id)

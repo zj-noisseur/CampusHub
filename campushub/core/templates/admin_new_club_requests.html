@@ -1,0 +1,79 @@
+{% extends 'admin_base.html' %} {% block title %}New Club Requests - CampusHub{% endblock %}
+
+{% block admin_content %}
+<div class="w-full">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+        <div>
+            <h1 class="text-3xl font-bold text-black tracking-tight">New Club Requests</h1>
+            <p class="text-gray-500 mt-1">Review and approve student proposals to launch new clubs.</p>
+        </div>
+        <span class="bg-indigo-600 text-white font-bold py-1.5 px-4 rounded-full text-sm shadow-sm">
+            {{ pending_requests.count }} Pending
+        </span>
+    </div>
+
+    <div class="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="table w-full">
+                <thead>
+                    <tr class="bg-gray-50/50 text-gray-500 border-b-2 border-gray-100 uppercase text-xs font-bold tracking-wider">
+                        <th class="py-5 px-6">Student</th>
+                        <th>Proposed Club</th>
+                        <th>Campus</th>
+                        <th>Category & Mission</th>
+                        <th class="text-right px-6">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for req in pending_requests %}
+                    <tr class="hover:bg-gray-50/50 border-b border-gray-50 transition-colors">
+                        <td class="px-6 py-4">
+                            <div class="font-bold text-black">{{ req.requester.student_name }}</div>
+                            <div class="text-xs text-gray-400 mt-0.5">{{ req.requester.email }}</div>
+                            <div class="text-xs text-gray-400 mt-0.5">{{ req.submitted_at|date:"M d, Y" }}</div>
+                        </td>
+                        <td>
+                            <div class="font-bold text-gray-900 text-base">{{ req.club_name }}</div>
+                        </td>
+                        <td class="text-gray-600 font-medium">
+                            <span class="flex items-center gap-1.5">
+                                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                                {{ req.institution.university_name }}
+                            </span>
+                        </td>
+                        <td class="max-w-xs">
+                            <span class="badge bg-indigo-50 text-indigo-600 border-none text-xs font-bold mb-2">{{ req.get_category_display }}</span>
+                            <p class="text-xs text-gray-500 line-clamp-2 leading-relaxed" title="{{ req.description }}">{{ req.description }}</p>
+                        </td>
+                        <td class="px-6">
+                            <div class="flex justify-end gap-2">
+                                <form method="POST" action="{% url 'core:process_new_club_request' req.id 'approve' %}">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm bg-black hover:bg-gray-800 text-white rounded-full border-none px-4">Approve</button>
+                                </form>
+                                <form method="POST" action="{% url 'core:process_new_club_request' req.id 'reject' %}">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-ghost text-red-500 hover:bg-red-50 rounded-full px-4">Reject</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="py-20 text-center">
+                            <div class="flex flex-col items-center justify-center text-gray-400">
+                                <div class="w-16 h-16 bg-gray-50 border border-gray-100 rounded-full flex items-center justify-center mb-4 shadow-sm">
+                                    <svg class="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
+                                </div>
+                                <h3 class="text-lg font-bold text-gray-900 mb-1">No pending requests</h3>
+                                <p class="text-sm font-medium">You're all caught up! There are no new club proposals to review.</p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -121,9 +121,9 @@ def run_club_scrape_task(self, club_id, search_limit=20, max_items=50, export_di
     if not club.ig_handle:
         raise ValueError('Club does not have an Instagram handle')
 
-    apify_key = club.get_apify_api_key()
+    apify_key = club.get_apify_api_key() or os.getenv('APIFY_API_KEY')
     if not apify_key:
-        raise ValueError('Apify API Key is not configured for this club.')
+        raise ValueError('Apify API Key is not configured for this club or the server.')
 
     if only_posts_newer_than is None:
         latest_timestamp = club.posts.order_by('-timestamp').values_list('timestamp', flat=True).first()

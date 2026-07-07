@@ -67,6 +67,69 @@
             {% endfor %}
         </ul>
 
+        <div class="mt-12 text-center bg-base-200/50 rounded-3xl p-8 border border-base-300 shadow-sm">
+            <h3 class="text-xl font-bold text-gray-900">Don't see your club?</h3>
+            <p class="text-gray-500 mt-2 mb-6">Start a new student organization at your campus.</p>
+            <button onclick="new_club_modal.showModal()" class="btn bg-black text-white hover:bg-gray-800 rounded-xl px-8 border-none shadow-md transition-transform hover:scale-105">
+                + Propose a New Club
+            </button>
+        </div>
+
+        <dialog id="new_club_modal" class="modal modal-bottom sm:modal-middle">
+            <div class="modal-box bg-white rounded-3xl p-8 text-left">
+                <form method="dialog">
+                    <button class="btn btn-sm btn-circle btn-ghost absolute right-4 top-4">✕</button>
+                </form>
+                <h3 class="font-bold text-2xl text-black mb-2">Propose a New Club</h3>
+                <p class="text-gray-500 text-sm mb-6">Submit your club idea to the administration. Once approved, you will be granted Root Admin access to manage it.</p>
+                
+                <form method="POST" action="{% url 'core:propose_club' %}" class="space-y-4">
+                    {% csrf_token %}
+                    
+                    <div class="form-control w-full">
+                        <label class="label"><span class="label-text font-bold text-gray-700">University / Campus</span></label>
+                        <select name="institution" class="select select-bordered w-full bg-gray-50" required>
+                            <option disabled selected>Select your campus...</option>
+                            {% for inst in institutions %}
+                                <option value="{{ inst.id }}">{{ inst.university_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-control w-full">
+                        <label class="label"><span class="label-text font-bold text-gray-700">Club Name</span></label>
+                        <input type="text" name="club_name" required placeholder="e.g. Debate Club" class="input input-bordered w-full bg-gray-50" />
+                    </div>
+
+                    <div class="form-control w-full">
+                        <label class="label"><span class="label-text font-bold text-gray-700">Category</span></label>
+                        <select name="category" class="select select-bordered w-full bg-gray-50" required>
+                            <option value="0">Academic & Professional</option>
+                            <option value="1">Sports & Recreation</option>
+                            <option value="2">Arts & Culture</option>
+                            <option value="3">Community Service</option>
+                            <option value="4">Technology & Innovation</option>
+                            <option value="5">Special Interest</option>
+                            <option value="6" selected>Other</option>
+                        </select>
+                    </div>
+
+                    <div class="form-control w-full">
+                        <label class="label"><span class="label-text font-bold text-gray-700">Description / Mission</span></label>
+                        <textarea name="description" required placeholder="What is the purpose of this club?" class="textarea textarea-bordered h-24 bg-gray-50 w-full"></textarea>
+                    </div>
+
+                    <button type="submit" class="btn bg-black hover:bg-gray-800 text-white border-none w-full rounded-full h-12 text-lg mt-4">
+                        Submit Proposal
+                    </button>
+                </form>
+            </div>
+            <form method="dialog" class="modal-backdrop">
+                <button>close</button>
+            </form>
+        </dialog>
+        </div>
+
     </div>
 
     <script>
