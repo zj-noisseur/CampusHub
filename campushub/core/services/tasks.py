@@ -232,9 +232,9 @@ def retrieve_json(self, club_id, search_limit=20, max_items=50, export_dir=None,
         raise ValueError('Club does not have an Instagram handle')
 
     # Ensure manager has provided their key
-    apify_key = club.get_apify_api_key()
+    apify_key = club.get_apify_api_key() or os.getenv('APIFY_API_KEY')
     if not apify_key:
-        raise ValueError('Apify API Key is not configured for this club.')
+        raise ValueError('Apify API Key is not configured for this club or the server.')
 
     latest_timestamp = None
     if only_posts_newer_than is None:
@@ -302,9 +302,9 @@ def retrieve_single_post_json(self, club_id, post_url):
         raise ValueError('Club not found')
 
     # Ensure manager has provided their key
-    apify_key = club.get_apify_api_key()
+    apify_key = club.get_apify_api_key() or os.getenv('APIFY_API_KEY')
     if not apify_key:
-        raise ValueError('Apify API Key is not configured for this club.')
+        raise ValueError('Apify API Key is not configured for this club or the server.')
 
     update_scrape_status(
         club.id,
