@@ -1,6 +1,7 @@
 import io
 from reportlab.pdfgen import canvas
 from reportlab.lib.colors import HexColor
+from reportlab.lib.utils import ImageReader
 from PIL import Image
 
 def generate_certificate_pdf(student_name, background_bytes, custom_x, custom_y, font_size=24, font_color="#000000", font_name="Helvetica-Bold", 
@@ -18,7 +19,8 @@ def generate_certificate_pdf(student_name, background_bytes, custom_x, custom_y,
     
     # 4. Stamp the background (seek back so ReportLab can re-read the bytes)
     img_buffer.seek(0)
-    p.drawImage(img_buffer, 0, 0, width=img_width, height=img_height)
+    img_reader = ImageReader(img_buffer)
+    p.drawImage(img_reader, 0, 0, width=img_width, height=img_height)
     
     # 5. Draw Student Name
     p.setFont(font_name, font_size)
